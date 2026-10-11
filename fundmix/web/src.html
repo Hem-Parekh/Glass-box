@@ -716,8 +716,19 @@ $("dlsample").hidden = true;
 $("dlhint").textContent = "Preparing download…";
 loadSample();
 (async () => {
-  try { DL = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { DL = null; }
-  $("dlhint").textContent = DL ? "" : "PDF download is available when this page is opened from its claude.ai link.";
+  if (window.claude && window.claude.use) {
+    try { DL = await window.claude.use("downloads"); } catch (e) { DL = null; }
+  } else {
+    // hosted outside claude.ai (own site, GitHub Pages, opened from disk): plain browser download
+    DL = { save: async ({ filename, data }) => {
+      const url = URL.createObjectURL(new Blob([data]));
+      const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      return { status: "saved" };
+    } };
+  }
+  $("dlhint").textContent = DL ? "" : "PDF download is not available in this view.";
   updateDl();
 })();
 </script>
