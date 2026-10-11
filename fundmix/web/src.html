@@ -1,0 +1,723 @@
+<title>Debt vs Equity Funding Report</title>
+<style>
+/* Layout: brand band on top, inputs rail on the left, live report sheet on the right (stacks on phones). */
+:root{
+  --navy:#12263F;--teal:#1AA6A0;--orange:#F2A541;
+  --bg:#FFFFFF;--fg:#1E2935;--muted:#5B6B7C;--strong:#12263F;
+  --alt:#F2F6FA;--panel:#F7F9FB;--line:#D9DEE5;--field:#FFFFFF;
+  --band:#12263F;--band-fg:#FFFFFF;--band-sub:#BFD3E6;
+  --debt:#12263F;--on-debt:#FFFFFF;--on-orange:#12263F;
+  --good:#1E8A5A;--warn:#B36B00;--bad:#B3261E;--bad-bg:#FDECEA;
+  --c-grid:#ECEFF3;--c-axis:#C7CED6;--c-tick:#5B6B7C;--c-ink:#12263F;
+  --font:Arial,Helvetica,"Liberation Sans",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1722;--fg:#DCE4EC;--muted:#97A8BA;--strong:#EEF3F8;
+  --alt:#132233;--panel:#101D2B;--line:#26384B;--field:#0B1520;
+  --band:#0A1420;--band-fg:#FFFFFF;--band-sub:#A9C1D9;
+  --debt:#5E8FCB;--on-debt:#FFFFFF;--on-orange:#12263F;
+  --good:#4CC28A;--warn:#F2A541;--bad:#FF8A80;--bad-bg:#3A1C1C;
+  --c-grid:#1C2C3D;--c-axis:#34495F;--c-tick:#97A8BA;--c-ink:#EEF3F8;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1722;--fg:#DCE4EC;--muted:#97A8BA;--strong:#EEF3F8;
+  --alt:#132233;--panel:#101D2B;--line:#26384B;--field:#0B1520;
+  --band:#0A1420;--band-fg:#FFFFFF;--band-sub:#A9C1D9;
+  --debt:#5E8FCB;--on-debt:#FFFFFF;--on-orange:#12263F;
+  --good:#4CC28A;--warn:#F2A541;--bad:#FF8A80;--bad-bg:#3A1C1C;
+  --c-grid:#1C2C3D;--c-axis:#34495F;--c-tick:#97A8BA;--c-ink:#EEF3F8;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45}
+.top{background:var(--band);color:var(--band-fg);border-bottom:4px solid var(--teal);position:relative;padding:22px 24px 18px}
+.top::after{content:"";position:absolute;left:0;bottom:-4px;width:160px;height:4px;background:var(--orange)}
+.top-in{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between}
+.top h1{margin:0;font-size:22px;letter-spacing:.2px;text-wrap:balance}
+.top p{margin:4px 0 0;color:var(--band-sub);font-size:13.5px;max-width:62ch}
+.brand{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--band-sub)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
+/* inputs rail */
+.rail{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;min-width:0}
+.rail h2,.rep h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin:0}
+.grp{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0;padding:14px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.fld{display:grid;gap:4px;min-width:0}
+.fld label{font-size:12px;color:var(--muted)}
+.in{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:5px;background:var(--field);overflow:hidden}
+.in:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 30%,transparent)}
+.in input,.in select{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font:inherit;padding:8px 10px;outline:none;font-variant-numeric:tabular-nums}
+.in .sfx{padding:8px 9px;color:var(--muted);font-size:12px;border-left:1px solid var(--line);background:var(--alt);white-space:nowrap}
+.fld.bad .in{border-color:var(--bad)}
+.fld .msg{font-size:11.5px;color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end}
+.drop{border:1.5px dashed var(--line);border-radius:6px;padding:14px;display:grid;gap:8px;background:var(--field);cursor:pointer;text-align:left;color:var(--fg);font:inherit}
+.drop:hover,.drop.over{border-color:var(--teal)}
+.drop strong{color:var(--strong);font-size:13.5px}
+.drop span{font-size:12px;color:var(--muted)}
+.src{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--alt);border:1px solid var(--line);font-size:12px;color:var(--strong);max-width:100%;overflow-wrap:anywhere}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none}
+.chip.err i{background:var(--bad)}
+.note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--teal);padding:2px 0 2px 10px}
+.btn{font:inherit;font-size:13px;font-weight:700;border-radius:5px;padding:9px 14px;cursor:pointer;border:1px solid transparent}
+.btn:focus-visible,.drop:focus-visible,summary:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.btn.pri{background:var(--orange);color:var(--on-orange)}
+.btn.pri:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent;color:var(--strong);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--teal)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.link{background:none;border:0;padding:0;font:inherit;font-size:12.5px;color:var(--teal);text-decoration:underline;cursor:pointer}
+/* report */
+.rep{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.bar .hint{font-size:12px;color:var(--muted)}
+.errbox{background:var(--bad-bg);color:var(--fg);border-left:4px solid var(--bad);padding:10px 12px;border-radius:4px;font-size:13.5px}
+.sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
+.sh-head{background:var(--band);color:var(--band-fg);padding:16px 18px;display:grid;gap:4px;border-bottom:4px solid var(--teal)}
+.sh-head h3{margin:0;font-size:17px}
+.sh-head div{font-size:12.5px;color:var(--band-sub)}
+.sh-body{padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.rec{background:var(--alt);border-radius:4px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:center;box-shadow:inset 4px 0 0 var(--teal)}
+@media (max-width:620px){.rec{grid-template-columns:minmax(0,1fr)}}
+.rec h4{margin:0 0 4px 6px;color:var(--strong);font-size:15px}
+.rec p{margin:0 0 0 6px;font-size:12.5px;color:var(--muted)}
+.mix{height:26px;display:flex;border-radius:3px;overflow:hidden;font-weight:700;font-size:12px}
+.mix .d{background:var(--debt);color:var(--on-debt);display:flex;align-items:center;padding-left:8px;white-space:nowrap;overflow:hidden}
+.mix .e{background:var(--orange);color:var(--on-orange);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;white-space:nowrap;overflow:hidden}
+.mixlab{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-weight:700;color:var(--strong);font-size:13px;font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.binds{display:inline-block;margin-top:8px;margin-left:6px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--strong);background:var(--bg)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{border:1px solid var(--line);border-radius:5px;padding:10px 12px;display:grid;gap:3px;min-width:0}
+.kpi small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font-size:20px;color:var(--strong);font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.charts{grid-template-columns:minmax(0,1fr)}}
+.chart h5,.blk h5{margin:0 0 6px;font-size:12.5px;color:var(--teal)}
+.chart svg{display:block;width:100%;height:auto}
+.duo{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.duo{grid-template-columns:minmax(0,1fr)}}
+.why{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13px;max-width:72ch}
+.why b{color:var(--strong)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{background:var(--navy);color:#fff;font-weight:700;text-align:right;padding:5px 8px;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.yr tbody tr:nth-child(even) td{background:var(--alt)}
+.su th{text-align:left}
+.su td.tot{font-weight:700;color:var(--strong)}
+.small{font-size:12px;color:var(--muted)}
+.foot{border-top:1px solid var(--line);padding-top:10px;font-size:11.5px;color:var(--muted);max-width:110ch}
+details.spec{border:1px solid var(--line);border-radius:6px;padding:0 16px;background:var(--panel)}
+details.spec summary{cursor:pointer;padding:12px 0;font-weight:700;color:var(--strong)}
+details.spec[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px}
+.spec .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding-bottom:16px}
+@media (max-width:760px){.spec .cols{grid-template-columns:minmax(0,1fr)}}
+.spec p,.spec li{font-size:13px;max-width:70ch}
+.spec code{font-family:var(--mono);font-size:12px;background:var(--alt);padding:1px 4px;border-radius:3px}
+.spec td,.spec th{white-space:normal}
+.ok{color:var(--good)}.warn{color:var(--warn)}
+@media (prefers-reduced-motion:no-preference){.mix>div{transition:width .35s ease}}
+</style>
+
+<header class="top"><div class="top-in">
+  <div><h1>Debt vs Equity Funding Report</h1>
+  <p>Upload a company's CMA workbook, describe the project, and get a one-page, advisor-ready recommendation. Everything runs in this page: the CMA never leaves your browser.</p></div>
+  <div class="brand">GLASS-BOX ADVISORY</div>
+</div></header>
+
+<div class="wrap">
+<form class="rail" id="form" novalidate>
+  <section class="grp" aria-labelledby="h-co">
+    <h2 id="h-co">1. Company data (CMA)</h2>
+    <button type="button" class="drop" id="drop" aria-describedby="srcline">
+      <strong>Drop a CMA workbook here, or click to choose</strong>
+      <span>.xlsx in the Indian bank CMA format (Form II operating statement, Form III balance sheet). First sheet is read.</span>
+    </button>
+    <input type="file" id="cma" accept=".xlsx,.xlsm,.xls" hidden>
+    <div class="src" id="srcline"><span class="chip" id="srcchip"><i></i><span id="srctext">Loading sample CMA…</span></span></div>
+    <div class="src"><button type="button" class="link" id="usesample">Use the sample CMA</button><span class="small">·</span><button type="button" class="link" id="dlsample">Download the sample CMA</button></div>
+    <div class="fld"><label for="industry">Industry</label>
+      <div class="in"><select id="industry" name="industry">
+        <option value="manufacturing">Manufacturing</option><option value="service">Service</option><option value="other">Trading / other</option>
+      </select></div></div>
+    <div class="note" id="indnote"></div>
+  </section>
+  <section class="grp" aria-labelledby="h-pr"><h2 id="h-pr">2. Project</h2><div id="g-project" class="fields"></div></section>
+  <section class="grp" aria-labelledby="h-fi"><h2 id="h-fi">3. Financing</h2><div id="g-finance" class="fields"></div></section>
+  <button type="submit" class="btn pri">Update report</button>
+</form>
+
+<section class="rep" aria-live="polite">
+  <div class="bar">
+    <h2>Report preview</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="hint" id="dlhint"></span>
+      <button type="button" class="btn pri" id="dlpdf" disabled>Download one-page PDF</button>
+    </div>
+  </div>
+  <div class="errbox" id="err" hidden></div>
+  <article class="sheet" id="sheet">
+    <div class="sh-head"><h3>Funding Recommendation: Debt vs Equity</h3><div id="hd1"></div><div id="hd2"></div></div>
+    <div class="sh-body">
+      <div class="rec">
+        <div><h4>Recommended funding mix</h4><p id="rec1"></p><p id="rec2"></p><span class="binds" id="binds"></span></div>
+        <div><div class="mix" role="img" id="mix"><div class="d" id="mixd"></div><div class="e" id="mixe"></div></div>
+          <div class="mixlab"><span id="mixdl"></span><span id="mixel"></span></div></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="charts">
+        <div class="chart"><h5>Project cash flow vs debt service (Rs crore, DSCR labelled)</h5><div id="ch1"></div></div>
+        <div class="chart"><h5>How the loan is repaid (Rs crore)</h5><div id="ch2"></div></div>
+      </div>
+      <div class="duo">
+        <div class="blk"><h5>Why this mix</h5><ul class="why" id="why"></ul></div>
+        <div class="blk"><h5>Uses and sources (Rs crore)</h5><div class="tw"><table class="su" id="su"></table></div><p class="small" id="sunote"></p></div>
+      </div>
+      <div class="blk"><h5>Year by year (Rs crore)</h5><div class="tw"><table class="yr" id="yr"></table></div></div>
+      <p class="foot" id="foot"></p>
+    </div>
+  </article>
+
+  <details class="spec" id="spec">
+    <summary>What this tool reads: the CMA rows and inputs it needs</summary>
+    <div class="cols">
+      <div>
+        <p><b>The CMA workbook.</b> An <code>.xlsx</code> file in the Indian bank CMA layout. The tool reads the <b>first sheet</b> and finds rows by the label text in <b>column A</b>, so row numbers can differ between files.</p>
+        <ul>
+          <li>A header row within the first 11 rows with 4-digit years in <b>columns B to E</b> (for example 2025, 2026, 2027, 2028).</li>
+          <li>The row directly under it holds the status: Actuals, Estimated or Projections.</li>
+          <li>Figures in <b>Rs crore</b>. The base year is the latest column with net sales above zero.</li>
+        </ul>
+        <p>Rows marked <b>required</b> stop the report with a clear message if they are missing. Other rows count as zero when absent.</p>
+        <p><b>Project inputs</b> come from the company's DPR or the promoter: project cost and working-capital margin, existing and new capacity, utilisation ramp, cost saving per unit, new fixed cost, and the loan terms. Industry presets fill the lender norms and you can edit every one.</p>
+      </div>
+      <div class="tw"><table id="rowspec"></table></div>
+    </div>
+  </details>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/*ENGINE*/
+</script>
+<script>
+"use strict";
+const SAMPLE_B64 = "__SAMPLE_B64__";
+const F = window.FundMix;
+const $ = (id) => document.getElementById(id);
+
+/* ---------- inputs ---------- */
+// name, label, default, kind, suffix, group
+const FIELDS = [
+  ["company", "Company name", "Sample FMCG Co.", "text", "", "project"],
+  ["purpose", "Purpose of funds", "New manufacturing plant for the base product", "text", "", "project"],
+  ["unit_name", "Unit of capacity (plural)", "tonnes", "text", "", "project"],
+  ["project_cost", "Total project cost", 1200, "num", "Rs cr", "project"],
+  ["wc_margin", "of which working-capital margin", 150, "num", "Rs cr", "project"],
+  ["existing_capacity", "Existing installed capacity", 1000000, "num", "units/yr", "project"],
+  ["current_util", "Current utilisation", 85, "pct", "%", "project"],
+  ["new_capacity", "New capacity added", 60000, "num", "units/yr", "project"],
+  ["efficiency_gain", "Variable cost saving per unit", 6, "pct", "%", "project"],
+  ["plant_fixed_cost", "New fixed cost a year (excl. depreciation)", 60, "num", "Rs cr", "project"],
+  ["sga_variable_share", "Selling & admin share that scales with sales", 70, "pct", "%", "project"],
+  ["ramp", "Utilisation by year (Y1 = construction if moratorium)", "0, 50, 70, 85", "list", "%", "project"],
+  ["rate", "Term loan interest rate", 8.5, "pct", "%", "finance"],
+  ["tenor", "Repayment period (after moratorium)", null, "int", "yrs", "finance"],
+  ["moratorium", "Moratorium", null, "int", "yrs", "finance"],
+  ["dscr_target", "Minimum DSCR required", null, "num", "x", "finance"],
+  ["min_equity", "Minimum own contribution", null, "pct", "%", "finance"],
+  ["asset_life", "Asset life for depreciation", null, "int", "yrs", "finance"],
+  ["cash_buffer", "Cash kept aside as safety buffer", 2000, "num", "Rs cr", "finance"],
+  ["cost_of_equity", "Return expected by new equity investors", 12, "pct", "%", "finance"],
+  ["treasury_yield", "Pre-tax yield on surplus cash", 7, "pct", "%", "finance"],
+  ["growth", "Company sales growth (blank = CMA)", "", "pct", "%", "finance"],
+];
+const PRESET_FIELDS = ["tenor", "moratorium", "dscr_target", "min_equity", "asset_life"];
+
+function buildFields() {
+  const groups = { project: $("g-project"), finance: $("g-finance") };
+  for (const g of Object.values(groups)) { g.style.display = "grid"; g.style.gap = "10px"; }
+  let pair = null;
+  FIELDS.forEach(([name, label, def, kind, sfx, group]) => {
+    const f = document.createElement("div");
+    f.className = "fld"; f.id = "f-" + name;
+    const lab = document.createElement("label"); lab.htmlFor = name; lab.textContent = label;
+    const box = document.createElement("div"); box.className = "in";
+    const inp = document.createElement("input"); inp.id = name; inp.name = name;
+    inp.type = "text"; inp.autocomplete = "off";
+    if (kind !== "text") inp.inputMode = kind === "list" ? "text" : "decimal";
+    if (def !== null) inp.value = String(def);
+    box.appendChild(inp);
+    if (sfx) { const s = document.createElement("span"); s.className = "sfx"; s.textContent = sfx; box.appendChild(s); }
+    const msg = document.createElement("div"); msg.className = "msg"; msg.hidden = true;
+    f.append(lab, box, msg);
+    // short numeric fields sit in pairs
+    const short = kind !== "text" && kind !== "list";
+    if (short) {
+      if (!pair) { pair = document.createElement("div"); pair.className = "two"; groups[group].appendChild(pair); pair.appendChild(f); }
+      else { pair.appendChild(f); pair = null; }
+    } else { pair = null; groups[group].appendChild(f); }
+  });
+}
+
+function applyPreset() {
+  const p = F.PRESETS[$("industry").value];
+  $("indnote").textContent = p.note + " Typical units: " + p.units + ". Defaults: own contribution " + Math.round(p.min_equity * 100) + "%, DSCR " + p.dscr_target.toFixed(2) + "x, " + p.tenor + "-year repayment, " + p.moratorium + "-year moratorium, " + p.asset_life + "-year asset life.";
+  $("tenor").value = p.tenor; $("moratorium").value = p.moratorium; $("dscr_target").value = p.dscr_target;
+  $("min_equity").value = Math.round(p.min_equity * 100); $("asset_life").value = p.asset_life;
+}
+
+function readInputs() {
+  const p = { industry: $("industry").value }, errs = {};
+  for (const [name, label, def, kind] of FIELDS) {
+    let v = $(name).value.trim();
+    if (v === "") {
+      if (name === "growth") continue;
+      if (def === null) continue; // industry preset
+      if (kind === "text") { p[name] = String(def); continue; }
+      errs[name] = "Enter a value"; continue;
+    }
+    if (kind === "text") { p[name] = v; continue; }
+    if (kind === "list") {
+      const parts = v.split(/[,\s;]+/).filter(Boolean).map((x) => Number(x));
+      if (!parts.length || parts.some((x) => !Number.isFinite(x) || x < 0 || x > 100)) { errs[name] = "Use percentages from 0 to 100, separated by commas"; continue; }
+      p[name] = parts.map((x) => x / 100); continue;
+    }
+    const n = Number(v.replace(/,/g, ""));
+    if (!Number.isFinite(n)) { errs[name] = "Enter a number"; continue; }
+    if (n < 0 && name !== "growth") { errs[name] = "Must not be negative"; continue; }
+    p[name] = kind === "pct" ? n / 100 : kind === "int" ? Math.trunc(n) : n;
+  }
+  if (p.project_cost !== undefined && !(p.project_cost > 0)) errs.project_cost = "Must be above zero";
+  if (p.wc_margin !== undefined && p.project_cost !== undefined && p.wc_margin >= p.project_cost) errs.wc_margin = "Must be less than the project cost";
+  if (p.new_capacity !== undefined && !(p.new_capacity > 0)) errs.new_capacity = "Must be above zero";
+  if (p.tenor !== undefined && p.tenor < 1) errs.tenor = "At least 1 year";
+  if (p.asset_life !== undefined && p.asset_life < 1) errs.asset_life = "At least 1 year";
+  if (p.min_equity !== undefined && p.min_equity > 1) errs.min_equity = "At most 100%";
+  for (const [name] of FIELDS) {
+    const f = $("f-" + name), m = f.querySelector(".msg");
+    f.classList.toggle("bad", !!errs[name]); m.hidden = !errs[name]; m.textContent = errs[name] || "";
+  }
+  return { p, errs };
+}
+
+/* ---------- CMA loading ---------- */
+let CMA = null, CMA_NAME = "";
+function b64ToBytes(b64) { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+function gridFromWorkbook(wb) {
+  const name = wb.SheetNames[0], ws = wb.Sheets[name];
+  if (!ws || !ws["!ref"]) throw new Error("The first sheet of the workbook is empty");
+  const rng = XLSX.utils.decode_range(ws["!ref"]), grid = [];
+  for (let r = 0; r <= rng.e.r; r++) {
+    const row = [];
+    for (let c = 0; c <= Math.max(rng.e.c, 5); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      row.push(!cell || cell.t === "e" || cell.t === "z" || cell.v instanceof Date ? null : cell.v);
+    }
+    grid.push(row);
+  }
+  return { grid, name };
+}
+function loadBytes(bytes, label) {
+  if (!window.XLSX) throw new Error("The spreadsheet reader did not load. Check your connection and reload the page.");
+  let wb;
+  try { wb = XLSX.read(bytes, { type: "array" }); }
+  catch (e) { throw new Error("This file could not be opened as an Excel workbook (" + label + ")."); }
+  const { grid, name } = gridFromWorkbook(wb);
+  const cma = F.parseCMA(grid, name);
+  CMA = cma; CMA_NAME = label;
+  const i = cma.years.length - 1;
+  $("srcchip").classList.remove("err");
+  $("srctext").textContent = label + " · base FY" + cma.years[i] + " (" + (cma.status[i] || "status not given") + ") · net sales Rs " + fmt(cma.base.net_sales) + " cr";
+  $("growth").placeholder = "CMA CAGR " + (cma.growth * 100).toFixed(1) + "%";
+}
+function loadSample() {
+  try { loadBytes(b64ToBytes(SAMPLE_B64), "Sample CMA"); hideErr(); recalc(); }
+  catch (e) { showErr(e.message); }
+}
+async function loadFile(file) {
+  if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    loadBytes(new Uint8Array(buf), file.name);
+    hideErr(); recalc();
+  } catch (e) {
+    $("srcchip").classList.add("err");
+    $("srctext").textContent = file.name + " · could not be read";
+    showErr("Could not read " + file.name + ": " + e.message);
+  }
+}
+function showErr(m) { $("err").textContent = m; $("err").hidden = false; }
+function hideErr() { $("err").hidden = true; }
+
+/* ---------- formatting ---------- */
+const fmt = (x, d = 0) => (Object.is(Math.round(x * 10 ** d) / 10 ** d, -0) ? 0 : x).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+const spct = (x, d = 1) => (x >= 0 ? "+" : "") + (x * 100).toFixed(d) + "%";
+const xx = (x) => (Number.isFinite(x) ? x.toFixed(2) + "x" : "n/a");
+function money(x) {
+  if (x >= 1e7) return "Rs " + fmt(x / 1e7, 2) + " cr";
+  if (x >= 1e5) return "Rs " + fmt(x / 1e5, 2) + " lakh";
+  return "Rs " + fmt(x, 0);
+}
+const singular = (u) => (u.endsWith("s") ? u.slice(0, -1) : u);
+const today = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+/* ---------- report text (shared by page and PDF) ---------- */
+function reasons(r) {
+  const q = r.q, out = [], B = (t) => ({ t, b: true }), T = (t) => ({ t, b: false });
+  out.push([B("The project can carry the debt."), T(" Its own cash flow covers loan payments at least "), B(xx(r.min_dscr)),
+    T(" against a " + xx(q.dscr_target) + " target, and still "), B(xx(r.min_dscr_stress)), T(" if earnings fall 20% and rates rise 2 points.")]);
+  if (r.stress_cut) {
+    out.push([B("Debt trimmed for the stress case."), T(" At Rs " + fmt(r.debt + r.stress_cut) + " cr, cover would fall below " + F.STRESS_FLOOR.toFixed(2) + "x if earnings dropped 20% and rates rose 2 points, so debt is cut by Rs " + fmt(r.stress_cut) + " cr to Rs " + fmt(r.debt) + " cr.")]);
+  } else if (r.binding.startsWith("minimum")) {
+    out.push([B("Debt is capped by prudence, not cash flow."), T(" Cash flow alone could support about Rs " + fmt(r.cap_project) + " cr, but lenders expect at least " + pct(q.min_equity) + " own contribution, so debt is set at " + pct(r.debt_pct) + ".")]);
+  } else {
+    out.push([B("Cash flow sets the limit."), T(" Debt is sized at the most the project's cash flow supports at " + xx(q.dscr_target) + " cover. The business cannot safely carry more, so the gap must be equity.")]);
+  }
+  out.push([B("Debt is the cheaper external money."), T(" After tax it costs about " + pct(r.after_tax_kd, 1) + " a year, versus roughly " + pct(r.ke) + " expected by new equity investors, and it keeps ownership undiluted.")]);
+  if (r.new_equity <= 0) {
+    out.push([B("No new shares needed."), T(" The " + pct(r.equity_pct) + " equity portion (Rs " + fmt(r.equity) + " cr) comes from internal accruals; liquid reserves of Rs " + fmt(r.liquid) + " cr cover it while keeping a Rs " + fmt(q.cash_buffer || 0) + " cr safety buffer.")]);
+  } else {
+    out.push([B("Fresh equity required."), T(" Internal funds cover Rs " + fmt(r.internal) + " cr; the remaining "), B("Rs " + fmt(r.new_equity) + " cr"), T(" should be raised as new equity.")]);
+  }
+  if (r.after_tax_cash < r.after_tax_kd && r.internal >= q.project_cost) {
+    out.push([B("Alternative:"), T(" surplus cash could fund the whole project and save about Rs " + fmt(r.debt * (r.after_tax_kd - r.after_tax_cash)) + " cr a year in net interest, at the cost of reducing liquid reserves by Rs " + fmt(r.debt) + " cr. The recommended mix preserves liquidity and dividend capacity.")]);
+  }
+  if (q.industry === "service") out.push([B("Service business."), T(" Limited hard collateral means lenders want a higher equity share (" + pct(q.min_equity) + " minimum here) and stronger cover.")]);
+  if (q.industry === "other") out.push([B("Trading business."), T(" Most funding need is working capital, sized on drawing power; only fixed assets (Rs " + fmt(r.capex) + " cr here) should be term-funded.")]);
+  return out;
+}
+function kpis(r) {
+  const q = r.q, unit = q.unit_name || "units", cpu0 = r.cpu0 * 1e7, cpu1 = r.cpu_new * 1e7;
+  return [
+    ["Capacity added", "+" + pct(r.cap_increase), "+" + fmt(q.new_capacity) + " " + unit + "/yr"],
+    ["Cost per unit", spct(cpu1 / cpu0 - 1), money(cpu0) + " to " + money(cpu1).replace("Rs ", "") + " per " + singular(unit)],
+    ["Extra cash flow a year", "Rs " + fmt(r.ss_cfads) + " cr/yr", spct(r.cf_uplift) + " on company cash flow"],
+    ["Debt the project can bear", "Rs " + fmt(r.cap_project) + " cr", "min DSCR " + xx(r.min_dscr) + " (stress " + xx(r.min_dscr_stress) + ")"],
+  ];
+}
+function headerLines(r, meta) {
+  const q = r.q;
+  return [q.company + "  |  " + q.purpose,
+    "Industry: " + ({ manufacturing: "Manufacturing", service: "Service", other: "Trading / other" })[q.industry] + "  |  Project cost Rs " + fmt(q.project_cost) + " crore  |  Base year: FY" + meta.base_year + " (" + meta.base_status + ")  |  " + meta.date];
+}
+function loanLine(r) { const q = r.q; return "Debt: term loan, " + q.tenor + " yrs + " + q.moratorium + " yr moratorium @ " + pct(q.rate, 1); }
+function eqLine(r) { return "Equity: " + (r.new_equity <= 0 ? "internal accruals (no new share issue)" : "Rs " + fmt(r.internal) + " cr internal accruals + Rs " + fmt(r.new_equity) + " cr new equity"); }
+function bindLabel(r) { return r.binding === "stress test" ? "Limited by: stress test (DSCR " + F.STRESS_FLOOR.toFixed(2) + "x floor)" : r.binding.startsWith("cash") ? "Limited by: cash flow (DSCR " + xx(r.q.dscr_target) + ")" : "Limited by: minimum own contribution (" + pct(r.q.min_equity) + ")"; }
+function usesRows(r) {
+  const q = r.q;
+  return [["USES", null], ["Fixed assets (plant, civil, equipment)", r.capex], ["Working capital margin", q.wc_margin], ["Total project cost", q.project_cost],
+    ["SOURCES", null], ["Term loan", r.debt], ["Internal accruals", Math.min(r.equity, r.internal)], ["New equity", r.new_equity], ["Total", q.project_cost]];
+}
+const YR_COLS = ["Year", "Utilisation", "Revenue", "EBITDA", "CFADS", "Interest", "Principal", "DSCR", "Outstanding"];
+function yrVals(x) { return ["Y" + x.year, pct(x.util), fmt(x.revenue), fmt(x.ebitda), fmt(x.cfads), fmt(x.interest), fmt(x.principal), x.dscr !== null && x.principal > 0 ? x.dscr.toFixed(2) + "x" : "-", fmt(x.closing)]; }
+function footText(r, meta) {
+  const q = r.q;
+  return "Method: company figures from the CMA (FY" + meta.base_year + " " + meta.base_status + "); sales grown at " + pct(r.growth, 1) + " a year; tax " + pct(r.tax_rate) + ". " +
+    "DSCR = (PAT + depreciation + interest) / (principal + interest), the bank appraisal formula; target " + xx(q.dscr_target) + " and minimum own contribution " + pct(q.min_equity) + " " +
+    "are typical Indian bank norms (DSCR at least 1.25-1.50; promoter contribution 25-33%). Debt is the lower of the cash-flow limit and the policy limit, rounded down to Rs 5 cr, and cut further if the stress case (EBITDA -20%, rate +2 points) falls below " + F.STRESS_FLOOR.toFixed(2) + "x. " +
+    "Loan rate " + pct(q.rate, 1) + " assumed with RBI repo at 5.50% (7 Oct 2026) plus the borrower's spread. Project inputs entered by the user. Estimates, not guarantees; subject to lender appraisal and advisor review.";
+}
+
+/* ---------- charts: one drawing list, rendered to SVG (screen) or jsPDF (report) ---------- */
+function niceStep(range, n) { const raw = range / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+function ticks(lo, hi, n = 5) { if (!(hi > lo)) hi = lo + 1; const s = niceStep(hi - lo, n), out = []; for (let v = Math.ceil(lo / s) * s; v <= hi + 1e-9; v += s) out.push(+v.toFixed(10)); return out; }
+const CW = 420, CH = 300;
+function axesFrame(ops, yDom, box, right) {
+  const [lo, hi] = yDom, y = (v) => box.b - (v - lo) / (hi - lo) * (box.b - box.t);
+  for (const t of ticks(lo, hi)) {
+    ops.push({ k: "line", x1: box.l, y1: y(t), x2: box.r, y2: y(t), c: "grid", w: 1 });
+    ops.push({ k: "text", x: box.l - 6, y: y(t) + 4, s: fmt(t), a: "end", c: "tick", sz: 11 });
+  }
+  return y;
+}
+function chartCash(r) {
+  const rows = r.rows, ops = [], box = { l: 56, r: CW - 10, t: 40, b: CH - 26 };
+  const cf = rows.map((x) => x.cfads), mx = Math.max(...cf, ...rows.map((x) => x.ds), 1), mn = Math.min(0, ...cf);
+  const y = axesFrame(ops, [mn < 0 ? mn * 1.2 : 0, mx * 1.25], box);
+  const bw = (box.r - box.l) / rows.length, cx = (i) => box.l + bw * (i + 0.5);
+  rows.forEach((x, i) => {
+    const y0 = y(0), y1 = y(x.cfads);
+    ops.push({ k: "rect", x: cx(i) - bw * 0.28, y: Math.min(y0, y1), w: bw * 0.56, h: Math.abs(y1 - y0), c: "teal" });
+    ops.push({ k: "text", x: cx(i), y: box.b + 16, s: "Y" + x.year, a: "middle", c: "tick", sz: 11 });
+  });
+  ops.push({ k: "line", x1: box.l, y1: y(0), x2: box.r, y2: y(0), c: "axis", w: 1 });
+  ops.push({ k: "poly", pts: rows.map((x, i) => [cx(i), y(x.ds)]), c: "orange", w: 2.2 });
+  rows.forEach((x, i) => ops.push({ k: "dot", x: cx(i), y: y(x.ds), r: 3.4, c: "orange" }));
+  rows.forEach((x, i) => { if (x.dscr !== null && x.principal > 0) ops.push({ k: "text", x: cx(i), y: Math.min(y(x.cfads), y(x.ds)) - 7, s: x.dscr.toFixed(1) + "x", a: "middle", c: "ink", sz: 10.5, b: true }); });
+  legend(ops, [["rect", "teal", "Project cash flow (CFADS)"], ["line", "orange", "Debt service"]], box.l, 16);
+  return ops;
+}
+function chartLoan(r) {
+  const rows = r.rows, ops = [], box = { l: 56, r: CW - 56, t: 40, b: CH - 26 };
+  const tot = rows.map((x) => x.principal + x.interest), mx = Math.max(...tot, 1e-9) * 1.3;
+  const y = axesFrame(ops, [0, mx > 1e-6 ? mx : 1], box);
+  const yhi = r.debt ? r.debt * 1.15 : 1, y2 = (v) => box.b - v / yhi * (box.b - box.t);
+  for (const t of ticks(0, yhi)) ops.push({ k: "text", x: box.r + 6, y: y2(t) + 4, s: fmt(t), a: "start", c: "tick", sz: 11 });
+  const bw = (box.r - box.l) / rows.length, cx = (i) => box.l + bw * (i + 0.5);
+  rows.forEach((x, i) => {
+    const yp = y(x.principal), yi = y(x.principal + x.interest);
+    ops.push({ k: "rect", x: cx(i) - bw * 0.28, y: yp, w: bw * 0.56, h: y(0) - yp, c: "debt" });
+    ops.push({ k: "rect", x: cx(i) - bw * 0.28, y: yi, w: bw * 0.56, h: yp - yi, c: "orange" });
+    ops.push({ k: "text", x: cx(i), y: box.b + 16, s: "Y" + x.year, a: "middle", c: "tick", sz: 11 });
+  });
+  ops.push({ k: "line", x1: box.l, y1: box.b, x2: box.r, y2: box.b, c: "axis", w: 1 });
+  ops.push({ k: "poly", pts: rows.map((x, i) => [cx(i), y2(x.closing)]), c: "teal", w: 2.2 });
+  rows.forEach((x, i) => ops.push({ k: "dot", x: cx(i), y: y2(x.closing), r: 3.4, c: "teal" }));
+  legend(ops, [["rect", "debt", "Principal"], ["rect", "orange", "Interest"], ["line", "teal", "Outstanding (right axis)"]], box.l, 16);
+  return ops;
+}
+function legend(ops, items, x, y) {
+  for (const [kind, c, s] of items) {
+    if (kind === "rect") ops.push({ k: "rect", x, y: y - 9, w: 10, h: 10, c });
+    else { ops.push({ k: "line", x1: x - 2, y1: y - 4, x2: x + 12, y2: y - 4, c, w: 2.2 }); ops.push({ k: "dot", x: x + 5, y: y - 4, r: 3, c }); }
+    ops.push({ k: "text", x: x + 16, y, s, a: "start", c: "ink", sz: 11 });
+    x += 16 + s.length * 5.6 + 16;
+  }
+}
+const SVG_C = { teal: "var(--teal)", orange: "var(--orange)", debt: "var(--debt)", grid: "var(--c-grid)", axis: "var(--c-axis)", tick: "var(--c-tick)", ink: "var(--c-ink)" };
+const PDF_C = { teal: "#1AA6A0", orange: "#F2A541", debt: "#12263F", grid: "#EEEEEE", axis: "#BBBBBB", tick: "#5B6B7C", ink: "#12263F" };
+function toSVG(ops, label) {
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  let s = '<svg viewBox="0 0 ' + CW + " " + CH + '" role="img" aria-label="' + esc(label) + '" font-family="Arial, Helvetica, sans-serif">';
+  for (const o of ops) {
+    if (o.k === "rect") s += '<rect x="' + o.x.toFixed(1) + '" y="' + o.y.toFixed(1) + '" width="' + Math.max(o.w, 0).toFixed(1) + '" height="' + Math.max(o.h, 0).toFixed(1) + '" fill="' + SVG_C[o.c] + '"/>';
+    else if (o.k === "line") s += '<line x1="' + o.x1.toFixed(1) + '" y1="' + o.y1.toFixed(1) + '" x2="' + o.x2.toFixed(1) + '" y2="' + o.y2.toFixed(1) + '" stroke="' + SVG_C[o.c] + '" stroke-width="' + o.w + '" fill="none"/>';
+    else if (o.k === "poly") s += '<polyline points="' + o.pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ") + '" stroke="' + SVG_C[o.c] + '" stroke-width="' + o.w + '" fill="none" stroke-linejoin="round"/>';
+    else if (o.k === "dot") s += '<circle cx="' + o.x.toFixed(1) + '" cy="' + o.y.toFixed(1) + '" r="' + o.r + '" fill="' + SVG_C[o.c] + '"/>';
+    else if (o.k === "text") s += '<text x="' + o.x.toFixed(1) + '" y="' + o.y.toFixed(1) + '" font-size="' + o.sz + '" text-anchor="' + o.a + '" fill="' + SVG_C[o.c] + '"' + (o.b ? ' font-weight="700"' : "") + ">" + esc(o.s) + "</text>";
+  }
+  return s + "</svg>";
+}
+function toPDF(doc, ops, ox, oy, sc) {
+  const X = (v) => ox + v * sc, Y = (v) => oy + v * sc;
+  for (const o of ops) {
+    if (o.k === "rect") { if (o.h * sc < 0.05 || o.w <= 0) continue; doc.setFillColor(PDF_C[o.c]); doc.rect(X(o.x), Y(o.y), o.w * sc, o.h * sc, "F"); }
+    else if (o.k === "line") { doc.setDrawColor(PDF_C[o.c]); doc.setLineWidth(o.w * sc); doc.line(X(o.x1), Y(o.y1), X(o.x2), Y(o.y2)); }
+    else if (o.k === "poly") { doc.setDrawColor(PDF_C[o.c]); doc.setLineWidth(o.w * sc); for (let i = 1; i < o.pts.length; i++) doc.line(X(o.pts[i - 1][0]), Y(o.pts[i - 1][1]), X(o.pts[i][0]), Y(o.pts[i][1])); }
+    else if (o.k === "dot") { doc.setFillColor(PDF_C[o.c]); doc.circle(X(o.x), Y(o.y), o.r * sc, "F"); }
+    else if (o.k === "text") { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.sz * sc); doc.setTextColor(PDF_C[o.c]); doc.text(o.s, X(o.x), Y(o.y), { align: o.a === "end" ? "right" : o.a === "middle" ? "center" : "left" }); }
+  }
+}
+
+/* ---------- render page ---------- */
+let LAST = null;
+function render(r, meta) {
+  const q = r.q, [h1, h2] = headerLines(r, meta);
+  $("hd1").textContent = h1; $("hd2").textContent = h2;
+  $("rec1").textContent = loanLine(r); $("rec2").textContent = eqLine(r); $("binds").textContent = bindLabel(r);
+  $("mixd").style.width = (r.debt_pct * 100) + "%"; $("mixe").style.width = (r.equity_pct * 100) + "%";
+  $("mixd").textContent = r.debt_pct > 0.15 ? pct(r.debt_pct) + " DEBT" : ""; $("mixe").textContent = r.equity_pct > 0.15 ? pct(r.equity_pct) + " EQUITY" : "";
+  $("mix").setAttribute("aria-label", pct(r.debt_pct) + " debt, " + pct(r.equity_pct) + " equity");
+  $("mixdl").textContent = "Debt Rs " + fmt(r.debt) + " cr (" + pct(r.debt_pct) + ")"; $("mixel").textContent = "Equity Rs " + fmt(r.equity) + " cr (" + pct(r.equity_pct) + ")";
+  $("kpis").innerHTML = "";
+  for (const [t, v, s] of kpis(r)) {
+    const d = document.createElement("div"); d.className = "kpi";
+    d.append(Object.assign(document.createElement("small"), { textContent: t }), Object.assign(document.createElement("b"), { textContent: v }), Object.assign(document.createElement("span"), { textContent: s }));
+    $("kpis").appendChild(d);
+  }
+  $("ch1").innerHTML = toSVG(chartCash(r), "Project cash flow and debt service by year");
+  $("ch2").innerHTML = toSVG(chartLoan(r), "Loan principal, interest and outstanding balance by year");
+  $("why").innerHTML = "";
+  for (const segs of reasons(r)) {
+    const li = document.createElement("li");
+    for (const s of segs) li.appendChild(s.b ? Object.assign(document.createElement("b"), { textContent: s.t }) : document.createTextNode(s.t));
+    $("why").appendChild(li);
+  }
+  let su = "";
+  for (const [lab, val] of usesRows(r)) su += val === null ? "<tr><th colspan=\"2\">" + lab + "</th></tr>" : "<tr><td" + (lab.startsWith("Total") ? ' class="tot"' : "") + ">" + lab + "</td><td" + (lab.startsWith("Total") ? ' class="tot"' : "") + ">" + fmt(val) + "</td></tr>";
+  $("su").innerHTML = su;
+  $("sunote").textContent = "Payback " + r.payback.toFixed(1) + " yrs  ·  Company DSCR (min) " + xx(r.min_dscr_company);
+  let yt = "<thead><tr>" + YR_COLS.map((c) => "<th>" + c + "</th>").join("") + "</tr></thead><tbody>";
+  for (const x of r.rows) yt += "<tr>" + yrVals(x).map((v) => "<td>" + v + "</td>").join("") + "</tr>";
+  $("yr").innerHTML = yt + "</tbody>";
+  $("foot").textContent = footText(r, meta);
+}
+
+let timer = null;
+function recalc() {
+  if (!CMA) return;
+  const { p, errs } = readInputs();
+  const n = Object.keys(errs).length;
+  if (n) { showErr("Fix " + (n === 1 ? "the highlighted field" : "the " + n + " highlighted fields") + " to update the report."); return; }
+  try {
+    const r = F.run(CMA, p);
+    const i = CMA.years.length - 1;
+    const meta = { base_year: CMA.years[i], base_status: CMA.status[i] || "n/a", date: today() };
+    render(r, meta); LAST = { r, meta }; hideErr(); updateDl();
+  } catch (e) { showErr("Could not build the report: " + e.message); }
+}
+
+/* ---------- one-page A4 PDF (jsPDF, points, top-left origin) ---------- */
+function buildPDF(r, meta) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = 595.28, H = 841.89, m = 36, q = r.q;
+  const NAVY = "#12263F", TEAL = "#1AA6A0", OR = "#F2A541", GR = "#5B6B7C", ALT = "#F2F6FA", INK = "#222222", LINE = "#D9DEE5";
+  const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.sz || 8); doc.setTextColor(o.c || INK); doc.text(String(s), x, y, o.a ? { align: o.a } : undefined); };
+  const fit = (s, w, sz, b) => { doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(sz); if (doc.getTextWidth(s) <= w) return s; while (s.length > 1 && doc.getTextWidth(s + "...") > w) s = s.slice(0, -1); return s + "..."; };
+  const box = (x, y, w, h, c) => { doc.setFillColor(c); doc.rect(x, y, w, h, "F"); };
+  const [h1, h2] = headerLines(r, meta);
+  // header band
+  box(0, 0, W, 92, NAVY); box(0, 92, W, 4, TEAL); box(0, 92, 160, 4, OR);
+  T("Funding Recommendation: Debt vs Equity", m, 40, { b: true, sz: 17, c: "#FFFFFF" });
+  T("GLASS-BOX ADVISORY", W - m, 40, { b: true, sz: 8, c: "#BFD3E6", a: "right" });
+  T(fit(h1, W - 2 * m, 9.5), m, 58, { sz: 9.5, c: "#BFD3E6" });
+  T(fit(h2, W - 2 * m, 9.5), m, 72, { sz: 9.5, c: "#BFD3E6" });
+  // recommendation strip
+  let y = 104; const sh = 56;
+  box(m, y, W - 2 * m, sh, ALT); box(m, y, 4, sh, TEAL);
+  T("Recommended funding mix", m + 14, y + 17, { b: true, sz: 11, c: NAVY });
+  T(fit(loanLine(r), 225, 7.6), m + 14, y + 29, { sz: 7.6, c: GR });
+  T(fit(eqLine(r), 225, 7.6), m + 14, y + 39, { sz: 7.6, c: GR });
+  T(fit(bindLabel(r), 225, 7.2, true), m + 14, y + 50, { b: true, sz: 7.2, c: TEAL });
+  const bx = m + 250, bw = W - m - 10 - bx;
+  if (r.debt_pct > 0) box(bx, y + 12, bw * r.debt_pct, 18, NAVY);
+  if (r.equity_pct > 0) box(bx + bw * r.debt_pct, y + 12, bw * r.equity_pct, 18, OR);
+  if (r.debt_pct > 0.2) T(pct(r.debt_pct) + " DEBT", bx + 6, y + 24.5, { b: true, sz: 9, c: "#FFFFFF" });
+  if (r.equity_pct > 0.2) T(pct(r.equity_pct) + " EQUITY", bx + bw - 6, y + 24.5, { b: true, sz: 9, c: NAVY, a: "right" });
+  T("Debt Rs " + fmt(r.debt) + " cr (" + pct(r.debt_pct) + ")", bx, y + 44, { b: true, sz: 8.5, c: NAVY });
+  T("Equity Rs " + fmt(r.equity) + " cr (" + pct(r.equity_pct) + ")", bx + bw, y + 44, { b: true, sz: 8.5, c: NAVY, a: "right" });
+  // KPI boxes
+  y = y + sh + 10; const kw = (W - 2 * m - 24) / 4;
+  kpis(r).forEach(([t, v, s], i) => {
+    const x = m + i * (kw + 8);
+    doc.setDrawColor(LINE); doc.setFillColor("#FFFFFF"); doc.setLineWidth(0.8); doc.roundedRect(x, y, kw, 52, 4, 4, "FD");
+    T(t.toUpperCase(), x + 8, y + 13, { sz: 7.2, c: GR });
+    T(fit(v, kw - 16, 13, true), x + 8, y + 31, { b: true, sz: 13, c: NAVY });
+    T(fit(s, kw - 16, 6.6), x + 8, y + 44, { sz: 6.6, c: GR });
+  });
+  // charts
+  y += 52 + 18;
+  T("Project cash flow vs debt service (Rs cr, DSCR labelled)", m, y, { b: true, sz: 9.5, c: TEAL });
+  T("How the loan is repaid (Rs cr)", W / 2 + 5, y, { b: true, sz: 9.5, c: TEAL });
+  const cw = (W - 2 * m - 10) / 2, sc = cw / CW;
+  toPDF(doc, chartCash(r), m, y + 4, sc);
+  toPDF(doc, chartLoan(r), m + cw + 10, y + 4, sc);
+  y += 4 + CH * sc + 14;
+  // year table geometry (bottom-up, like the original layout)
+  const n = r.rows.length, rowH = 13, footTop = H - 54, tblTop = footTop - 8 - rowH * (n + 1), tblTitle = tblTop - 6;
+  // reasons
+  T("Why this mix", m, y, { b: true, sz: 9.5, c: TEAL });
+  const fw = (W - 2 * m) * 0.62, sz = 7.4, lead = 9.2, maxY = tblTitle - 16;
+  let ty = y + 13;
+  for (const segs of reasons(r)) {
+    const lines = wrapRich(doc, segs, fw - 14, sz);
+    if (ty + (lines.length - 1) * lead > maxY) break;
+    doc.setFillColor(INK); doc.circle(m + 2.5, ty - 2.5, 1.2, "F");
+    for (const ln of lines) {
+      let x = m + 9;
+      for (const run of ln) { doc.setFont("helvetica", run.b ? "bold" : "normal"); doc.setFontSize(sz); doc.setTextColor(INK); doc.text(run.t, x, ty); x += doc.getTextWidth(run.t); }
+      ty += lead;
+    }
+    ty += 3;
+  }
+  // uses and sources
+  const tx = m + fw + 10, tw = W - m - tx;
+  T("Uses and sources (Rs crore)", tx, y, { b: true, sz: 9.5, c: TEAL });
+  let yy = y + 16;
+  for (const [lab, val] of usesRows(r)) {
+    if (val === null) { box(tx, yy - 9, tw, 13, NAVY); T(lab, tx + 5, yy, { b: true, sz: 7.2, c: "#FFFFFF" }); }
+    else {
+      const bold = lab.startsWith("Total");
+      T(fit(lab, tw - 50, 7.4, bold), tx + 5, yy, { b: bold, sz: 7.4 }); T(fmt(val), tx + tw - 5, yy, { b: bold, sz: 7.4, a: "right" });
+      doc.setDrawColor(LINE); doc.setLineWidth(0.6); doc.line(tx, yy + 3.5, tx + tw, yy + 3.5);
+    }
+    yy += 12.5;
+  }
+  T("Payback " + r.payback.toFixed(1) + " yrs  |  Company DSCR (min) " + xx(r.min_dscr_company), tx, yy + 2, { sz: 6.6, c: GR });
+  // year-by-year table
+  T("Year by year (Rs crore)", m, tblTitle, { b: true, sz: 9.5, c: TEAL });
+  const cwid = (W - 2 * m) / YR_COLS.length;
+  box(m, tblTop, W - 2 * m, rowH, NAVY);
+  YR_COLS.forEach((h, j) => T(h, j ? m + (j + 1) * cwid - 4 : m + 4, tblTop + 9, { b: true, sz: 6.8, c: "#FFFFFF", a: j ? "right" : undefined }));
+  r.rows.forEach((x, i) => {
+    const ry = tblTop + rowH * (i + 1);
+    if (i % 2) box(m, ry, W - 2 * m, rowH, ALT);
+    yrVals(x).forEach((v, j) => T(v, j ? m + (j + 1) * cwid - 4 : m + 4, ry + 9, { sz: 6.9, a: j ? "right" : undefined }));
+  });
+  // footer
+  doc.setDrawColor(LINE); doc.setLineWidth(0.6); doc.line(m, footTop, W - m, footTop);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(GR);
+  const fl = doc.splitTextToSize(footText(r, meta), W - 2 * m);
+  fl.slice(0, 6).forEach((l, i) => doc.text(l, m, footTop + 9 + i * 7.4));
+  return doc;
+}
+function wrapRich(doc, segs, width, sz) {
+  const words = [];
+  for (const s of segs) s.t.split(/(\s+)/).forEach((w) => { if (w) words.push({ t: w, b: s.b }); });
+  const lines = []; let cur = [], w = 0;
+  const wid = (t, b) => { doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(sz); return doc.getTextWidth(t); };
+  for (const wd of words) {
+    const ws = /^\s+$/.test(wd.t), ww = wid(wd.t, wd.b);
+    if (!ws && w + ww > width && cur.length) { while (cur.length && /^\s+$/.test(cur[cur.length - 1].t)) cur.pop(); lines.push(cur); cur = []; w = 0; }
+    if (ws && !cur.length) continue;
+    const last = cur[cur.length - 1];
+    if (last && last.b === wd.b) last.t += wd.t; else cur.push({ t: wd.t, b: wd.b });
+    w += ww;
+  }
+  if (cur.length) lines.push(cur);
+  return lines;
+}
+
+/* ---------- downloads (viewer confirms each save) ---------- */
+let DL = null;
+function updateDl() {
+  $("dlpdf").disabled = !(DL && LAST && window.jspdf);
+  $("dlsample").hidden = !DL;
+}
+async function savePdf() {
+  if (!DL || !LAST) return;
+  try {
+    const doc = buildPDF(LAST.r, LAST.meta);
+    const name = (LAST.r.q.company || "company").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "company";
+    await DL.save({ filename: "funding-report-" + name + ".pdf", data: doc.output("arraybuffer") });
+    $("dlhint").textContent = "PDF saved.";
+  } catch (e) {
+    $("dlhint").textContent = e && e.code === "declined" ? "Download cancelled." : "The PDF could not be saved" + (e && e.message ? ": " + e.message : ".");
+  }
+}
+async function saveSample() {
+  if (!DL) return;
+  try { await DL.save({ filename: "sample_cma.xlsx", data: b64ToBytes(SAMPLE_B64) }); }
+  catch (e) { if (!(e && e.code === "declined")) $("dlhint").textContent = "The sample could not be saved."; }
+}
+
+/* ---------- row spec table ---------- */
+function buildRowSpec() {
+  const desc = { net_sales: "NET SALES", pbit: "PROFIT BEFORE INTEREST & TAX (PBIT)", dep: "Depreciation", interest: "Interest & Other Financial Charges", pbt: "PROFIT BEFORE TAX", tax: "Current Tax", pat: "NET PROFIT/LOSS (PAT)", dividend: "Equity/Pref. Dividend Paid (i) Amt", cop: "COST OF PRODUCTION:", rm: "A. Imported + B. Indigenous (raw materials)", stock_trade: "A. Stock in Trade", packing: "B. Packing Material", power: "Power & Fuel", labour: "Direct Labour", cost_services: "Cost of services", sga: "Selling, General & Admn. Expenses", tl_current: "Instalments of Term loans (due within 1 year)", cash: "Cash and Bank Balances", liquid1: "Govt. & other securities", liquid2: "Fixed deposits with banks" };
+  const use = { net_sales: "Realisation per unit, base year", pbit: "EBITDA, cost per unit fallback", dep: "Company cash flow", interest: "Existing debt service", pbt: "Tax rate", tax: "Tax rate (clamped 15-35%)", pat: "Company cash flow", dividend: "Dividend capacity", cop: "Cost per unit", rm: "Variable cost (manufacturing)", stock_trade: "Variable cost (manufacturing, trading)", packing: "Variable cost (manufacturing)", power: "Variable cost (manufacturing)", labour: "Variable cost (service)", cost_services: "Variable cost (service)", sga: "Selling cost that scales with sales", tl_current: "Existing debt service", cash: "Internal accruals", liquid1: "Internal accruals", liquid2: "Internal accruals" };
+  let h = "<thead><tr><th>Row label in column A</th><th>Used for</th></tr></thead><tbody>";
+  for (const k in desc) h += "<tr><td>" + desc[k] + (F.REQUIRED[k] ? ' <b class="warn">required</b>' : "") + "</td><td>" + use[k] + "</td></tr>";
+  $("rowspec").innerHTML = h + "</tbody>";
+  $("rowspec").style.textAlign = "left";
+}
+
+/* ---------- wire up ---------- */
+buildFields(); applyPreset(); buildRowSpec();
+$("industry").addEventListener("change", () => { applyPreset(); recalc(); });
+$("form").addEventListener("submit", (e) => { e.preventDefault(); recalc(); });
+$("form").addEventListener("input", (e) => { if (e.target.id === "cma") return; clearTimeout(timer); timer = setTimeout(recalc, 350); });
+$("drop").addEventListener("click", () => $("cma").click());
+$("cma").addEventListener("change", (e) => { loadFile(e.target.files[0]); e.target.value = ""; });
+const drop = $("drop");
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+$("usesample").addEventListener("click", loadSample);
+$("dlsample").addEventListener("click", saveSample);
+$("dlpdf").addEventListener("click", savePdf);
+$("dlsample").hidden = true;
+$("dlhint").textContent = "Preparing download…";
+loadSample();
+(async () => {
+  try { DL = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { DL = null; }
+  $("dlhint").textContent = DL ? "" : "PDF download is available when this page is opened from its claude.ai link.";
+  updateDl();
+})();
+</script>

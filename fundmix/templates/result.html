@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Report | {{ p.company }}</title>
+<style>
+:root{--navy:#12263F;--teal:#1AA6A0;--or:#F2A541;--alt:#F2F6FA;--gr:#5B6B7C}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#222}
+header{background:var(--navy);color:#fff;padding:22px 40px;border-bottom:4px solid var(--teal);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+header h1{margin:0;font-size:20px}a.btn{background:var(--or);color:var(--navy);padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;margin-left:8px}
+a.ghost{background:transparent;color:#fff;border:1px solid #BFD3E6}
+.kpis{display:flex;gap:12px;max-width:1100px;margin:20px auto;padding:0 20px;flex-wrap:wrap}
+.k{flex:1;min-width:180px;border:1px solid #D9DEE5;border-radius:6px;padding:12px}.k small{color:var(--gr);text-transform:uppercase;font-size:11px}.k b{display:block;font-size:20px;color:var(--navy);margin-top:4px}
+iframe{display:block;width:min(1100px,96vw);height:1200px;margin:0 auto 40px;border:1px solid #D9DEE5}
+</style></head><body>
+<header><h1>{{ p.company }}: {{ '%.0f' % (r.debt_pct*100) }}% debt / {{ '%.0f' % (r.equity_pct*100) }}% equity</h1>
+<div><a class="btn ghost" href="/">New analysis</a><a class="btn" href="/reports/{{ rid }}.pdf" download>Download PDF</a></div></header>
+<div class="kpis">
+ <div class="k"><small>Debt</small><b>Rs {{ '{:,.0f}'.format(r.debt) }} cr</b></div>
+ <div class="k"><small>Equity</small><b>Rs {{ '{:,.0f}'.format(r.equity) }} cr</b></div>
+ <div class="k"><small>Debt the plant can bear</small><b>Rs {{ '{:,.0f}'.format(r.cap_project) }} cr</b></div>
+ <div class="k"><small>Minimum DSCR (stress)</small><b>{{ '%.2f' % r.min_dscr }}x ({{ '%.2f' % r.min_dscr_stress }}x)</b></div>
+</div>
+<iframe src="/reports/{{ rid }}.pdf"></iframe>
+</body></html>

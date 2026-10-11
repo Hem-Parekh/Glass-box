@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Debt vs Equity Report | Glass-Box Advisory</title>
+<style>
+:root{--navy:#12263F;--teal:#1AA6A0;--or:#F2A541;--alt:#F2F6FA;--gr:#5B6B7C}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff}
+header{background:var(--navy);color:#fff;padding:28px 40px 22px;border-bottom:4px solid var(--teal)}
+header h1{margin:0;font-size:24px}header p{margin:6px 0 0;color:#BFD3E6;font-size:14px}
+main{max-width:980px;margin:0 auto;padding:24px 20px 60px}
+h2{color:var(--teal);font-size:16px;margin:26px 0 10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+label{display:block;font-size:12px;color:var(--gr);margin-bottom:4px}
+input,select{width:100%;padding:9px 10px;border:1px solid #D9DEE5;border-radius:6px;font-size:14px}
+.card{background:var(--alt);border-left:4px solid var(--teal);padding:14px 16px;border-radius:4px;font-size:13px;line-height:1.5}
+button{background:var(--navy);color:#fff;border:0;padding:13px 26px;border-radius:6px;font-size:15px;cursor:pointer;margin-top:22px}
+button:hover{background:var(--teal)}.err{background:#fde8e8;border-left:4px solid #c0392b;padding:12px;margin-bottom:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>Debt vs Equity Funding Report</h1><p>Upload a CMA, describe the project, and get a one-page, advisor-ready recommendation.</p></header>
+<main>
+{% if error %}<div class="err">Could not build the report: {{ error }}</div>{% endif %}
+<form action="/analyse" method="post" enctype="multipart/form-data">
+<h2>1. Company data</h2>
+<div class="grid">
+ <div><label>CMA workbook (.xlsx). Leave empty to use the sample CMA</label><input type="file" name="cma" accept=".xlsx"></div>
+ <div><label>Industry</label><select name="industry" id="industry">
+  <option value="manufacturing">Manufacturing</option><option value="service">Service</option><option value="other">Trading / other</option></select></div>
+</div>
+<div class="card" id="note" style="margin-top:12px"></div>
+<h2>2. Project and financing inputs</h2>
+<div class="grid">
+{% for name,label,default,kind in fields %}
+ <div><label for="{{name}}">{{label}}</label>
+ <input id="{{name}}" name="{{name}}" value="{% if default is not none %}{% if kind=='list' %}{{default}}{% else %}{{default}}{% endif %}{% endif %}"></div>
+{% endfor %}
+</div>
+<button type="submit">Generate one-page report</button>
+</form></main>
+<script>
+const P={{ presets|tojson }};
+function apply(){const k=document.getElementById('industry').value,p=P[k];
+ document.getElementById('note').textContent=p.note+' Typical defaults: minimum own contribution '+Math.round(p.min_equity*100)+'%, DSCR '+p.dscr_target+'x, '+p.tenor+'-year repayment, '+p.moratorium+'-year moratorium.';
+ for(const [f,v] of [['tenor',p.tenor],['moratorium',p.moratorium],['dscr_target',p.dscr_target],['min_equity',Math.round(p.min_equity*100)],['asset_life',p.asset_life]]) document.getElementById(f).value=v;}
+document.getElementById('industry').addEventListener('change',apply);apply();
+</script></body></html>
