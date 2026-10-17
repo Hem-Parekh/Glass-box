@@ -1,0 +1,26 @@
+{
+  "app": "equity-debt-optimizer",
+  "version": "1.0.0",
+  "name": "Base case",
+  "saved": "2026-10-17",
+  "inputs": {
+    "amount": 30000000,
+    "pre_money": 60000000,
+    "profit_month": 1200000,
+    "growth_y1": 0.3,
+    "growth_y2": 0.15,
+    "interest_rate": 0.15,
+    "tenure_years": 5,
+    "horizon_years": 10,
+    "tax_rate": 0.0,
+    "exit_multiple": 5.0,
+    "discount_rate": 0.12,
+    "debt_fee": 0.0,
+    "equity_cost": 0.0,
+    "payout_ratio": 1.0,
+    "growth_boost_equity": 0.0,
+    "growth_boost_debt": 0.0,
+    "min_dscr_required": 1.0,
+    "metric": "npv_wealth"
+  }
+}

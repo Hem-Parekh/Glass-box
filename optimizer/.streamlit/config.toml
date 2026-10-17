@@ -1,0 +1,11 @@
+# No [theme] section on purpose: the app then follows the computer's light / dark setting,
+# and the user can switch from the menu (top right) -> Settings.
+[server]
+headless = true
+address = "127.0.0.1"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
