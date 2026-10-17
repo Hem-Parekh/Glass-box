@@ -1,0 +1,832 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T17:29:25+00:00",
+  "title": "Design System: Aegis Ascend Financial Advisors",
+  "extensions": {
+    "colorMeta": {
+      "obsidian": {
+        "role": "neutral",
+        "displayName": "Obsidian",
+        "canonical": "#0D0E10",
+        "oklch": "oklch(16.4% 0.005 264.4)",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#242527",
+          "#414244",
+          "#606164",
+          "#818285",
+          "#A3A5A8",
+          "#C8C9CC",
+          "#EDEEF2"
+        ]
+      },
+      "obsidian-raised": {
+        "role": "neutral",
+        "displayName": "Obsidian Raised",
+        "canonical": "#151411",
+        "oklch": "oklch(19.1% 0.006 91.7)",
+        "tonalRamp": [
+          "#0C0B08",
+          "#262522",
+          "#43423E",
+          "#62615D",
+          "#83827E",
+          "#A6A5A1",
+          "#CAC9C5",
+          "#F0EEEA"
+        ]
+      },
+      "obsidian-high": {
+        "role": "neutral",
+        "displayName": "Obsidian High",
+        "canonical": "#1D1C18",
+        "oklch": "oklch(22.6% 0.008 95.4)",
+        "tonalRamp": [
+          "#0C0B08",
+          "#262521",
+          "#43423D",
+          "#62615C",
+          "#84827D",
+          "#A6A5A0",
+          "#CAC9C4",
+          "#F0EEE9"
+        ]
+      },
+      "obsidian-edge": {
+        "role": "neutral",
+        "displayName": "Obsidian Edge",
+        "canonical": "#29271F",
+        "oklch": "oklch(27.2% 0.015 95.6)",
+        "tonalRamp": [
+          "#0D0B05",
+          "#27251D",
+          "#44423A",
+          "#636159",
+          "#84827B",
+          "#A7A59E",
+          "#CBC9C2",
+          "#F0EEE8"
+        ]
+      },
+      "gold-light": {
+        "role": "primary",
+        "displayName": "Crest Gold",
+        "canonical": "#E8C77B",
+        "oklch": "oklch(84.2% 0.102 86.8)",
+        "tonalRamp": [
+          "#160800",
+          "#332200",
+          "#533F06",
+          "#755E24",
+          "#997F40",
+          "#BFA15C",
+          "#E6C579",
+          "#FFEBA4"
+        ],
+        "projectScale": [
+          "#8E6A2A",
+          "#C9A04F",
+          "#E8C77B"
+        ]
+      },
+      "gold": {
+        "role": "primary",
+        "displayName": "Emblem Gold",
+        "canonical": "#C9A04F",
+        "oklch": "oklch(72.7% 0.110 82.5)",
+        "tonalRamp": [
+          "#190500",
+          "#381F00",
+          "#583C00",
+          "#7C5B11",
+          "#A07C31",
+          "#C79E4E",
+          "#EAC379",
+          "#FFE9A4"
+        ],
+        "projectScale": [
+          "#8E6A2A",
+          "#C9A04F",
+          "#E8C77B"
+        ]
+      },
+      "gold-deep": {
+        "role": "primary",
+        "displayName": "Burnished Gold",
+        "canonical": "#8E6A2A",
+        "oklch": "oklch(54.8% 0.093 78.9)",
+        "tonalRamp": [
+          "#1A0500",
+          "#381F00",
+          "#593B00",
+          "#7C5A1B",
+          "#9F7C40",
+          "#C19F68",
+          "#E4C490",
+          "#FFEABA"
+        ],
+        "projectScale": [
+          "#8E6A2A",
+          "#C9A04F",
+          "#E8C77B"
+        ]
+      },
+      "gold-line": {
+        "role": "primary",
+        "displayName": "Gold Hairline",
+        "canonical": "rgba(201,160,79,.28)",
+        "tonalRamp": [
+          "#190500",
+          "#381F00",
+          "#583C00",
+          "#7C5B11",
+          "#A07C31",
+          "#C79E4E",
+          "#EAC379",
+          "#FFE9A4"
+        ]
+      },
+      "gold-wash": {
+        "role": "primary",
+        "displayName": "Gold Wash",
+        "canonical": "rgba(201,160,79,.09)",
+        "tonalRamp": [
+          "#190500",
+          "#381F00",
+          "#583C00",
+          "#7C5B11",
+          "#A07C31",
+          "#C79E4E",
+          "#EAC379",
+          "#FFE9A4"
+        ]
+      },
+      "ivory": {
+        "role": "neutral",
+        "displayName": "Warm Ivory",
+        "canonical": "#F1ECE2",
+        "oklch": "oklch(94.4% 0.014 84.6)",
+        "tonalRamp": [
+          "#0D0B08",
+          "#272520",
+          "#44423C",
+          "#64615B",
+          "#85827B",
+          "#A9A59C",
+          "#CDC9C0",
+          "#F3EEE4"
+        ]
+      },
+      "ivory-soft": {
+        "role": "neutral",
+        "displayName": "Ivory Soft",
+        "canonical": "#ABA497",
+        "oklch": "oklch(72.1% 0.020 83.1)",
+        "tonalRamp": [
+          "#0E0B05",
+          "#29251D",
+          "#464139",
+          "#666156",
+          "#888276",
+          "#ABA497",
+          "#CFC8BC",
+          "#F4EEE2"
+        ]
+      },
+      "ivory-faint": {
+        "role": "neutral",
+        "displayName": "Ivory Faint",
+        "canonical": "#7D776C",
+        "oklch": "oklch(57.1% 0.018 82.8)",
+        "tonalRamp": [
+          "#0E0B05",
+          "#29241D",
+          "#464139",
+          "#666156",
+          "#888277",
+          "#AAA49A",
+          "#CEC8BE",
+          "#F3EEE4"
+        ]
+      },
+      "stone": {
+        "role": "neutral",
+        "displayName": "Stone",
+        "canonical": "#F2F1EE",
+        "oklch": "oklch(95.8% 0.004 91.4)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#262523",
+          "#43423F",
+          "#62615F",
+          "#83827F",
+          "#A6A5A2",
+          "#CAC9C6",
+          "#EFEEEB"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "panel-sunk": {
+        "role": "neutral",
+        "displayName": "Panel Sunk",
+        "canonical": "#F7F6F3",
+        "oklch": "oklch(97.3% 0.004 91.4)",
+        "tonalRamp": [
+          "#0C0B09",
+          "#262523",
+          "#434240",
+          "#62615F",
+          "#838280",
+          "#A6A5A2",
+          "#CAC9C6",
+          "#EFEEEB"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#16171A",
+        "oklch": "oklch(20.5% 0.006 271.1)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#242528",
+          "#414245",
+          "#606165",
+          "#818286",
+          "#A3A5A9",
+          "#C7C9CD",
+          "#EDEEF3"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "canonical": "#47443E",
+        "oklch": "oklch(38.8% 0.011 84.6)",
+        "tonalRamp": [
+          "#0D0B07",
+          "#272520",
+          "#45423C",
+          "#64615B",
+          "#85827C",
+          "#A7A59F",
+          "#CBC9C3",
+          "#F1EEE9"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#6A665D",
+        "oklch": "oklch(51.1% 0.015 86.9)",
+        "tonalRamp": [
+          "#0D0B06",
+          "#28251E",
+          "#45423A",
+          "#656158",
+          "#868279",
+          "#A8A59C",
+          "#CCC9C1",
+          "#F2EEE6"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#E2DED5",
+        "oklch": "oklch(90.1% 0.013 86.8)",
+        "tonalRamp": [
+          "#0C0B08",
+          "#272521",
+          "#44423D",
+          "#64615B",
+          "#85827B",
+          "#A8A59D",
+          "#CDC9C0",
+          "#F2EEE5"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Line Strong",
+        "canonical": "#CFC9BC",
+        "oklch": "oklch(83.7% 0.019 86.2)",
+        "tonalRamp": [
+          "#0D0B06",
+          "#28251E",
+          "#45423A",
+          "#656158",
+          "#878277",
+          "#AAA499",
+          "#CFC9BC",
+          "#F4EEE1"
+        ]
+      },
+      "gold-ink": {
+        "role": "primary",
+        "displayName": "Deep Gold Ink",
+        "canonical": "#7B5C1F",
+        "oklch": "oklch(49.5% 0.087 80.9)",
+        "tonalRamp": [
+          "#190600",
+          "#371F00",
+          "#583C00",
+          "#7A5B1E",
+          "#9B7D47",
+          "#BDA16E",
+          "#E1C596",
+          "#FFEBBF"
+        ]
+      },
+      "stone-dark": {
+        "role": "neutral",
+        "displayName": "Stone (dark theme)",
+        "canonical": "#101114",
+        "oklch": "oklch(17.8% 0.006 271.0)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#242528",
+          "#414245",
+          "#606165",
+          "#818286",
+          "#A3A5A9",
+          "#C7C9CD",
+          "#EDEEF3"
+        ]
+      },
+      "panel-dark": {
+        "role": "neutral",
+        "displayName": "Panel (dark theme)",
+        "canonical": "#17191D",
+        "oklch": "oklch(21.3% 0.008 264.4)",
+        "tonalRamp": [
+          "#090B0F",
+          "#232529",
+          "#404247",
+          "#5F6166",
+          "#808288",
+          "#A2A5AA",
+          "#C6C9CF",
+          "#ECEEF4"
+        ]
+      },
+      "gold-ink-dark": {
+        "role": "primary",
+        "displayName": "Deep Gold Ink (dark theme)",
+        "canonical": "#DDB868",
+        "oklch": "oklch(79.9% 0.108 85.1)",
+        "tonalRamp": [
+          "#170700",
+          "#352100",
+          "#553E00",
+          "#785D1C",
+          "#9C7E38",
+          "#C3A055",
+          "#E9C476",
+          "#FFEAA1"
+        ]
+      },
+      "series-debt": {
+        "role": "secondary",
+        "displayName": "Debt Blue",
+        "canonical": "#3F6EA6",
+        "oklch": "oklch(53.1% 0.103 253.9)",
+        "tonalRamp": [
+          "#00082B",
+          "#00244D",
+          "#194372",
+          "#356399",
+          "#5785BC",
+          "#7DA8DD",
+          "#A3CDFF",
+          "#CBF2FF"
+        ]
+      },
+      "series-equity": {
+        "role": "secondary",
+        "displayName": "Equity Gold",
+        "canonical": "#B8892F",
+        "oklch": "oklch(66.0% 0.118 79.9)",
+        "tonalRamp": [
+          "#1C0300",
+          "#3B1D00",
+          "#5D3A00",
+          "#815900",
+          "#A67920",
+          "#CB9D4A",
+          "#EEC277",
+          "#FFE8A3"
+        ]
+      },
+      "series-mix": {
+        "role": "tertiary",
+        "displayName": "Mix Green",
+        "canonical": "#1E8C68",
+        "oklch": "oklch(57.1% 0.111 165.5)",
+        "tonalRamp": [
+          "#001403",
+          "#00311A",
+          "#005135",
+          "#007453",
+          "#319773",
+          "#61B996",
+          "#8DDDBB",
+          "#B8FFE1"
+        ]
+      },
+      "series-debt-dark": {
+        "role": "secondary",
+        "displayName": "Debt Blue (dark)",
+        "canonical": "#5C88C4",
+        "oklch": "oklch(62.1% 0.104 256.4)",
+        "tonalRamp": [
+          "#000829",
+          "#05244B",
+          "#204270",
+          "#3B6297",
+          "#5884BF",
+          "#7DA7E2",
+          "#A3CCFF",
+          "#CBF1FF"
+        ]
+      },
+      "series-equity-dark": {
+        "role": "secondary",
+        "displayName": "Equity Gold (dark)",
+        "canonical": "#B08433",
+        "oklch": "oklch(64.1% 0.111 79.5)",
+        "tonalRamp": [
+          "#1B0400",
+          "#3A1E00",
+          "#5C3A00",
+          "#7F5904",
+          "#A57A2A",
+          "#C89D53",
+          "#EBC27E",
+          "#FFE8A9"
+        ]
+      },
+      "series-mix-dark": {
+        "role": "tertiary",
+        "displayName": "Mix Green (dark)",
+        "canonical": "#2FA38A",
+        "oklch": "oklch(64.5% 0.108 175.0)",
+        "tonalRamp": [
+          "#001409",
+          "#003123",
+          "#00513F",
+          "#00735E",
+          "#22977F",
+          "#53BAA1",
+          "#81DEC6",
+          "#AEFFEB"
+        ]
+      },
+      "good": {
+        "role": "status",
+        "displayName": "Good",
+        "canonical": "#1D7A4C",
+        "oklch": "oklch(51.5% 0.112 156.5)",
+        "tonalRamp": [
+          "#001400",
+          "#00310F",
+          "#00512A",
+          "#157346",
+          "#459568",
+          "#6FB88C",
+          "#98DBB1",
+          "#C1FFD8"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Warn",
+        "canonical": "#946100",
+        "oklch": "oklch(53.5% 0.114 73.4)",
+        "tonalRamp": [
+          "#1F0100",
+          "#3F1A00",
+          "#623700",
+          "#865500",
+          "#A9772D",
+          "#CB9B5A",
+          "#EEC084",
+          "#FFE6AF"
+        ]
+      },
+      "bad": {
+        "role": "status",
+        "displayName": "Bad",
+        "canonical": "#B0281E",
+        "oklch": "oklch(49.7% 0.174 29.1)",
+        "tonalRamp": [
+          "#310000",
+          "#590000",
+          "#830000",
+          "#AE271D",
+          "#D25445",
+          "#F57C6C",
+          "#FFA594",
+          "#FFCEBD"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero H1 only: the tagline, Cinzel 500."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Public section and inner-page headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Promise headings, feature index names, founder names; Crest Gold on dark."
+      },
+      "page-title": {
+        "displayName": "Page Title",
+        "purpose": "Workspace page header."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The logo wordmark; sub-line 9.5px at +0.42em between gold rules."
+      },
+      "panel-title": {
+        "displayName": "Panel Title",
+        "purpose": "Workspace panel headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All reading text."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Section ledes and intro paragraphs, max 62ch."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "KPI values and decision-strip stats, tabular lining numerals."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase table headers, explain-panel labels, source tags."
+      }
+    },
+    "shadows": [
+      {
+        "name": "decision-lift",
+        "value": "0 24px 60px -30px rgba(0,0,0,.8)",
+        "purpose": "Hero decision strip, seated on the chevron's base."
+      },
+      {
+        "name": "toast",
+        "value": "0 14px 40px rgba(0,0,0,.28)",
+        "purpose": "Fixed bottom toast."
+      },
+      {
+        "name": "tooltip",
+        "value": "0 10px 24px rgba(0,0,0,.14)",
+        "purpose": "Chart crosshair tooltip."
+      },
+      {
+        "name": "accent-edge",
+        "value": "inset 0 2px 0 #C9A04F",
+        "purpose": "Highlighted KPI tile's gold top edge."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(201,160,79,.2)",
+        "purpose": "Input focus on dark; workspace uses rgba(176,132,51,.12)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "The only easing curve: every transition and the Ascent."
+      },
+      {
+        "name": "feedback",
+        "value": "150-250ms",
+        "purpose": "Workspace and control state changes (hover, focus, nav, explain panel 300ms, toast 250ms, page fade 200ms)."
+      },
+      {
+        "name": "ascent-draw",
+        "value": "1.1s stroke reveal; inner uprights +0.12s, faint chevron 1.4s",
+        "purpose": "Hero emblem lines draw bottom-up."
+      },
+      {
+        "name": "ascent-land",
+        "value": "0.7s at 0.95s; from translateY(-14px) rotate(-45deg) scale(.6)",
+        "purpose": "The hero diamond lands last."
+      },
+      {
+        "name": "ascent-rise",
+        "value": "0.8s, staggered 0.55s / 0.7s / 0.82s / 1.05s; from translateY(14px) blur(4px)",
+        "purpose": "Hero column content rises in."
+      },
+      {
+        "name": "ascent-fill",
+        "value": "flex-basis 1.1s, starts at 1250ms",
+        "purpose": "Decision split bar fills to its mix."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "lines appear drawn; bar set instantly; panel and toast animations off",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "nav-collapse",
+        "value": "1240px"
+      },
+      {
+        "name": "kpi-4up",
+        "value": "1150px"
+      },
+      {
+        "name": "twin-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "method-4col",
+        "value": "1060px"
+      },
+      {
+        "name": "rail-to-topbar",
+        "value": "900px"
+      },
+      {
+        "name": "single-column",
+        "value": "760px"
+      },
+      {
+        "name": "header-cta-hide",
+        "value": "600px"
+      },
+      {
+        "name": "method-2col",
+        "value": "560px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action on dark public pages: Emblem Gold fill, obsidian text.",
+      "html": "<button class=\"ds-btn-primary\">Book an engagement</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:'Hanken Grotesk',system-ui,sans-serif;font-weight:600;font-size:15px;letter-spacing:.01em;border-radius:3px;padding:11px 20px;border:1px solid transparent;cursor:pointer;background:var(--gold,#C9A04F);color:var(--obsidian,#0D0E10);transition:background .2s cubic-bezier(.16,1,.3,1),transform .15s cubic-bezier(.16,1,.3,1)}.ds-btn-primary:hover{background:var(--gold-1,#E8C77B)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--gold,#C9A04F);outline-offset:3px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action on dark: transparent with a gold hairline border.",
+      "html": "<div class=\"ds-dark\"><button class=\"ds-btn-ghost\">Try the live model</button></div>",
+      "css": ".ds-dark{background:#0D0E10;padding:20px}.ds-btn-ghost{font-family:'Hanken Grotesk',system-ui,sans-serif;font-weight:600;font-size:15px;border-radius:3px;padding:11px 20px;cursor:pointer;background:transparent;color:#F1ECE2;border:1px solid rgba(201,160,79,.28);transition:border-color .2s cubic-bezier(.16,1,.3,1),color .2s cubic-bezier(.16,1,.3,1)}.ds-btn-ghost:hover{border-color:#C9A04F;color:#E8C77B}.ds-btn-ghost:focus-visible{outline:2px solid #C9A04F;outline-offset:3px}"
+    },
+    {
+      "name": "Workspace Primary Button",
+      "kind": "button",
+      "refersTo": "button-workspace-primary",
+      "description": "Primary action on the light workspace: obsidian fill with Crest Gold text.",
+      "html": "<button class=\"ds-btn-ws\">Run the optimizer</button>",
+      "css": ".ds-btn-ws{font-family:'Hanken Grotesk',system-ui,sans-serif;font-weight:600;font-size:15px;border-radius:3px;padding:11px 20px;border:1px solid transparent;cursor:pointer;background:#0D0E10;color:#E8C77B;transition:background .2s cubic-bezier(.16,1,.3,1)}.ds-btn-ws:hover{background:#1D1C18}.ds-btn-ws:focus-visible{outline:2px solid #C9A04F;outline-offset:3px}"
+    },
+    {
+      "name": "Workspace Input",
+      "kind": "input",
+      "refersTo": "input-workspace",
+      "description": "Number field with a unit suffix cell; gold-ink focus ring.",
+      "html": "<label class=\"ds-fld\"><span>Amount to raise</span><span class=\"ds-in\"><input value=\"12.0\"><em>Rs cr</em></span></label>",
+      "css": ".ds-fld{display:grid;gap:6px;font-family:'Hanken Grotesk',system-ui,sans-serif;max-width:260px}.ds-fld>span:first-child{font-size:13.5px;color:#47443E}.ds-in{display:flex;border:1px solid #CFC9BC;border-radius:4px;background:#fff;overflow:hidden;transition:border-color .15s,box-shadow .15s}.ds-in:focus-within{border-color:#7B5C1F;box-shadow:0 0 0 3px rgba(176,132,51,.12)}.ds-in input{flex:1;min-width:0;border:0;background:transparent;color:#16171A;font:inherit;font-size:14.5px;padding:8px 10px;outline:none;font-variant-numeric:tabular-nums}.ds-in em{font-style:normal;font-size:12.5px;color:#6A665D;padding:8px 9px;border-left:1px solid #E2DED5;background:#F7F6F3}"
+    },
+    {
+      "name": "Public Navigation",
+      "kind": "nav",
+      "refersTo": "public-header",
+      "description": "Sticky obsidian header; the current page carries a gold diamond beneath it.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Method</a><a href=\"#\" aria-current=\"page\">About</a><a href=\"#\">Services</a><a href=\"#\">Fees</a></nav>",
+      "css": ".ds-nav{display:flex;justify-content:center;background:rgba(13,14,16,.96);border-bottom:1px solid rgba(201,160,79,.28);min-height:74px;align-items:center;font-family:'Hanken Grotesk',system-ui,sans-serif}.ds-nav a{color:#ABA497;text-decoration:none;font-size:14.5px;padding:8px 11px;position:relative}.ds-nav a:hover,.ds-nav a[aria-current]{color:#F1ECE2}.ds-nav a[aria-current]::after{content:\"\";position:absolute;left:50%;bottom:-2px;width:7px;height:7px;background:#C9A04F;transform:translateX(-50%) rotate(45deg)}.ds-nav a:focus-visible{outline:2px solid #C9A04F;outline-offset:3px}"
+    },
+    {
+      "name": "Workspace Rail Nav",
+      "kind": "nav",
+      "refersTo": "workspace-rail",
+      "description": "Obsidian rail; current item is Crest Gold with a diamond at its left.",
+      "html": "<nav class=\"ds-rail\"><span class=\"ds-group\">Analysis</span><a href=\"#\" aria-current=\"page\">Funding Twin</a><a href=\"#\">Readiness Score</a><a href=\"#\">Equity vs Debt Optimizer</a></nav>",
+      "css": ".ds-rail{display:flex;flex-direction:column;gap:1px;width:248px;background:#0D0E10;padding:14px;font-family:'Hanken Grotesk',system-ui,sans-serif}.ds-group{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:#7D776C;padding:8px 12px 6px}.ds-rail a{color:#ABA497;text-decoration:none;padding:9px 12px 9px 26px;border-radius:3px;font-size:15px;position:relative;transition:background .15s,color .15s}.ds-rail a:hover{background:#1D1C18;color:#F1ECE2}.ds-rail a[aria-current]{color:#E8C77B;background:#1D1C18;font-weight:600}.ds-rail a[aria-current]::before{content:\"\";position:absolute;left:10px;top:50%;width:7px;height:7px;background:#C9A04F;transform:translateY(-50%) rotate(45deg)}.ds-rail a:focus-visible{outline:2px solid #C9A04F;outline-offset:2px}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Small status label with a currentColor diamond.",
+      "html": "<span class=\"ds-chip\">Draft</span> <span class=\"ds-chip ds-ok\">Approved</span> <span class=\"ds-chip ds-warn\">Needs review</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:6px;font-family:'Hanken Grotesk',system-ui,sans-serif;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:2px;background:#F7F6F3;color:#47443E;border:1px solid #E2DED5}.ds-chip::before{content:\"\";width:6px;height:6px;background:currentColor;transform:rotate(45deg);opacity:.85}.ds-ok{background:#E4F2E9;color:#1D7A4C;border-color:transparent}.ds-warn{background:#FBF0D9;color:#946100;border-color:transparent}"
+    },
+    {
+      "name": "Reviewed-by Stamp",
+      "kind": "custom",
+      "refersTo": "stamp-reviewed",
+      "description": "The visual form of advisor sign-off on every shared report.",
+      "html": "<span class=\"ds-stamp\">Reviewed by Hem Parekh</span>",
+      "css": ".ds-stamp{display:inline-flex;align-items:center;gap:8px;font-family:Cinzel,'Trajan Pro',Georgia,serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7B5C1F;border:1px solid currentColor;border-radius:2px;padding:4px 10px}.ds-stamp::before{content:\"\";width:7px;height:7px;background:currentColor;transform:rotate(45deg)}"
+    },
+    {
+      "name": "Accent KPI Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Workspace panel with a KPI row; the recommended value takes the gold edge and diamond.",
+      "html": "<section class=\"ds-panel\"><h2>Funding Twin</h2><div class=\"ds-kpis\"><div class=\"ds-kpi ds-accent\"><small>Best mix</small><b><button class=\"ds-gx\">60% debt</button></b></div><div class=\"ds-kpi\"><small>Founder value</small><b>Rs 41.2 cr</b></div></div></section>",
+      "css": ".ds-panel{background:#fff;border:1px solid #E2DED5;border-radius:6px;padding:20px;display:grid;gap:14px;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#16171A}.ds-panel h2{margin:0;font-size:18px;font-weight:600}.ds-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ds-kpi{background:#F7F6F3;border:1px solid transparent;border-radius:6px;padding:14px 16px;display:grid;gap:3px}.ds-kpi small{font-size:13px;color:#6A665D}.ds-kpi b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums lining-nums}.ds-accent{border-color:#C9A04F;box-shadow:inset 0 2px 0 #C9A04F}.ds-accent b::before{content:\"\";display:inline-block;width:9px;height:9px;background:#C9A04F;transform:rotate(45deg);margin-right:10px;vertical-align:3px}.ds-gx{font:inherit;color:inherit;background:none;border:0;padding:0 1px;cursor:pointer;border-bottom:1px dashed #7B5C1F;transition:background .15s}.ds-gx:hover{background:rgba(176,132,51,.12)}.ds-gx:focus-visible{outline:2px solid #C9A04F;outline-offset:3px}"
+    },
+    {
+      "name": "Decision Strip",
+      "kind": "custom",
+      "refersTo": "decision-strip",
+      "description": "The hero's live decision on the chevron's base: split bar, diamond legend, ruled stats.",
+      "html": "<div class=\"ds-dec\"><p>Kalyan Polymers, Rs 12 cr: best mix <b>60% debt / 40% equity</b></p><div class=\"ds-split\"><i style=\"flex-basis:60%;background:#5C88C4\"></i><i style=\"flex-basis:40%;background:#C9A04F\"></i></div><div class=\"ds-leg\"><span><i style=\"background:#5C88C4\"></i>Debt <b>60%</b></span><span><i style=\"background:#C9A04F\"></i>Equity <b>40%</b></span></div><span class=\"ds-sample\">Sample company, fictional data</span></div>",
+      "css": ".ds-dec{background:#151411;border:1px solid rgba(201,160,79,.28);border-radius:4px;padding:20px 22px;display:grid;gap:14px;color:#F1ECE2;font-family:'Hanken Grotesk',system-ui,sans-serif;box-shadow:0 24px 60px -30px rgba(0,0,0,.8)}.ds-dec p{margin:0;font-size:17px}.ds-dec p b{color:#E8C77B;font-weight:600}.ds-split{height:14px;background:#29271F;border-radius:2px;overflow:hidden;display:flex;gap:2px}.ds-split i{display:block;height:100%;transition:flex-basis 1.1s cubic-bezier(.16,1,.3,1)}.ds-leg{display:flex;justify-content:space-between;font-size:14.5px;color:#ABA497}.ds-leg b{color:#F1ECE2}.ds-leg i{display:inline-block;width:9px;height:9px;transform:rotate(45deg);margin-right:8px}.ds-sample{font-size:12.5px;color:#7D776C;letter-spacing:.04em}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Emblem as Architecture",
+    "overview": "The firm's gold emblem is not a logo placed on a page; it is the page's structure. On the public site the obsidian field carries the mark's own geometry at viewport scale: two gold uprights frame the content column, outer diagonals run to the corners, a faint chevron sits under the live decision, and a single gold diamond lands above the headline. Everything after the hero borrows from that vocabulary: gold hairline rules instead of boxes, rotated-square diamonds instead of bullets and icons, Cinzel capitals for every name the firm speaks in its own voice.\n\nThere are two scenes. **Persuade** (public pages) lives in the logo's world: obsidian ground with a faint warm grain, warm ivory reading text, gold reserved for structure, emphasis and action. **Operate** (the founder and advisor workspace) keeps an obsidian rail carrying the wordmark, then opens a light stone work area with white panels for daytime desk work, switching to a dark work area under `prefers-color-scheme: dark`. The workspace speaks in data: Hanken Grotesk, tabular numerals, three fixed series colours, and the gold diamond kept for the one recommended answer.\n\nDensity is calm on the public side (generous section padding, ruled ledgers, long measure capped at 62-72ch) and working-dense in the workspace (20px panel padding, 12-20px gaps, KPI rows). Motion is ceremonial exactly once, the Ascent on the home hero, and purely feedback everywhere else. The world refuses the fintech template: no light hero, no dashboard screenshot, no row of icon cards.",
+    "keyCharacteristics": [
+      "Obsidian ground, gold geometry, ivory text on public pages; stone and white panels in the workspace.",
+      "Cinzel in spaced capitals for display, wordmark and section names; Hanken Grotesk for reading and data.",
+      "Gold hairline rules (`gold-line`) as the main structural device; very few filled containers.",
+      "The rotated-square diamond is the house marker: active place, chosen option, list bullet, recommended value.",
+      "Every number is a dashed-underlined, clickable \"glass-box\" figure that opens its formula.",
+      "One signature motion (the Ascent); workspace motion is 150-250ms feedback only."
+    ],
+    "rules": [
+      {
+        "name": "The Single Best Rule",
+        "body": "In every chart and data view the gold diamond marks exactly one thing: the single \"Best\" point. Series markers, including the best-mix series' own markers, use their own series colour; a secondary \"Viewing\" mark is an ink-coloured diamond, never gold.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gold Is Structure Rule",
+        "body": "On dark pages gold appears as line, marker, numeral and action, never as a large fill. The largest gold areas are the primary button and the split bar's equity half.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Gold Rule",
+        "body": "On light surfaces gold text is always Deep Gold Ink (#7B5C1F), never Emblem Gold.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cinzel Names, Hanken Explains Rule",
+        "body": "Cinzel is for names, headings, numerals of the method and the wordmark; it never sets paragraphs, form labels or table cells.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every figure, in tables, KPIs, inputs and charts, sets in tabular lining numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline Before Box Rule",
+        "body": "Separate content with a 1px gold hairline first; reach for a filled panel only in the workspace, where panels hold working tools.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do build public pages on obsidian (#0D0E10) with ivory text and gold hairline rules (rgba(201,160,79,.28)) as the primary structure.",
+      "Do set every name, heading and the wordmark in Cinzel 500 with positive tracking, and every paragraph, label and number in Hanken Grotesk.",
+      "Do use the rotated-square diamond for markers, bullets, current-place and chosen-option states.",
+      "Do keep the gold diamond in charts for the single \"Best\" mark; give every series marker its own series colour.",
+      "Do colour debt, equity and mix with the fixed series palette (light #3F6EA6 / #B8892F / #1E8C68; dark #5C88C4 / #B08433 / #2FA38A).",
+      "Do make figures clickable glass-box numbers with the dashed gold underline when they have a formula behind them.",
+      "Do keep workspace motion to 150-250ms feedback and honour reduced motion everywhere."
+    ],
+    "donts": [
+      "Don't open with a light hero, a dashboard screenshot or a row of icon cards.",
+      "Don't put a gold diamond on any chart point other than the one \"Best\" mark, and don't use gold as a series colour beyond Equity Gold.",
+      "Don't set Emblem Gold (#C9A04F) as text on white; use Deep Gold Ink (#7B5C1F).",
+      "Don't add drop shadows to panels or cards at rest, or round corners beyond 6px.",
+      "Don't add a second ceremonial animation; the Ascent is the only one."
+    ]
+  }
+}
