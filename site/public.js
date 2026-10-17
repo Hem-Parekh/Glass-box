@@ -81,14 +81,26 @@
       "</svg>";
   }
 
+  // The emblem as three layers: the left A, the right A (each with its half of the
+  // shared crossbar) and the diamond, so the intro can pull the A's apart.
+  function introMark() {
+    const vb = 'viewBox="62 52 420 400" aria-hidden="true"', g = '<g fill="none" stroke="url(#goldv2)" stroke-width="17" stroke-linejoin="miter" stroke-miterlimit="12">';
+    return '<div class="intro-mark">' +
+      '<svg class="ia ia-l" ' + vb + ">" + g + '<path pathLength="1" d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path pathLength="1" d="M172 404 L273 289 L300 320" clip-path="url(#emclipCL)"/></g></svg>' +
+      '<svg class="ia ia-r" ' + vb + ">" + g + '<path pathLength="1" d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/><path pathLength="1" d="M374 404 L273 289 L246 320" clip-path="url(#emclipCR)"/></g></svg>' +
+      '<svg class="ia ia-d" ' + vb + '><polygon class="dia" points="273,62 302,91 273,120 244,91" fill="url(#goldv2)"/></svg></div>';
+  }
+
   function home(user) {
     return page("home", user,
-      '<section class="ascent" id="ascent"><svg class="ascent-svg" aria-hidden="true"></svg>' +
-      '<div class="ascent-col">' +
+      '<section class="intro" id="ascent"><div class="intro-stage">' + introMark() +
+      '<div class="intro-word" aria-hidden="true"><p class="iw-name">AEGIS <span>ASCEND</span></p><p class="iw-sub">Financial Advisors</p><span class="intro-cue">Scroll</span></div>' +
+      '<div class="intro-copy">' +
       "<h1>Smarter Decisions.<br><em>Stronger Futures.</em></h1>" +
       '<p class="lede">Independent advice on debt, equity or the right mix for growing Indian businesses. Every number traced, checked and signed off before it reaches you, then we deliver the deal.</p>' +
       '<div class="ctas"><a class="btn primary lg" href="#contact">Book an engagement</a><a class="btn ghost lg" href="#login">Try the live model</a></div>' +
-      decisionStrip() + "</div></section>" +
+      "</div></div></section>" +
+      '<section class="strip-sec"><div class="container">' + decisionStrip() + "</div></section>" +
       '<section class="sec tone"><div class="container promises">' +
       '<div class="rule-top"><h3>FOR FOUNDERS</h3><p>A clear, evidence-backed answer on debt versus equity, with the risks shown honestly, before you give away a single share or sign a single loan.</p></div>' +
       '<div class="rule-top"><h3>FOR INVESTORS</h3><p>We only bring you the best deals. Every company has passed our validation checks, our calculation engine and an advisor\'s sign-off.</p></div>' +
@@ -115,48 +127,65 @@
       '<section class="sec tone"><div class="container close"><h2>Should you raise debt, equity or a mix?</h2><p>Advisory engagements start from Rs 1 lakh plus GST, scaled by company size and complexity.</p><a class="btn primary lg" href="#contact">Talk to an advisor</a></div></section>');
   }
 
-  // ---------- the Ascent: draw the emblem's geometry at viewport scale ----------
-  let played = false;
-  function drawAscent() {
-    const sec = document.getElementById("ascent"); if (!sec) return;
-    const svg = sec.querySelector(".ascent-svg"), col = sec.querySelector(".ascent-col");
-    const W = sec.clientWidth, H = sec.clientHeight, cr0 = col.getBoundingClientRect(), sr = sec.getBoundingClientRect();
-    const L = Math.max(cr0.left - sr.left, 10), R = Math.min(cr0.right - sr.left, W - 10), cx = W / 2;
-    const dy = cr0.top - sr.top + Math.min(70, H * 0.08), y0 = dy + 46, slope = 0.6;
-    const strip = sec.querySelector(".decision"), st = strip ? strip.getBoundingClientRect().top - sr.top : H * 0.75;
-    const ctas = sec.querySelector(".ctas"), cb = ctas ? ctas.getBoundingClientRect().bottom - sr.top : st - 60;
-    const yA = Math.max(y0 + 40, (cb + st) / 2), cs = 0.88;
-    const P = (pts) => "M" + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.innerHTML =
-      '<path class="ln l1" pathLength="1" d="' + P([[L - (H - y0) * slope, H], [L, y0]]) + '"/>' +
-      '<path class="ln l1" pathLength="1" d="' + P([[R + (H - y0) * slope, H], [R, y0]]) + '"/>' +
-      '<path class="ln l2" pathLength="1" d="' + P([[L, H], [L, y0]]) + '"/>' +
-      '<path class="ln l2" pathLength="1" d="' + P([[R, H], [R, y0]]) + '"/>' +
-      '<path class="ln l3 faint" pathLength="1" d="' + P([[cx - (H - yA) * cs, H], [cx, yA]]) + '"/>' +
-      '<path class="ln l3 faint" pathLength="1" d="' + P([[cx + (H - yA) * cs, H], [cx, yA]]) + '"/>' +
-      '<polygon class="dia" points="' + [[cx, dy - 15], [cx + 15, dy], [cx, dy + 15], [cx - 15, dy]].map((p) => p.join(",")).join(" ") + '"/>';
+  // ---------- the intro: the emblem opens as the page scrolls ----------
+  // The stage is pinned while the section scrolls past. Over the first part the two
+  // A's slide apart to the edges, the diamond rises to crown the headline, the
+  // wordmark fades, and the headline, lede and buttons come forward between the A's.
+  let played = false, M = null, ticking = false;
+  const clamp = (v) => Math.max(0, Math.min(1, v)), ease = (t) => 1 - Math.pow(1 - t, 3);
+  function measure() {
+    const sec = document.getElementById("ascent"); if (!sec) return (M = null);
+    const st = sec.querySelector(".intro-stage"), mark = sec.querySelector(".intro-mark"), d = sec.querySelector(".ia-d"), copy = sec.querySelector(".intro-copy");
+    [d, copy].forEach((el) => (el.style.transform = ""));
+    const vw = st.clientWidth, mr = mark.getBoundingClientRect(), cr = copy.getBoundingClientRect();
+    const narrow = vw < 760, s1 = narrow ? 1.05 : 1.15, mw = mr.width;
+    // Each A covers roughly half the mark. Move it until its outer edge sits near the viewport edge;
+    // on narrow screens it goes partly off-canvas and dims behind the text instead.
+    const dx = narrow ? vw * 0.36 : Math.max(vw / 2 - 28 - (s1 * mw) / 2 + mw * 0.04, 0);
+    const dTop = mr.top + mr.height * (39 / 400), dy = cr.top - 30 - dTop;
+    M = { sec, mark, l: sec.querySelector(".ia-l"), r: sec.querySelector(".ia-r"), d, copy, kids: [...copy.children], word: sec.querySelector(".intro-word"), dx, dy, s1, narrow };
   }
+  function update(force) {
+    if (!M || !M.sec.isConnected) return;
+    const r = M.sec.getBoundingClientRect(), run = r.height - innerHeight;
+    const p = force != null ? force : clamp(-r.top / (run * 0.8 || 1));
+    const a = ease(clamp(p / 0.6)), w = clamp(p / 0.22);
+    const op = M.narrow ? 1 - 0.78 * a : 1;
+    M.l.style.transform = "translate3d(" + (-M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
+    M.r.style.transform = "translate3d(" + (M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
+    M.l.style.opacity = M.r.style.opacity = op.toFixed(3);
+    M.d.style.transform = "translate3d(0," + (M.dy * a).toFixed(1) + "px,0) scale(" + (1 - 0.55 * a).toFixed(3) + ")";
+    M.word.style.opacity = (1 - w).toFixed(3);
+    M.word.style.transform = "translateY(" + (-28 * w).toFixed(1) + "px)";
+    M.kids.forEach((k, i) => {
+      const c = ease(clamp((p - 0.26 - i * 0.07) / 0.36));
+      k.style.opacity = c.toFixed(3);
+      k.style.transform = "translateY(" + (48 * (1 - c)).toFixed(1) + "px) scale(" + (0.86 + 0.14 * c).toFixed(3) + ")";
+      k.style.filter = c < 1 ? "blur(" + (6 * (1 - c)).toFixed(2) + "px)" : "";
+    });
+    M.copy.classList.toggle("live", p > 0.55);
+  }
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); } }
   function mountHome() {
     const sec = document.getElementById("ascent"); if (!sec) return;
     const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sec.classList.toggle("still", !!reduce);
     if (!played && !reduce) sec.classList.add("play");
-    drawAscent();
-    const fill = () => sec.querySelectorAll(".split i").forEach((i) => { i.style.flexBasis = i.dataset.to + "%"; });
-    if (!played && !reduce) setTimeout(fill, 1250); else { sec.querySelectorAll(".split i").forEach((i) => { i.style.transition = "none"; }); fill(); }
     played = true;
+    measure(); update(reduce ? 1 : null);
     reveal(reduce);
   }
+  window.addEventListener("scroll", () => { if (M && !M.sec.classList.contains("still")) onScroll(); }, { passive: true });
   // Below the hero, sections arrive as they scroll in: a short staggered rise, the
   // emblem drawn line by line, founders' portraits uncovered from the bottom.
-  const RV = [".sec-head", ".promises>div", "#meaning .anatomy", ".meaning-list>div", "#meaning .muted", ".ledger>div", ".method", ".method li", ".golden", ".index a", ".founder", ".close>*"];
+  const RV = [".decision", ".sec-head", ".promises>div", "#meaning .anatomy", ".meaning-list>div", "#meaning .muted", ".ledger>div", ".method", ".method li", ".golden", ".index a", ".founder", ".close>*"];
   let io;
   function reveal(reduce) {
-    const main = document.querySelector(".ascent"); if (!main) return;
+    const main = document.getElementById("ascent"); if (!main) return;
     if (io) io.disconnect();
-    if (reduce || !("IntersectionObserver" in window)) return;
+    if (reduce || !("IntersectionObserver" in window)) { fillSplit(false); return; }
     document.documentElement.classList.add("mo");
-    io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("shown"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("shown"); if (e.target.classList.contains("decision")) setTimeout(() => fillSplit(true), 350); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
     RV.forEach((sel) => {
       const seen = new Map();
       document.querySelectorAll(sel).forEach((el) => {
@@ -165,8 +194,11 @@
       });
     });
   }
+  function fillSplit(anim) {
+    document.querySelectorAll(".decision .split i").forEach((i) => { if (!anim) i.style.transition = "none"; i.style.flexBasis = i.dataset.to + "%"; });
+  }
   let rz;
-  window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { const s = document.getElementById("ascent"); if (s) { s.classList.remove("play"); drawAscent(); } }, 120); });
+  window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (document.getElementById("ascent")) { measure(); update(document.getElementById("ascent").classList.contains("still") ? 1 : null); } }, 120); });
 
   // ---------- shared bits ----------
   function table(head, rows) {
