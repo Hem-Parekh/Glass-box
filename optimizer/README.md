@@ -15,7 +15,7 @@ with the most money**. It runs entirely on your computer: no server, no account,
 | Your computer | File | How to start |
 |---|---|---|
 | Windows | `EquityDebtOptimizer.exe` | Double-click. If SmartScreen warns about an unknown publisher, click **More info → Run anyway** (the app is not code-signed). |
-| macOS | `EquityDebtOptimizer` | First time only: right-click → **Open** → **Open** (macOS blocks unsigned apps on a plain double-click). It opens in Terminal. |
+| macOS | `EquityDebtOptimizer` | First time only, in Terminal: `chmod +x EquityDebtOptimizer` (the GitHub download drops the run permission). Then right-click → **Open** → **Open** (macOS blocks unsigned apps on a plain double-click). It opens in Terminal. |
 | Linux | `EquityDebtOptimizer` | `chmod +x EquityDebtOptimizer && ./EquityDebtOptimizer` |
 
 A small console window opens and your browser shows the app at `http://127.0.0.1:8501` (or the next free port).
