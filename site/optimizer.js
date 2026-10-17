@@ -26,7 +26,7 @@
     if (head) parts.unshift(head);
     return parts.join(",") + "," + tail;
   }
-  function inr(x, short, d = 2, sym = "₹") {
+  function inr(x, short, d = 2, sym = "Rs ") {
     if (x === null || x === undefined || Number.isNaN(x)) return "-";
     if (!Number.isFinite(x)) return "n/a";
     const sign = x < 0 ? "-" : "", a = Math.abs(x);

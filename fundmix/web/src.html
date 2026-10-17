@@ -1,4 +1,7 @@
 <title>CMA Funding Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: brand band on top, inputs rail on the left, live report sheet on the right (stacks on phones). */
 :root{
@@ -9,7 +12,9 @@
   --debt:#3F6EA6;--on-debt:#FFFFFF;--on-orange:#0D0E10;
   --good:#1E8A5A;--warn:#B36B00;--bad:#B3261E;--bad-bg:#FDECEA;
   --c-grid:#ECE9E2;--c-axis:#BDB6A8;--c-tick:#6A665D;--c-ink:#16171A;
-  --font:Arial,Helvetica,"Liberation Sans",sans-serif;
+  --font:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --display:"Cinzel","Trajan Pro",Georgia,serif;
+  --gold:#C9A04F;--gold-line:rgba(201,160,79,.32);
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -28,17 +33,20 @@
   --c-grid:#1C2C3D;--c-axis:#34495F;--c-tick:#97A8BA;--c-ink:#EEF3F8;color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45}
-.top{background:var(--band);color:var(--band-fg);border-bottom:4px solid var(--teal);position:relative;padding:22px 24px 18px}
-.top::after{content:"";position:absolute;left:0;bottom:-4px;width:160px;height:4px;background:var(--orange)}
+.top{background:var(--band);color:var(--band-fg);border-bottom:1px solid var(--gold);position:relative;padding:20px 24px 18px}
 .top-in{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between}
-.top h1{margin:0;font-size:22px;letter-spacing:.2px;text-wrap:balance}
+.top h1{margin:0;font-family:var(--display);font-weight:500;font-size:24px;letter-spacing:.04em;text-wrap:balance}
 .top p{margin:4px 0 0;color:var(--band-sub);font-size:13.5px;max-width:62ch}
-.brand{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--band-sub)}
+.brand{display:inline-flex;align-items:center;gap:12px;color:var(--band-fg);text-decoration:none}
+.brand b{font-family:var(--display);font-weight:500;font-size:17px;letter-spacing:.16em;display:block;line-height:1}.brand b span{color:var(--gold)}
+.brand small{display:block;font-size:12px;color:var(--band-sub);margin-top:6px}
+.brand:hover small{color:var(--gold)}
+h2,h3,h4,h5{font-family:var(--display);font-weight:500;letter-spacing:.04em}
 .wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:24px;align-items:start}
 @media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
 /* inputs rail */
 .rail{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;min-width:0}
-.rail h2,.rep h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin:0}
+.rail h2,.rep h2{font-size:13.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin:0}
 .grp{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0;padding:14px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
 .fld{display:grid;gap:4px;min-width:0}
 .fld label{font-size:12px;color:var(--muted)}
@@ -57,7 +65,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--alt);border:1px solid var(--line);font-size:12px;color:var(--strong);max-width:100%;overflow-wrap:anywhere}
 .chip i{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none}
 .chip.err i{background:var(--bad)}
-.note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--teal);padding:2px 0 2px 10px}
+.note{font-size:12.5px;color:var(--muted);background:var(--alt);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
 .btn{font:inherit;font-size:13px;font-weight:700;border-radius:5px;padding:9px 14px;cursor:pointer;border:1px solid transparent}
 .btn:focus-visible,.drop:focus-visible,summary:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .btn.pri{background:var(--orange);color:var(--on-orange)}
@@ -70,13 +78,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px
 .rep{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .bar .hint{font-size:12px;color:var(--muted)}
-.errbox{background:var(--bad-bg);color:var(--fg);border-left:4px solid var(--bad);padding:10px 12px;border-radius:4px;font-size:13.5px}
+.errbox{background:var(--bad-bg);color:var(--fg);border:1px solid var(--bad);padding:10px 12px;border-radius:4px;font-size:13.5px}
 .sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
-.sh-head{background:var(--band);color:var(--band-fg);padding:16px 18px;display:grid;gap:4px;border-bottom:4px solid var(--teal)}
-.sh-head h3{margin:0;font-size:17px}
+.sh-head{background:var(--band);color:var(--band-fg);padding:16px 18px;display:grid;gap:4px;border-bottom:1px solid var(--gold)}
+.sh-head h3{margin:0;font-size:18px}
 .sh-head div{font-size:12.5px;color:var(--band-sub)}
 .sh-body{padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
-.rec{background:var(--alt);border-radius:4px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:center;box-shadow:inset 4px 0 0 var(--teal)}
+.rec{background:var(--alt);border-radius:4px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:center;border:1px solid var(--gold-line)}
 @media (max-width:620px){.rec{grid-template-columns:minmax(0,1fr)}}
 .rec h4{margin:0 0 4px 6px;color:var(--strong);font-size:15px}
 .rec p{margin:0 0 0 6px;font-size:12.5px;color:var(--muted)}
@@ -124,7 +132,7 @@ details.spec[open] summary{border-bottom:1px solid var(--line);margin-bottom:12p
 <header class="top"><div class="top-in">
   <div><h1>Debt vs Equity Funding Report</h1>
   <p>Upload a company's CMA workbook, describe the project, and get a one-page, advisor-ready recommendation. Everything runs in this page: the CMA never leaves your browser.</p></div>
-  <div class="brand"><a href="./#app" style="color:inherit">AEGIS ASCEND · back to the workspace</a></div>
+  <a class="brand" href="./#app" aria-label="Aegis Ascend Financial Advisors, back to the workspace"><svg width="34" height="32" viewBox="62 52 420 400" aria-hidden="true"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8C77B"/><stop offset=".55" stop-color="#C9A04F"/><stop offset="1" stop-color="#9C7330"/></linearGradient></defs><g fill="none" stroke="url(#cg)" stroke-width="17" stroke-linejoin="miter" stroke-miterlimit="12"><path d="M80 412 L246 136 L246 440"/><path d="M466 412 L300 136 L300 440"/><path d="M172 404 L273 289 L374 404"/></g><polygon points="273,62 302,91 273,120 244,91" fill="url(#cg)"/></svg><span><b>AEGIS <span>ASCEND</span></b><small>Back to the workspace</small></span></a>
 </div></header>
 
 <div class="wrap">
@@ -484,7 +492,7 @@ const SVG_C = { teal: "var(--cfads)", orange: "var(--orange)", debt: "var(--debt
 const PDF_C = { teal: "#1E8C68", orange: "#B8892F", debt: "#3F6EA6", grid: "#ECE9E2", axis: "#BDB6A8", tick: "#6A665D", ink: "#16171A" };
 function toSVG(ops, label) {
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  let s = '<svg viewBox="0 0 ' + CW + " " + CH + '" role="img" aria-label="' + esc(label) + '" font-family="Arial, Helvetica, sans-serif">';
+  let s = '<svg viewBox="0 0 ' + CW + " " + CH + '" role="img" aria-label="' + esc(label) + '" font-family="Hanken Grotesk, Arial, sans-serif">';
   for (const o of ops) {
     if (o.k === "rect") s += '<rect x="' + o.x.toFixed(1) + '" y="' + o.y.toFixed(1) + '" width="' + Math.max(o.w, 0).toFixed(1) + '" height="' + Math.max(o.h, 0).toFixed(1) + '" fill="' + SVG_C[o.c] + '"/>';
     else if (o.k === "line") s += '<line x1="' + o.x1.toFixed(1) + '" y1="' + o.y1.toFixed(1) + '" x2="' + o.x2.toFixed(1) + '" y2="' + o.y2.toFixed(1) + '" stroke="' + SVG_C[o.c] + '" stroke-width="' + o.w + '" fill="none"/>';

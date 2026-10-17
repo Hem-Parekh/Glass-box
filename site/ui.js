@@ -76,10 +76,12 @@
     for (const se of series) {
       const pts = se.values.map((v, i) => (Number.isFinite(v) ? X(i).toFixed(1) + "," + Y(v).toFixed(1) : null)).filter(Boolean);
       s += '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + se.color + '" stroke-width="2"' + (se.dash ? ' stroke-dasharray="6 4"' : "") + ' stroke-linejoin="round"/>';
-      se.values.forEach((v, i) => { if (Number.isFinite(v) && (se.dots || xs.length <= 12)) s += '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="' + (se.hollow && se.hollow[i] ? 4 : 4) + '" fill="' + (se.hollow && se.hollow[i] ? "var(--surface)" : se.color) + '" stroke="' + se.color + '" stroke-width="2"/>'; });
+      if (se.diamonds) se.values.forEach((v, i) => { if (Number.isFinite(v)) s += '<rect x="' + (X(i) - 4.5).toFixed(1) + '" y="' + (Y(v) - 4.5).toFixed(1) + '" width="9" height="9" transform="rotate(45 ' + X(i).toFixed(1) + " " + Y(v).toFixed(1) + ')" fill="var(--gold)" stroke="var(--surface,#fff)" stroke-width="1.5"/>'; });
+      else se.values.forEach((v, i) => { if (Number.isFinite(v) && (se.dots || xs.length <= 12)) s += '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="' + (se.hollow && se.hollow[i] ? 4 : 4) + '" fill="' + (se.hollow && se.hollow[i] ? "var(--surface)" : se.color) + '" stroke="' + se.color + '" stroke-width="2"/>'; });
       if (se.endLabel !== false) { const last = se.values.length - 1; if (Number.isFinite(se.values[last])) s += '<text x="' + (X(last) - 4) + '" y="' + (Y(se.values[last]) - 9) + '" text-anchor="end" class="dl">' + esc(se.name) + "</text>"; }
     }
-    for (const m of opt.marks || []) s += '<circle cx="' + X(m.i) + '" cy="' + Y(m.v) + '" r="7" fill="none" stroke="var(--ink)" stroke-width="2"/><text x="' + X(m.i) + '" y="' + (Y(m.v) + 22) + '" text-anchor="middle" class="dl">' + esc(m.label) + "</text>";
+    const dia = (x, y, r, fill) => '<rect x="' + (x - r).toFixed(1) + '" y="' + (y - r).toFixed(1) + '" width="' + 2 * r + '" height="' + 2 * r + '" transform="rotate(45 ' + x.toFixed(1) + " " + y.toFixed(1) + ')" fill="' + fill + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
+    for (const m of opt.marks || []) s += dia(X(m.i), Y(m.v), m.gold === false ? 5 : 7, m.gold === false ? "var(--ink-2)" : "var(--gold)") + '<text x="' + X(m.i) + '" y="' + (Y(m.v) + 24) + '" text-anchor="middle" class="dl">' + esc(m.label) + "</text>";
     s += '<line class="xh" x1="0" x2="0" y1="' + pad.t + '" y2="' + (H - pad.b) + '" stroke="var(--axis)" visibility="hidden"/>';
     xs.forEach((x, i) => {
       const w = (W - pad.l - pad.r) / Math.max(xs.length - 1, 1);

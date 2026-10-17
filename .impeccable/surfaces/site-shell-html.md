@@ -23,7 +23,7 @@ STORY: Visitor meets the firm and its promise (Smarter Decisions. Stronger Futur
 
 FIRST VIEWPORT: Dark field. Emblem geometry at viewport scale: uprights at the content column's edges, diagonals out to the corners, diamond above the H1. Centered between the uprights: tagline as H1 in Cinzel, one offer line, primary "Book an engagement" and secondary "Try the live model". Across the chevron's base: the live decision strip (Kalyan Polymers, Rs 12 cr: 60% debt / 40% equity) with clickable numbers.
 
-FORM: Brief-pinned world (logo palette, emblem geometry, existing site template); no concept roll. seed: none (unavailable)
+FORM: Brief-pinned world (logo palette, emblem geometry, existing site template). The concept roll was skipped because the brief pinned the direction. seed: none (roll skipped, direction pinned by the brief)
 Signature motion: the Ascent. On load the emblem draws bottom-up (stroke reveal, 900ms, ease-out-expo), the diamond lands last, the gold rules extend from center, then the decision strip fills to 60/40. Reduced motion: lines appear drawn, a short fade only. Workspace motion is feedback only (150-250ms).
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

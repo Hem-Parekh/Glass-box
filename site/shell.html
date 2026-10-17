@@ -6,7 +6,7 @@
 /* Two scenes. Public pages: the logo's world, obsidian ground, gold geometry, Cinzel capitals.
    Workspace: obsidian rail with the mark, a light stone work area for daytime desk work (dark at night). */
 :root{
-  --obsidian:#0D0E10;--obsidian-2:#14161A;--obsidian-3:#1C1F24;--obsidian-4:#262A31;
+  --obsidian:#0D0E10;--obsidian-2:#151411;--obsidian-3:#1D1C18;--obsidian-4:#29271F;
   --gold-1:#E8C77B;--gold:#C9A04F;--gold-3:#8E6A2A;--gold-line:rgba(201,160,79,.28);--gold-wash:rgba(201,160,79,.09);
   --ivory:#F1ECE2;--ivory-2:#ABA497;--ivory-3:#7D776C;
   /* workspace (light) */
@@ -88,9 +88,9 @@ p{margin:0}
 
 /* ---------- hero: the emblem as architecture ---------- */
 .ascent{position:relative;min-height:min(92vh,900px);display:grid;align-items:center;overflow:hidden;isolation:isolate;
-  background:radial-gradient(120% 70% at 50% 0%,#1A1C21 0%,var(--obsidian) 62%)}
+  background:radial-gradient(120% 70% at 50% 0%,#1B1A16 0%,var(--obsidian) 62%)}
 .ascent::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;pointer-events:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .ascent-svg{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
 .ascent-svg .ln{fill:none;stroke:var(--gold);stroke-width:2;vector-effect:non-scaling-stroke}
 .ascent-svg .ln.faint{stroke-width:1.25;opacity:.55}
@@ -141,9 +141,10 @@ p{margin:0}
 .promises p{color:var(--ivory-2)}
 @media (max-width:860px){.promises{grid-template-columns:minmax(0,1fr)}}
 /* meaning */
-.meaning{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(32px,6vw,88px);align-items:center}
+.meaning{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(32px,6vw,88px);align-items:start}
 @media (max-width:900px){.meaning{grid-template-columns:minmax(0,1fr)}}
-.anatomy{width:100%;max-width:520px;height:auto;justify-self:center;overflow:visible}
+.anatomy{width:100%;max-width:540px;height:auto;justify-self:center;overflow:visible;position:sticky;top:120px;align-self:start}
+@media (max-width:900px){.anatomy{position:static}}
 .anatomy .ln{fill:none;stroke:url(#goldv2);stroke-width:15}
 .anatomy .lead{stroke:var(--ivory-3);stroke-width:1.2;fill:none}
 .anatomy .dot{fill:var(--gold-1)}
@@ -401,7 +402,7 @@ code{font-size:.92em;color:var(--gold-1)}
 .twin-out{display:grid;gap:20px;min-width:0}
 .twin-in{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto}
 @media (max-width:1100px){.twin{grid-template-columns:minmax(0,1fr)}.twin-in{position:static;max-height:none}}
-.rule{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.4;letter-spacing:.01em;border-left:2px solid var(--gold);padding-left:16px}
+.rule{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.4;letter-spacing:.01em;border-top:1px solid var(--gold);padding-top:14px}
 .narr{font-size:17px;line-height:1.65;max-width:72ch}
 .checklist,.checks{list-style:none;margin:0;padding:0;display:grid;gap:9px}
 .checklist li,.checks li{padding-left:28px;position:relative}
