@@ -102,7 +102,7 @@
       '<div><dt>THE EMBLEM</dt><dd><p>Structure, strategic thinking and upward ambition. The diamond at its peak stands for clarity of vision and sound financial judgment.</p></dd></div>' +
       '<div><dt>GOLD</dt><dd><p>Value creation and excellence.</p></dd></div>' +
       '<div><dt>BLACK</dt><dd><p>Authority, trust and professionalism.</p></dd></div></dl>' +
-      '<p class="muted" style="margin-top:22px;max-width:60ch">Guided by our philosophy, Smarter Decisions. Stronger Futures., we help businesses navigate financial choices, evaluate capital-raising options, and build a stronger foundation for the future.</p>' +
+      '<p class="muted" style="margin-top:22px;max-width:60ch">Our philosophy is simple: Smarter Decisions. Stronger Futures. Guided by it, we help businesses navigate financial choices, evaluate capital-raising options, and build a stronger foundation for the future.</p>' +
       "</div></div></section>" +
       '<section class="sec tone"><div class="container"><div class="sec-head"><h2>What we stand for</h2></div><div class="ledger">' +
       PILLARS.map(([t, d]) => '<div><span class="dia-mark" aria-hidden="true"></span><div><h3>' + t + "</h3><p>" + d + "</p></div></div>").join("") + "</div></div></section>" +
