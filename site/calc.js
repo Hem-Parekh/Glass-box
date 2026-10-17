@@ -1,4 +1,4 @@
-/* Glass-Box Advisory calculation engine (browser and Node).
+/* Aegis Ascend calculation engine (browser and Node).
    Deterministic: no network, no AI, no randomness except a seeded generator for simulations.
    Money in Rs crore unless a name says otherwise. */
 (function (root) {

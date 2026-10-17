@@ -1,7 +1,8 @@
 /* Sign-in pages, the role-based workspace, and the page router. */
 (function (root) {
   "use strict";
-  const { esc, n, cr, lakh, pct, xx, date, dt, gx, hbars, lines, vbars, meter, chip, C } = root.UI;
+  const UI = root.UI;
+  const { esc, n, cr, lakh, pct, xx, date, dt, gx, hbars, lines, vbars, meter, chip, C } = UI;
   const GB = root.GB, PUB = root.PUB;
   const API = root.GB_API;
   const S = { user: null, data: null, flash: "", twinDraft: {}, sim: null, tsTab: "loan" };
@@ -11,21 +12,21 @@
   // ---------- auth pages ----------
   function login(err) {
     const demo = API.mode === "demo";
-    return PUB.header("login", null) + '<main class="auth"><div class="auth-card">' +
+    return PUB.page("login", null, '<div class="auth"><div class="auth-card">' +
       "<h1>Sign in</h1><p class=\"muted\">Founders, investors, lenders and advisors each see their own workspace.</p>" +
-      (err ? '<div class="notice bad">' + esc(err) + "</div>" : "") +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
       '<form class="form" data-form="login" novalidate>' +
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="l_email" type="email" autocomplete="username" required></span></label>' +
       '<label class="fld"><span>Password</span><span class="in"><input name="password" id="l_password" type="password" autocomplete="current-password" required></span></label>' +
       '<button class="btn primary lg block" type="submit">Sign in</button></form>' +
-      '<p class="small">New here? <a href="#signup">Create an account</a></p>' +
+      '<p class="small muted">New here? <a href="#signup">Create an account</a></p>' +
       (demo ? '<div class="demo-box"><b>Demo accounts</b><p class="small muted">This demo keeps accounts and data in your browser only. Pick a role to sign in instantly (password <code>' + esc(API.demoPassword) + "</code>).</p>" +
-        '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth Partners"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Glass-Box"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div></div>" : "") +
-      "</div></main>" + PUB.footer();
+        '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Aegis Ascend"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div></div>" : "") +
+      "</div></div>");
   }
   function signup(err) {
-    return PUB.header("signup", null) + '<main class="auth"><div class="auth-card">' +
-      "<h1>Create an account</h1>" + (err ? '<div class="notice bad">' + esc(err) + "</div>" : "") +
+    return PUB.page("signup", null, '<div class="auth"><div class="auth-card">' +
+      "<h1>Create an account</h1>" + (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
       '<form class="form" data-form="signup" novalidate>' +
       '<fieldset class="seg"><legend>I am a</legend>' + [["founder", "Founder"], ["investor", "Investor"], ["lender", "Lender"]].map(([v, l], i) => '<label><input type="radio" name="role" value="' + v + '"' + (i ? "" : " checked") + "><span>" + l + "</span></label>").join("") + "</fieldset>" +
       '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="s_name" autocomplete="name" required></span></label>' +
@@ -34,31 +35,34 @@
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="s_email" type="email" autocomplete="email" required></span></label>' +
       '<label class="fld"><span>Password (8 characters or more)</span><span class="in"><input name="password" id="s_password" type="password" autocomplete="new-password" required minlength="8"></span></label>' +
       '<button class="btn primary lg block" type="submit">Create account</button></form>' +
-      '<p class="small">Already registered? <a href="#login">Sign in</a>. Advisor accounts are created by Glass-Box.</p></div></main>' + PUB.footer();
+      '<p class="small muted">Already registered? <a href="#login">Sign in</a>. Advisor accounts are created by Aegis Ascend.</p></div></div>');
   }
   const SECTORS = ["Plastics & packaging", "Auto components", "Chemicals", "Food processing", "Textiles", "Engineering", "Pharma", "Electronics"];
 
   // ---------- workspace shell ----------
+  // A string on its own starts a group in the rail.
   const NAVS = {
-    founder: [["app", "Overview"], ["app-twin", "Funding Twin"], ["app-readiness", "Readiness Score"], ["app-cma", "CMA funding report"], ["app-termsheet", "Term Sheet Analyser"], ["app-investors", "Investors"], ["app-dealroom", "Deal room"], ["app-loans", "Loans & monitoring"], ["app-fees", "Fees"], ["app-company", "Company profile"], ["app-activity", "Activity log"]],
+    founder: [["app", "Overview"], "Analysis", ["app-twin", "Funding Twin"], ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-readiness", "Readiness Score"], ["app-termsheet", "Term Sheet Analyser"],
+      "Deals", ["app-investors", "Investors"], ["app-dealroom", "Deal room"], ["app-loans", "Loans & monitoring"], ["app-fees", "Fees"], "Account", ["app-company", "Company profile"], ["app-activity", "Activity log"]],
     investor: [["app", "Overview"], ["app-deals", "Curated deals"], ["app-rooms", "Deal rooms"], ["app-portfolio", "Portfolio & exits"], ["app-activity", "Activity log"]],
-    advisor: [["app", "Overview"], ["app-review", "Review queue"], ["app-companies", "Companies"], ["app-twin", "Funding Twin"], ["app-dealsdesk", "Deals & exits"], ["app-transfers", "Loan transfers"], ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"]],
+    advisor: [["app", "Overview"], ["app-review", "Review queue"], ["app-companies", "Companies"], "Tools", ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-twin", "Funding Twin"],
+      "Desk", ["app-dealsdesk", "Deals & exits"], ["app-transfers", "Loan transfers"], ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"]],
     lender: [["app", "Overview"], ["app-lender", "Applications & loans"], ["app-monitor", "Monitoring"], ["app-lfees", "Fees"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
     const u = S.user, nav = NAVS[u.role];
-    return '<div class="ws">' +
-      '<header class="ws-top"><a href="#home" class="logo"><span class="logo-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>Glass-Box <b>Advisory</b></span></a>' +
-      (API.mode === "demo" ? '<span class="chip warn">Demo: fictional data, kept in this browser</span>' : "") +
-      '<div class="ws-user"><span><b>' + esc(u.name) + "</b><small>" + esc(roleName(u.role)) + (u.firm ? " · " + esc(u.firm) : companyName() ? " · " + esc(companyName()) : "") + '</small></span><button class="btn ghost sm" data-act="logout">Sign out</button></div></header>' +
-      '<nav class="ws-nav" aria-label="Workspace">' + nav.map(([k, l]) => '<a href="#' + k + '"' + (route === k ? ' aria-current="page"' : "") + ">" + l + "</a>").join("") +
-      (API.mode === "demo" ? '<button class="linkbtn small" data-act="reset-demo">Reset demo data</button>' : "") + "</nav>" +
-      '<main class="ws-main">' + (S.flash ? '<div class="notice ok" role="status">' + esc(S.flash) + "</div>" : "") + body + "</main></div>";
+    const who = u.firm ? u.firm : companyName() || "";
+    return '<div class="ws"><aside class="ws-rail">' + PUB.wordmark("#home") +
+      '<nav class="ws-nav" aria-label="Workspace">' + nav.map((it) => (typeof it === "string" ? '<span class="group">' + it + "</span>" : '<a href="#' + it[0] + '"' + (route === it[0] ? ' aria-current="page"' : "") + ">" + it[1] + "</a>")).join("") + "</nav>" +
+      '<div class="rail-foot"><div><b>' + esc(u.name) + "</b><br><span>" + esc(roleName(u.role)) + (who ? " · " + esc(who) : "") + "</span></div>" +
+      '<div class="row gap-s"><button class="btn ghost sm" data-act="logout">Sign out</button>' + (API.mode === "demo" ? '<button class="linkbtn" data-act="reset-demo">Reset demo data</button>' : "") + "</div></div></aside>" +
+      '<main class="ws-main">' + (API.mode === "demo" ? '<span class="ws-demo">Demo: fictional companies and people, kept in this browser</span>' : "") +
+      (S.flash ? '<div class="notice ok" role="status">' + esc(S.flash) + "</div>" : "") + body + "</main></div>";
   }
   const roleName = (r) => ({ founder: "Founder", investor: "Investor", advisor: "Advisor", lender: "Lender" })[r];
   const myCompany = () => S.data.companies.find((c) => c.id === S.user.company_id);
   const companyName = () => { const c = S.user.company_id && S.data && S.data.companies.find((x) => x.id === S.user.company_id); return c && c.name; };
-  const userName = (id) => { const u = (S.data.directory || []).concat(S.data.founders || []).find((x) => x.id === id); return u ? (u.firm && u.role !== "advisor" ? u.firm : u.name) : id === S.user.id ? S.user.name : "Glass-Box user"; };
+  const userName = (id) => { const u = (S.data.directory || []).concat(S.data.founders || []).find((x) => x.id === id); return u ? (u.firm && u.role !== "advisor" ? u.firm : u.name) : id === S.user.id ? S.user.name : "Aegis Ascend user"; };
   const companyById = (id) => S.data.companies.find((c) => c.id === id);
   const statusChip = (s) => chip({ approved: "ok", in_review: "warn", changes: "bad", draft: "", requested: "warn", granted: "ok", declined: "bad", applied: "warn", sanctioned: "ok", disbursed: "ok", consent_needed: "warn", completed: "ok", open: "warn" }[s] || "", ({ in_review: "In review", changes: "Changes requested", consent_needed: "Needs founder consent", first_refusal: "First refusal", buyer_intro: "Buyer introduction", spa: "SPA", open: "In progress" })[s] || s.charAt(0).toUpperCase() + s.slice(1));
   const stamp = (r) => (r && r.status === "approved" ? '<span class="stamp">Reviewed by ' + esc(userName(r.reviewed_by)) + " · " + date(r.reviewed_at) + "</span>" : "");
@@ -194,10 +198,109 @@
   }
 
   function cmaPage() {
-    return head("CMA funding report", "Upload the company's CMA workbook and project details to get a one-page debt vs equity recommendation sized on DSCR, as a PDF for lenders.") +
-      '<section class="panel"><p>The CMA tool reads the Indian bank CMA format (Form II operating statement, Form III balance sheet), finds the base year, sizes the debt the project can carry at the target DSCR, applies the lender\'s minimum own contribution, stress-tests it, and writes a one-page A4 report.</p>' +
-      '<ul class="ticks"><li>First sheet read; rows found by the label in column A</li><li>Years in columns B to E, status row below</li><li>NET SALES, PBIT, PROFIT BEFORE TAX and PAT required</li><li>The CMA stays in your browser</li></ul>' +
-      '<a class="btn primary lg" href="' + esc(root.GB_CMA_URL || "fundmix.html") + '">Open the CMA funding report tool</a></section>';
+    const forWho = S.user.role === "advisor" ? "a client company's" : "your company's";
+    return head("CMA funding report", "Upload " + forWho + " CMA workbook and project details to get a one-page debt vs equity recommendation sized on DSCR, as a PDF for lenders.") +
+      '<section class="panel tool-launch"><div><p>The tool reads the Indian bank CMA format (Form II operating statement, Form III balance sheet), finds the base year, sizes the debt the project can carry at the target DSCR, applies the lender\'s minimum own contribution, stress-tests it, and writes a one-page A4 report.</p></div>' +
+      '<ul class="ticks"><li>First sheet read; rows found by the label in column A</li><li>Years in columns B to E, status row below</li><li>NET SALES, PBIT, PROFIT BEFORE TAX and PAT required</li><li>The workbook stays in your browser</li></ul>' +
+      '<div><a class="btn primary lg" href="' + esc(root.GB_CMA_URL || "fundmix.html") + '">Open the CMA funding report</a></div></section>';
+  }
+
+  // ---------- Equity vs Debt Optimizer (founders and advisors) ----------
+  const EDO = root.EDO;
+  const OPT_FIELDS = [ // key, label, unit, help
+    ["amount", "Amount to raise", "cr", "The total money you want to raise now."],
+    ["pre_money", "Valuation today (pre-money)", "cr", "What the company is worth before the new money. Investors' share = their money / (this + their money)."],
+    ["profit_month", "Profit per month today", "lakh", "Profit in a typical month. This pays the EMI and the shareholders."],
+    ["growth_y1", "Profit growth, year 1", "pct", "Growth in the first year after the money comes in."],
+    ["growth_y2", "Profit growth, year 2 on", "pct", "Steady growth each year after year 1."],
+    ["interest_rate", "Loan interest", "pct", "Annual rate; EMI is worked out monthly at this rate / 12."],
+    ["tenure_years", "Loan tenure", "int", "Years to repay; EMI stops after this."],
+    ["horizon_years", "Years to compare over", "int", "1 to 20 years. Equity costs a share every year; debt only until the tenure ends."],
+  ];
+  const OPT_ADV = [
+    ["tax_rate", "Tax rate", "pct", "Leave at 0 if profit is already after tax; otherwise interest saves tax."],
+    ["exit_multiple", "Exit value (x annual profit)", "num", "Company value at the end of the horizon, as a multiple of that year's profit."],
+    ["discount_rate", "Discount rate", "pct", "Future cash is divided by (1 + this rate) for each year of waiting."],
+    ["debt_fee", "Loan processing fee", "pct", "One-time, paid in year 1."],
+    ["equity_cost", "Equity transaction cost", "pct", "Legal, valuation and filing costs, paid in year 1."],
+    ["payout_ratio", "Profit paid out", "pct", "What is not paid out stays in the company and adds to the exit value."],
+    ["growth_boost_equity", "Extra growth if equity-funded", "pct", "Points of growth investors might add."],
+    ["growth_boost_debt", "Extra growth if debt-funded", "pct", "Use a negative number if covenants would slow you down."],
+    ["min_dscr_required", "Minimum DSCR you accept", "num", "Reject mixes where profit / EMI falls below this in any year."],
+  ];
+  const UNIT = { cr: [1e7, "Rs cr"], lakh: [1e5, "Rs lakh"], pct: [0.01, "%"], int: [1, "yrs"], num: [1, ""] };
+  function optInputs() { return Object.assign({}, EDO.DEFAULTS, S.opt || {}); }
+  function optField([k, l, u, help]) {
+    const q = optInputs(), [mult, sfx] = UNIT[u];
+    const v = +(q[k] / mult).toFixed(6);
+    return '<label class="fld" for="o_' + k + '" title="' + esc(help) + '"><span>' + esc(l) + '</span><span class="in"><input id="o_' + k + '" name="' + k + '" data-unit="' + u + '" value="' + v + '" inputmode="decimal">' + (sfx ? "<em>" + sfx + "</em>" : "") + "</span></label>";
+  }
+  function optimizerPage() {
+    const q = optInputs();
+    return head("Equity vs Debt Optimizer", "Tests every mix from 0% to 100% equity, year by year, and shows which leaves the founder the most money. Hover a field for what it means; click any underlined number for its working.") +
+      '<div class="twin"><form class="panel twin-in" data-form="opt" novalidate><h2>Inputs</h2><div class="fields f2">' + OPT_FIELDS.map(optField).join("") + "</div>" +
+      '<details><summary class="small" style="cursor:pointer">Advanced: tax, exit value, fees, payout</summary><div class="fields f2" style="margin-top:12px">' + OPT_ADV.map(optField).join("") + "</div></details>" +
+      '<label class="fld"><span>Rank mixes by</span><span class="in"><select name="metric" id="o_metric">' + Object.entries(EDO.METRICS).map(([k, v]) => '<option value="' + k + '"' + (q.metric === k ? " selected" : "") + ">" + esc(v) + "</option>").join("") + "</select></span></label>" +
+      '<fieldset class="seg"><legend class="small">Show amounts as</legend><label><input type="radio" name="fmt" value="short"' + (S.optFull ? "" : " checked") + '><span>Rs 1.23 Cr</span></label><label><input type="radio" name="fmt" value="full"' + (S.optFull ? " checked" : "") + "><span>Rs 1,23,45,678</span></label></fieldset>" +
+      '<button class="btn ghost" type="button" data-act="opt-reset">Reset to defaults</button>' +
+      '<p class="small muted">Decision-support model, not financial advice. Same formulas as the Equity vs Debt Optimizer desktop app.</p></form>' +
+      '<div class="twin-out" id="opt-out">' + optResults() + "</div></div>";
+  }
+  const bold = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  function optResults() {
+    const q = optInputs(), v = EDO.validate(q);
+    if (v.errors.length) return '<div class="notice bad" role="alert">' + v.errors.map(esc).join("<br>") + "</div>";
+    const r = EDO.optimize(q), M = r.mixes, b = r.best, mb = M[b], m = r.metric, short = !S.optFull, f = (x) => EDO.inr(x, short);
+    const sel = S.optSel === undefined || S.optSel === null ? b : S.optSel, ms = M[sel];
+    const lab = EDO.mixLabel, rejected = r.feasible.filter((x) => !x).length;
+    const div = Math.max(...M.map((x) => Math.abs(x[q.metric]))) >= 1e7 ? 1e7 : 1e5, unit = div === 1e7 ? "Cr" : "L";
+    const emiInfo = (mx) => ({ title: "Monthly EMI", formula: "EMI = P x r x (1 + r)^n / ((1 + r)^n - 1)\nr = annual rate / 12, n = months", inputs: [["P (loan)", EDO.inr(mx.debt), "founder"], ["Annual rate", EDO.pct(q.interest_rate, 2), "founder"], ["n (months)", String(q.tenure_years * 12), "founder"]] });
+    const ownInfo = (mx) => ({ title: "Investor ownership (post-money)", formula: "Ownership = equity / (pre-money valuation + equity)", inputs: [["Equity raised", EDO.inr(mx.equity), "engine"], ["Pre-money valuation", EDO.inr(q.pre_money), "founder"]] });
+    let h = (v.warnings.length ? '<div class="notice">' + v.warnings.map(esc).join("<br>") + "</div>" : "");
+    h += '<section class="panel opt-best"><h2>Best mix for the founder: <b>' + lab(mb.e) + '</b></h2><p class="muted">Raise ' + f(mb.equity) + " as equity and " + f(mb.debt) + " as a loan. You keep " + gx(EDO.pct(mb.fdr), ownInfo(mb)) + " of the company. Ranked by " + EDO.METRICS[q.metric].toLowerCase() + "." + (rejected ? " " + rejected + " mixes rejected: profit would not cover the EMI with enough room." : "") + "</p>" +
+      '<div class="kpis k4"><div class="kpi accent"><small>Your cash a month, year 1</small><b>' + f(mb.years[0].founder / 12) + "</b><span>EMI " + (mb.debt ? gx(f(mb.emiMonth), emiInfo(mb)) : "none") + '</span></div><div class="kpi"><small>Total cash, ' + q.horizon_years + ' years</small><b>' + f(mb.total_cash) + '</b></div><div class="kpi"><small>Exit-inclusive wealth</small><b>' + f(mb.wealth) + '</b></div>' +
+      '<div class="kpi"><small>vs 100% equity / 100% debt</small><b>+' + f(m(b) - m(100)) + "</b><span>" + (r.feasible[0] ? (b === 0 ? "this is 100% debt" : f(m(b) - m(0)) + " vs 100% debt") : "100% debt not possible") + "</span></div></div>" +
+      (mb.debt ? '<p class="small ' + (r.risky[b] ? "t-warn" : "muted") + '">' + (r.risky[b] ? "Debt cover is thin: in the weakest year profit is " + EDO.ratio(mb.min_dscr) + " the EMI; lenders usually want 1.25x." : "Debt cover is comfortable: profit is at least " + EDO.ratio(mb.min_dscr) + " the EMI in every year of the loan.") + "</p>" : "") + "</section>";
+    h += '<section class="panel"><h2>Founder outcome for every mix</h2>' + lines(M.map((x) => Math.round(x.e * 100) + "%"), [{ name: EDO.METRICS[q.metric], color: C.mix, values: M.map((x, i) => x[q.metric] / div), endLabel: false }],
+      { xEvery: 10, yfmt: (y) => "Rs " + n(y, 1) + " " + unit, label: "Founder outcome by equity share", min: Math.min(...M.map((x) => x[q.metric])) / div * 0.97, marks: [{ i: b, v: m(b) / div, label: "Best" }].concat(sel !== b ? [{ i: sel, v: m(sel) / div, label: "Viewing" }] : []) }) + "</section>";
+    const idx = [...new Set([0, 25, 50, 75, 100, b, sel])].sort((a, c) => a - c);
+    const yr = Math.min(S.optYear || 1, q.horizon_years) - 1;
+    const parts = [["EMI to lender", "emi", C.debt], ["Tax", "tax", "var(--axis)"], ["Investors' share", "investor", C.equity], ["Kept in company", "retained", "var(--line-2)"], ["Founder take-home", "founder", C.mix]];
+    h += '<section class="panel"><div class="pg-head" style="border:0;padding:0"><h2>Where each month\'s profit goes</h2><label class="fld inline"><span>Year</span><span class="in sm"><select id="o_year" data-opt="year">' + Array.from({ length: q.horizon_years }, (_, k) => "<option" + (k === yr ? " selected" : "") + ">" + (k + 1) + "</option>").join("") + "</select></span></label></div>" +
+      UI.stack(idx.map((i) => Math.round(M[i].e * 100) + "% eq" + (i === b ? " (best)" : "")), parts.filter(([, k]) => idx.some((i) => Math.abs(M[i].years[yr][k]) > 1)).map(([nm, k, col]) => ({ name: nm, color: col, values: idx.map((i) => M[i].years[yr][k] / 12 / 1e5) })),
+        { yfmt: (y) => n(y, 0) + " L", fmt: (x) => "Rs " + n(x, 2) + " L a month", tops: idx.map((i) => "You " + EDO.inr(M[i].years[yr].founder / 12, true)), label: "Monthly profit split by mix" }) + '<p class="small muted">Each bar is one month\'s profit in year ' + (yr + 1) + ", in Rs lakh.</p></section>";
+    h += '<section class="panel"><h2>Look at one mix</h2><label class="slider" for="o_sel"><span>Equity share: <b>' + lab(ms.e) + '</b></span><input type="range" id="o_sel" data-opt="sel" min="0" max="100" step="1" value="' + sel + '"></label>' +
+      "<div>" + lines(ms.years.map((y) => "Y" + y.year), [{ name: "100% equity", color: C.equity, values: M[100].years.map((y) => y.cum / 1e5) }, { name: "100% debt", color: C.debt, values: M[0].years.map((y) => y.cum / 1e5) }, { name: "Best (" + Math.round(mb.e * 100) + "% eq)", color: C.mix, values: mb.years.map((y) => y.cum / 1e5) }].concat(sel !== b && sel !== 0 && sel !== 100 ? [{ name: Math.round(ms.e * 100) + "% eq", color: "var(--ink-2)", values: ms.years.map((y) => y.cum / 1e5), dash: true }] : []),
+        { yfmt: (y) => n(y, 0) + " L", label: "Cumulative founder cash", height: 260 }) + '<p class="small muted">Cumulative founder cash, Rs lakh.' + (r.breakevenCash ? " 100% debt is ahead from year " + r.breakevenCash + "." : "") + "</p></div>" +
+      "<div>" + (ms.debt ? lines(ms.years.map((y) => "Y" + y.year), [{ name: "DSCR", color: C.debt, values: ms.years.map((y) => (Number.isFinite(y.dscr) ? y.dscr : NaN)), endLabel: false }], { refs: [{ y: EDO.DSCR_RISKY, label: "1.25x lenders' minimum", color: "var(--warn)" }, { y: 1, label: "1.00x just covers EMI", color: "var(--bad)" }], yfmt: (y) => y.toFixed(1) + "x", label: "DSCR by year", height: 260 }) + '<p class="small muted">Profit / EMI by year for ' + lab(ms.e) + ".</p>" : '<div class="empty"><b>No loan in this mix</b><p>There is no EMI to cover.</p></div>') + "</div>" +
+      '<div class="tw"><table class="tbl"><thead><tr><th>Year</th><th class="num">Profit</th><th class="num">EMI</th><th class="num">Investors</th><th class="num">You</th><th class="num">You a month</th><th class="num">Cumulative</th><th class="num">DSCR</th></tr></thead><tbody>' +
+      ms.years.map((y) => "<tr><td>Y" + y.year + '</td><td class="num">' + f(y.profit) + '</td><td class="num">' + f(y.emi) + '</td><td class="num">' + f(y.investor) + '</td><td class="num">' + f(y.founder) + '</td><td class="num">' + f(y.founder / 12) + '</td><td class="num">' + f(y.cum) + '</td><td class="num">' + EDO.ratio(y.dscr) + "</td></tr>").join("") + "</tbody></table></div>" +
+      "<h3>Show the calculation</h3><ol class=\"steps\"><li>Equity = " + f(q.amount) + " x " + Math.round(ms.e * 100) + "% = " + f(ms.equity) + "; loan = " + f(ms.debt) + ".</li>" +
+      "<li>Investor ownership = " + f(ms.equity) + " / (" + f(q.pre_money) + " + " + f(ms.equity) + ") = " + gx(EDO.pct(ms.inv, 2), ownInfo(ms)) + "; you keep " + EDO.pct(ms.fdr, 2) + ".</li>" +
+      (ms.debt ? "<li>EMI = P x r x (1 + r)^n / ((1 + r)^n - 1) with P = " + f(ms.debt) + ", r = " + EDO.pct(q.interest_rate, 2) + " / 12, n = " + q.tenure_years * 12 + ": " + gx(EDO.inr(ms.emiMonth), emiInfo(ms)) + " a month.</li>" : "<li>No loan, so no EMI.</li>") +
+      "<li>Year 1 profit = " + f(q.profit_month) + " x (1 + " + EDO.pct(q.growth_y1) + ") x 12 = " + f(ms.years[0].profit) + "; after the EMI" + (q.tax_rate ? " and tax" : "") + ", you get " + EDO.pct(ms.fdr, 2) + " of what is paid out: " + f(ms.years[0].founder) + " (" + f(ms.years[0].founder / 12) + " a month).</li>" +
+      "<li>Exit stake = " + EDO.pct(ms.fdr, 2) + " x (" + q.exit_multiple + " x final-year profit - loan still owed + cash kept) = " + f(ms.exit_stake) + ".</li></ol></section>";
+    const hr = EDO.horizonTable(q);
+    h += '<section class="panel"><h2>If the horizon is longer</h2><div class="tw"><table class="tbl"><thead><tr><th>Horizon</th><th>Best mix</th><th class="num">Best outcome</th><th class="num">vs 100% equity</th><th>Debt ahead in cash</th></tr></thead><tbody>' +
+      hr.map((x) => "<tr><td>" + x.horizon + " years</td><td>" + lab(x.best_equity) + '</td><td class="num">' + f(x.best_score) + '</td><td class="num">' + f(x.gap_vs_equity) + "</td><td>" + (x.breakeven ? "year " + x.breakeven : "not within horizon") + "</td></tr>").join("") + '</tbody></table></div><p class="muted">' + esc(EDO.horizonExplanation(hr)) + "</p></section>";
+    const sn = EDO.sensitivity(q);
+    h += '<section class="panel"><h2>How sure is the answer?</h2><div class="tw"><table class="tbl"><thead><tr><th>If this changes</th><th>Best mix</th><th class="num">Best outcome</th><th class="num">Change</th></tr></thead><tbody>' +
+      sn.rows.map((x) => "<tr><td>" + esc(x.variable + " " + x.case) + "</td><td>" + lab(x.best_equity) + (x.moved ? ' <span class="chip warn">moved ' + (x.moved > 0 ? "+" : "") + x.moved + " pts</span>" : "") + '</td><td class="num">' + f(x.best_score) + '</td><td class="num ' + (x.change < 0 ? "t-bad" : "") + '">' + f(x.change) + "</td></tr>").join("") + "</tbody></table></div></section>";
+    h += '<section class="panel suggest"><h2>Suggestions</h2>' + EDO.suggestions(r, EDO.downside(q), hr, short).map(([t, items]) => "<h3>" + esc(t) + "</h3><ul>" + items.map((it) => "<li>" + bold(it) + "</li>").join("") + "</ul>").join("") + '<p class="small muted">Written from the numbers by fixed rules, not by AI.</p></section>';
+    h += '<section class="panel"><h2>All mixes</h2><div class="tw" style="max-height:420px;overflow:auto"><table class="tbl"><thead><tr><th>Mix</th><th class="num">You keep</th><th class="num">EMI a month</th><th class="num">You a month, Y1</th><th class="num">Total cash</th><th class="num">Exit stake</th><th class="num">' + esc(EDO.METRICS[q.metric]) + '</th><th class="num">Lowest DSCR</th></tr></thead><tbody>' +
+      M.filter((x, i) => i % 5 === 0 || i === b).map((x) => { const i = Math.round(x.e * 100); return "<tr" + (i === b ? ' style="font-weight:600"' : "") + "><td>" + lab(x.e) + (i === b ? ' <span class="chip ok">best</span>' : r.feasible[i] ? "" : ' <span class="chip bad">rejected</span>') + '</td><td class="num">' + EDO.pct(x.fdr) + '</td><td class="num">' + f(x.emiMonth) + '</td><td class="num">' + f(x.years[0].founder / 12) + '</td><td class="num">' + f(x.total_cash) + '</td><td class="num">' + f(x.exit_stake) + '</td><td class="num">' + f(x[q.metric]) + '</td><td class="num">' + EDO.ratio(x.min_dscr) + "</td></tr>"; }).join("") + "</tbody></table></div></section>";
+    return h;
+  }
+  function readOpt(form) {
+    const q = {};
+    for (const el of form.querySelectorAll("input[data-unit]")) {
+      const x = Number(String(el.value).replace(/,/g, "").trim());
+      if (el.value.trim() === "" || !Number.isFinite(x)) { q[el.name] = NaN; continue; }
+      const u = el.dataset.unit; q[el.name] = u === "int" ? Math.round(x) : x * UNIT[u][0];
+    }
+    q.metric = form.elements.metric.value;
+    S.optFull = form.querySelector('input[name="fmt"]:checked').value === "full";
+    return q;
   }
 
   function termSheetPage() {
@@ -255,9 +358,9 @@
   }
   function loansPage() {
     const c = myCompany(), lenders = S.data.directory.filter((u) => u.role === "lender");
-    return head("Loans & monitoring", "Your loans, applications and quarterly covenant checks. Lenders pay all Glass-Box debt fees.") +
+    return head("Loans & monitoring", "Your loans, applications and quarterly covenant checks. Lenders pay all Aegis Ascend debt fees.") +
       '<section class="panel"><h2>Loans</h2>' + (S.data.loans.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Lender</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">Tenor</th><th>Status</th></tr></thead><tbody>' + S.data.loans.map((l) => "<tr><td>" + esc(userName(l.lender_id)) + '</td><td class="num">' + cr(l.amount, 1) + '</td><td class="num">' + pct(l.rate, 2) + '</td><td class="num">' + l.tenor + " yrs</td><td>" + statusChip(l.status) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">No loans yet.</p>') +
-      '<h3>Apply through Glass-Box</h3><form class="fields f5" data-form="apply-loan"><label class="fld"><span>Lender</span><span class="in"><select name="lender_id" id="al_lender">' + lenders.map((l) => '<option value="' + l.id + '">' + esc(l.firm) + "</option>").join("") + "</select></span></label>" + PUB.field("amount", "Amount", c.raise, "Rs cr") + PUB.field("rate", "Expected rate", 10.5, "%") + PUB.field("tenor", "Tenor", 7, "years") + '<button class="btn primary" type="submit">Send application</button></form></section>' +
+      '<h3>Apply through Aegis Ascend</h3><form class="fields f5" data-form="apply-loan"><label class="fld"><span>Lender</span><span class="in"><select name="lender_id" id="al_lender">' + lenders.map((l) => '<option value="' + l.id + '">' + esc(l.firm) + "</option>").join("") + "</select></span></label>" + PUB.field("amount", "Amount", c.raise, "Rs cr") + PUB.field("rate", "Expected rate", 10.5, "%") + PUB.field("tenor", "Tenor", 7, "years") + '<button class="btn primary" type="submit">Send application</button></form></section>' +
       '<section class="panel"><h2>Covenant monitoring</h2>' + monitorBlock(c, false) + "</section>";
   }
   function feesPage() {
@@ -360,24 +463,24 @@
       '<section class="panel"><p>Every applicant arrives with founder-confirmed data, an engine-run DSCR analysis and an advisor\'s sign-off. <a href="#app-lender">Review applications</a></p></section>';
   }
   function lenderPage() {
-    return head("Applications & loans", "The lender-side view: the same glass-box analysis the founder sees.") +
+    return head("Applications & loans", "The lender-side view: the same analysis the founder sees, every number traceable.") +
       (S.data.loans.length ? S.data.loans.map((l) => { const c = companyById(l.company_id), rep = S.data.reports.find((r) => r.company_id === l.company_id), rd = GB.readiness(c.readiness), t = GB.twin(Object.assign({}, c.twin, { raise: c.raise }));
         return '<section class="panel"><div class="pg-head"><div><h2>' + esc(c.name) + '</h2><p class="muted">' + esc(c.sector) + " · revenue " + cr(c.revenue, 0) + " · asks " + cr(l.amount, 1) + " at " + pct(l.rate, 2) + " for " + l.tenor + " years</p></div>" + statusChip(l.status) + "</div>" +
           '<div class="kpis k4"><div class="kpi"><small>Debt readiness</small><b>' + rd.debt.score + '/100</b><span>' + rd.debt.verdict + '</span></div><div class="kpi"><small>Lowest DSCR, all-debt</small><b>' + gx(xx(t.min_dscr), { title: "Lowest DSCR if the whole raise is debt", formula: "(EBITDA - tax) / (existing debt service + instalment)", inputs: [["EBITDA", cr(t.q.ebitda0), "founder"], ["Existing debt service", cr(t.q.existing_ds), "founder"], ["Instalment", cr(t.payment, 2), "engine"]] }) + '</b><span>stress ' + xx(t.min_dscr_stress) + '</span></div><div class="kpi"><small>Engine best mix</small><b>' + pct(t.best.share) + ' debt</b></div><div class="kpi"><small>Advisor report</small><b>' + (rep ? "Approved" : "None") + "</b>" + (rep ? "<span>" + date(rep.reviewed_at) + "</span>" : "") + "</div></div>" +
-          (l.status === "applied" ? '<div class="row gap-s"><button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="sanction">Sanction</button><button class="btn ghost sm" data-act="lender" data-id="' + l.id + '" data-d="decline">Decline</button></div>' : l.status === "sanctioned" ? '<button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="disburse">Mark disbursed</button>' : l.status === "disbursed" && !l.transfer ? '<button class="btn ghost sm" data-act="transfer" data-id="' + l.id + '">Ask Glass-Box to find a buyer for this loan</button>' : l.transfer ? "<p>Transfer: " + statusChip(l.transfer.status) + " · step " + (l.transfer.step + 1) + " of 8 (" + TRANSFER_STEPS[Math.min(l.transfer.step, 7)] + ")</p>" : "") + "</section>"; }).join("") : empty("No applications", "Applications sent to you through Glass-Box appear here."));
+          (l.status === "applied" ? '<div class="row gap-s"><button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="sanction">Sanction</button><button class="btn ghost sm" data-act="lender" data-id="' + l.id + '" data-d="decline">Decline</button></div>' : l.status === "sanctioned" ? '<button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="disburse">Mark disbursed</button>' : l.status === "disbursed" && !l.transfer ? '<button class="btn ghost sm" data-act="transfer" data-id="' + l.id + '">Ask Aegis Ascend to find a buyer for this loan</button>' : l.transfer ? "<p>Transfer: " + statusChip(l.transfer.status) + " · step " + (l.transfer.step + 1) + " of 8 (" + TRANSFER_STEPS[Math.min(l.transfer.step, 7)] + ")</p>" : "") + "</section>"; }).join("") : empty("No applications", "Applications sent to you through Aegis Ascend appear here."));
   }
   function monitorPage() {
     const L = S.data.loans.filter((l) => l.status === "disbursed");
     return head("Monitoring", "Quarterly covenant checks for loans you hold.") + (L.length ? L.map((l) => '<section class="panel"><h2>' + esc(companyById(l.company_id).name) + " · " + cr(l.amount, 1) + "</h2>" + monitorBlock(companyById(l.company_id), true) + "</section>").join("") : empty("No disbursed loans", "Monitoring starts at disbursal."));
   }
   function lenderFeesPage() {
-    return head("Fees", "Glass-Box debt fees are paid by the lender.") + '<section class="panel"><form class="calc" data-calc="debt"><div class="fields f3">' + PUB.field("loan", "Loan amount", 10, "Rs cr") + PUB.field("tenor", "Tenor", 7, "years") + PUB.field("rate", "Interest rate", 10.5, "%") + PUB.field("monitoring", "Monitoring fee", 0.35, "% a year") + PUB.field("transfer_amount", "Amount transferred", 6, "Rs cr") + PUB.field("transfer_fee", "Transfer fee", 0.4, "%") + '</div></form><div id="calc-debt">' + PUB.debtCalc({}) + "</div></section>";
+    return head("Fees", "Aegis Ascend debt fees are paid by the lender.") + '<section class="panel"><form class="calc" data-calc="debt"><div class="fields f3">' + PUB.field("loan", "Loan amount", 10, "Rs cr") + PUB.field("tenor", "Tenor", 7, "years") + PUB.field("rate", "Interest rate", 10.5, "%") + PUB.field("monitoring", "Monitoring fee", 0.35, "% a year") + PUB.field("transfer_amount", "Amount transferred", 6, "Rs cr") + PUB.field("transfer_fee", "Transfer fee", 0.4, "%") + '</div></form><div id="calc-debt">' + PUB.debtCalc({}) + "</div></section>";
   }
 
   const PAGES = {
-    founder: { app: founderHome, "app-twin": twinPage, "app-readiness": readinessPage, "app-cma": cmaPage, "app-termsheet": termSheetPage, "app-investors": investorsPage, "app-dealroom": dealRoomPage, "app-loans": loansPage, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage },
+    founder: { app: founderHome, "app-twin": twinPage, "app-readiness": readinessPage, "app-cma": cmaPage, "app-optimizer": optimizerPage, "app-termsheet": termSheetPage, "app-investors": investorsPage, "app-dealroom": dealRoomPage, "app-loans": loansPage, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage },
     investor: { app: investorHome, "app-deals": dealsPage, "app-rooms": roomsPage, "app-portfolio": portfolioPage, "app-activity": activityPage },
-    advisor: { app: advisorHome, "app-review": reviewPage, "app-companies": companiesPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-dealsdesk": dealsDeskPage, "app-transfers": transfersPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
+    advisor: { app: advisorHome, "app-review": reviewPage, "app-companies": companiesPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-dealsdesk": dealsDeskPage, "app-transfers": transfersPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
     lender: { app: lenderHome, "app-lender": lenderPage, "app-monitor": monitorPage, "app-lfees": lenderFeesPage, "app-activity": activityPage },
   };
 
@@ -399,8 +502,9 @@
     if (html === "") return;
     app().innerHTML = html;
     S.flash = "";
+    if (route === "home") PUB.mountHome();
     if (PUBLIC[route] && route.startsWith("services-")) { const el = document.getElementById(route); if (el) el.scrollIntoView(); } else if (!(opts && opts.keepScroll)) window.scrollTo(0, 0);
-    document.title = "Glass-Box Advisory";
+    document.title = PUBLIC[route] && route !== "home" ? document.querySelector("h1") ? document.querySelector("h1").textContent + " | Aegis Ascend" : "Aegis Ascend Financial Advisors" : "Aegis Ascend Financial Advisors";
   }
   async function after(res, msg) { S.flash = msg || (res && res.detail) || "Saved."; await render({ reload: true, keepScroll: true }); }
   function fail(e) { const box = document.createElement("div"); box.className = "notice bad toast"; box.setAttribute("role", "alert"); box.textContent = e.message || String(e); document.body.appendChild(box); setTimeout(() => box.remove(), 4500); }
@@ -456,10 +560,15 @@
       return;
     }
     const rf = e.target.closest('form[data-form="readiness"]');
-    if (rf) $("#ready-out").innerHTML = readyResults(readinessValues(rf));
+    if (rf) { $("#ready-out").innerHTML = readyResults(readinessValues(rf)); return; }
+    const of = e.target.closest('form[data-form="opt"]');
+    if (of) { S.opt = readOpt(of); $("#opt-out").innerHTML = optResults(); return; }
+    if (e.target.dataset.opt === "sel") { S.optSel = +e.target.value; const y = window.scrollY; $("#opt-out").innerHTML = optResults(); window.scrollTo(0, y); const sl = $("#o_sel"); if (sl) sl.focus(); }
   });
   document.addEventListener("change", (e) => {
     if (e.target.matches('[data-act="twin-company"]')) { S.twinCompany = e.target.value; render({ keepScroll: true }); }
+    if (e.target.dataset.opt === "year") { S.optYear = +e.target.value; $("#opt-out").innerHTML = optResults(); return; }
+    const ofc = e.target.closest('form[data-form="opt"]'); if (ofc) { S.opt = readOpt(ofc); $("#opt-out").innerHTML = optResults(); return; }
     const rf = e.target.closest('form[data-form="readiness"]'); if (rf && e.target.type === "checkbox") $("#ready-out").innerHTML = readyResults(readinessValues(rf));
     const calc = e.target.closest("[data-calc]"); if (calc) { const k = calc.dataset.calc; document.getElementById("calc-" + k).innerHTML = CALCS[k](calcValues(k, calc)); }
   });
@@ -495,6 +604,7 @@
         case "consent-exit": return after(await API.act("consent_exit", { exit_id: id }));
         case "invite": return after(await API.act("invite_investor", { company_id: S.user.company_id, investor_id: id }));
         case "doc-remove": { const c = myCompany(); const docs = c.docs.slice(); docs.splice(+b.dataset.k, 1); return after(await API.act("save_company", { company_id: c.id, patch: { docs } }), "Document removed."); }
+        case "opt-reset": S.opt = null; S.optSel = null; S.optYear = 1; return render({ keepScroll: true });
         case "ts-tab": S.tsTab = b.dataset.t; return render({ keepScroll: true });
         case "request-intro": return after(await API.act("request_intro", { company_id: id }), "Introduction requested. The founder decides who gets access.");
         case "sign-nda": if (!$("#nda_" + id).checked) throw new Error("Tick the box to agree to the NDA first."); return after(await API.act("sign_nda", { intro_id: id }), "NDA signed. The deal room is open.");

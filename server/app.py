@@ -1,4 +1,4 @@
-"""Glass-Box Advisory web app: the public website, sign-in, and the role-based workspace.
+"""Aegis Ascend Financial Advisors web app: the public website, sign-in, and the role-based workspace.
 
 Same pages as the demo (site/), but accounts and data live on the server:
 - passwords hashed with werkzeug (scrypt), sessions in a signed HttpOnly cookie
@@ -18,7 +18,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 COLLECTIONS = ("companies", "reports", "intros", "loans", "holdings", "exits", "enquiries")
-SITE_FILES = {"calc.js", "ui.js", "public.js", "portal.js", "api-server.js"}
+SITE_FILES = {"calc.js", "optimizer.js", "ui.js", "public.js", "portal.js", "api-server.js"}
+ASSET_FILES = {"founder-hem.jpg", "founder-yash.jpg", "founder-vivan.jpg"}
 DEMO_PASSWORD = "demo1234"
 COMPANY_FIELDS = ("name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs")
 MONTH_S = 30.44 * 24 * 3600
@@ -131,7 +132,7 @@ def seed(conn):
              mandate=dict(sectors=["Chemicals", "Food processing"], past_sectors=["Plastics & packaging"], stages=["Expansion", "Growth"], ticket_min=2, ticket_max=10, instruments=["equity", "CCD"])),
         dict(id="u_investor3", email="familyoffice@demo.in", name="Arvind Rao", role="investor", firm="Rao Family Office",
              mandate=dict(sectors=["Plastics & packaging", "Auto components"], past_sectors=[], stages=["Growth", "Mature"], ticket_min=10, ticket_max=30, instruments=["equity"])),
-        dict(id="u_advisor", email="advisor@demo.in", name="CA Neha Joshi", role="advisor", firm="Glass-Box Advisory", title="Reviewing advisor"),
+        dict(id="u_advisor", email="advisor@demo.in", name="CA Neha Joshi", role="advisor", firm="Aegis Ascend Financial Advisors", title="Reviewing advisor"),
         dict(id="u_lender", email="lender@demo.in", name="Suresh Pillai", role="lender", firm="Harbour Bank (sample)", title="Credit manager"),
         dict(id="u_lender2", email="nbfc@demo.in", name="Kavita Rane", role="lender", firm="Sahyadri Finance NBFC (sample)", title="Head of SME lending"),
     ]
@@ -352,7 +353,7 @@ def a_request_transfer(st, u, p):
     need(u["role"] == "lender" and l["lender_id"] == u["id"], "Not your loan")
     need(l["status"] == "disbursed" and not l.get("transfer"), "Only a disbursed loan with no open transfer can be transferred")
     l["transfer"] = dict(status="open", step=0, amount=fnum(p.get("amount")) or l["amount"], requested_at=now())
-    return "Asked Glass-Box to find a buyer for a Rs %g cr loan" % l["transfer"]["amount"], l["company_id"]
+    return "Asked Aegis Ascend to find a buyer for a Rs %g cr loan" % l["transfer"]["amount"], l["company_id"]
 
 
 def a_advance_transfer(st, u, p):
@@ -604,8 +605,8 @@ def enquiry():
 @app.get("/")
 def index():
     shell = open(os.path.join(SITE, "shell.html"), encoding="utf-8").read()
-    tags = "".join('<script src="/static/%s"></script>' % f for f in ("calc.js", "ui.js", "api-server.js"))
-    tags += '<script>window.GB_CMA_URL = "/fundmix.html";</script>'
+    tags = "".join('<script src="/static/%s"></script>' % f for f in ("calc.js", "optimizer.js", "ui.js", "api-server.js"))
+    tags += '<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/";</script>'
     tags += "".join('<script src="/static/%s"></script>' % f for f in ("public.js", "portal.js"))
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>"
@@ -618,6 +619,13 @@ def static_file(name):
     if name not in SITE_FILES:
         abort(404)
     return send_file(os.path.join(SITE, name), mimetype="text/javascript", max_age=300)
+
+
+@app.get("/assets/<name>")
+def asset_file(name):
+    if name not in ASSET_FILES:
+        abort(404)
+    return send_file(os.path.join(SITE, "assets", name), mimetype="image/jpeg", max_age=86400)
 
 
 @app.get("/fundmix.html")
@@ -653,7 +661,7 @@ def _create_advisor():
     if len(pw) < 8:
         raise SystemExit("Password too short")
     conn = sqlite3.connect(app.config["DATABASE"])
-    add_user(conn, email, name, "advisor", pw, firm="Glass-Box Advisory", title="Advisor")
+    add_user(conn, email, name, "advisor", pw, firm="Aegis Ascend Financial Advisors", title="Advisor")
     conn.commit()
     print("Advisor created:", email)
 

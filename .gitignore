@@ -3,3 +3,6 @@ __pycache__/
 server/*.db
 site/dist/
 fundmix/reports/
+.impeccable/review/
+.impeccable/build/
+.impeccable/mocks/

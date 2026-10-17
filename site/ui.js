@@ -70,7 +70,7 @@
     const Y = (v) => H - pad.b - (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo) * (H - pad.t - pad.b);
     let s = '<div class="chartwrap" id="' + id + '"><svg viewBox="0 0 ' + W + " " + H + '" class="chart" role="img" aria-label="' + esc(opt.label || "") + '">';
     for (const t of ticks(lo, hi)) s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(t) + '" y2="' + Y(t) + '" stroke="' + C.grid + '"/><text x="' + (pad.l - 6) + '" y="' + (Y(t) + 4) + '" text-anchor="end" class="tick">' + esc(opt.yfmt ? opt.yfmt(t) : n(t, t % 1 ? 1 : 0)) + "</text>";
-    const every = Math.ceil(xs.length / 10);
+    const every = opt.xEvery || Math.ceil(xs.length / 10);
     xs.forEach((x, i) => { if (i % every === 0) s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" class="tick">' + esc(x) + "</text>"; });
     for (const r of opt.refs || []) s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(r.y) + '" y2="' + Y(r.y) + '" stroke="' + (r.color || C.bad) + '" stroke-dasharray="5 4" stroke-width="1.5"/><text x="' + (W - pad.r) + '" y="' + (Y(r.y) - 5) + '" text-anchor="end" class="reflab">' + esc(r.label) + "</text>";
     for (const se of series) {
@@ -122,6 +122,33 @@
     return s + "</svg>";
   }
 
+  /** Stacked vertical bars. series: [{name, color, values}] (negative values stack below zero). opt.tops: label over each bar. */
+  function stack(cats, series, opt = {}) {
+    const W = 560, H = opt.height || 260, pad = { l: 52, r: 10, t: 26, b: 30 };
+    const pos = cats.map((_, i) => series.reduce((a, s) => a + Math.max(s.values[i], 0), 0));
+    const neg = cats.map((_, i) => series.reduce((a, s) => a + Math.min(s.values[i], 0), 0));
+    const hi = Math.max(...pos, 1e-9) * 1.12, lo = Math.min(0, ...neg) * 1.12;
+    const Y = (v) => H - pad.b - (v - lo) / (hi - lo) * (H - pad.t - pad.b);
+    const bw = (W - pad.l - pad.r) / cats.length;
+    let s = '<svg viewBox="0 0 ' + W + " " + H + '" class="chart" role="img" aria-label="' + esc(opt.label || "") + '">';
+    for (const t of ticks(lo, hi)) s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(t) + '" y2="' + Y(t) + '" stroke="' + C.grid + '"/><text x="' + (pad.l - 6) + '" y="' + (Y(t) + 4) + '" text-anchor="end" class="tick">' + esc(opt.yfmt ? opt.yfmt(t) : n(t, 0)) + "</text>";
+    cats.forEach((c, i) => {
+      const x = pad.l + i * bw + bw * 0.18, w = bw * 0.64;
+      let up = 0, down = 0;
+      for (const se of series) {
+        const v = se.values[i]; if (!v) continue;
+        const y0 = v >= 0 ? up : down, y1 = y0 + v;
+        if (v >= 0) up = y1; else down = y1;
+        const top = Math.min(Y(y0), Y(y1)), h = Math.abs(Y(y1) - Y(y0));
+        s += '<rect x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + Math.max(h - 1, 0.5).toFixed(1) + '" fill="' + se.color + '"><title>' + esc(c + " · " + se.name + ": " + (opt.fmt ? opt.fmt(v) : n(v))) + "</title></rect>";
+      }
+      if (opt.tops) s += '<text x="' + (x + w / 2) + '" y="' + (Y(up) - 7) + '" text-anchor="middle" class="val">' + esc(opt.tops[i]) + "</text>";
+      s += '<text x="' + (x + w / 2) + '" y="' + (H - 9) + '" text-anchor="middle" class="tick">' + esc(c) + "</text>";
+    });
+    s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="' + C.axis + '"/></svg>';
+    return s + '<div class="legend">' + series.map((se) => '<span><i style="background:' + se.color + ';height:9px;width:9px"></i>' + esc(se.name) + "</span>").join("") + "</div>";
+  }
+
   /** A 0-100 score meter. */
   function meter(score, label) {
     const st = score >= 75 ? "good" : score >= 55 ? "warn" : "bad";
@@ -129,5 +156,5 @@
   }
   function chip(state, text) { return '<span class="chip ' + esc(state) + '">' + esc(text) + "</span>"; }
 
-  root.UI = { esc, n, cr, lakh, pct, xx, date, dt, gx, hbars, lines, vbars, meter, chip, C };
+  root.UI = { esc, n, cr, lakh, pct, xx, date, dt, gx, hbars, lines, vbars, stack, meter, chip, C };
 })(typeof globalThis !== "undefined" ? globalThis : this);

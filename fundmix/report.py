@@ -9,7 +9,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Paragraph, Frame
 from reportlab.lib.styles import ParagraphStyle
 
-NAVY, TEAL, OR, GR, ALT = "#12263F", "#1AA6A0", "#F2A541", "#5B6B7C", "#F2F6FA"
+NAVY, TEAL, OR, GR, ALT = "#0D0E10", "#7B5C1F", "#C9A04F", "#6A665D", "#F5F3EE"
+CFADS, DEBT = "#1E8C68", "#3F6EA6"
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8})
 
 def fmt(x, d=0):
@@ -28,7 +29,7 @@ def _style(ax):
 def chart_cashflow(r):
     rows = r["rows"]; yrs = [f"Y{x['year']}" for x in rows]
     fig, ax = plt.subplots(figsize=(4.2, 3.2), dpi=200)
-    ax.bar(yrs, [x["cfads"] for x in rows], color=TEAL, width=0.55, label="Plant cash flow (CFADS)")
+    ax.bar(yrs, [x["cfads"] for x in rows], color=CFADS, width=0.55, label="Plant cash flow (CFADS)")
     ax.plot(yrs, [x["ds"] for x in rows], color=OR, marker="o", lw=2, ms=4, label="Debt service")
     for i, x in enumerate(rows):
         if x["dscr"] is not None and x["principal"] > 0:
@@ -43,9 +44,9 @@ def chart_repay(r):
     rows = r["rows"]; yrs = [f"Y{x['year']}" for x in rows]
     fig, ax = plt.subplots(figsize=(4.2, 3.2), dpi=200)
     p = [x["principal"] for x in rows]; it = [x["interest"] for x in rows]
-    ax.bar(yrs, p, color=NAVY, width=0.55, label="Principal")
+    ax.bar(yrs, p, color=DEBT, width=0.55, label="Principal")
     ax.bar(yrs, it, bottom=p, color=OR, width=0.55, label="Interest")
-    ax2 = ax.twinx(); ax2.plot(yrs, [x["closing"] for x in rows], color=TEAL, marker="o", lw=2, ms=4, label="Loan outstanding")
+    ax2 = ax.twinx(); ax2.plot(yrs, [x["closing"] for x in rows], color=CFADS, marker="o", lw=2, ms=4, label="Loan outstanding")
     ax2.set_ylim(0, r["debt"] * 1.15 if r["debt"] else 1); ax2.tick_params(colors=GR)
     for s in ["top"]: ax2.spines[s].set_visible(False)
     ax.set_ylabel("Repayment, Rs crore", color=GR); ax2.set_ylabel("Outstanding, Rs crore", color=GR); _style(ax)
@@ -88,10 +89,10 @@ def build_pdf(r, meta, path_or_buf):
     c.setFillColor(HexColor(TEAL)); c.rect(0, H - 96, W, 4, fill=1, stroke=0)
     c.setFillColor(HexColor(OR)); c.rect(0, H - 96, 160, 4, fill=1, stroke=0)
     c.setFillColor(white); c.setFont("Helvetica-Bold", 17); c.drawString(m, H - 40, "Funding Recommendation: Debt vs Equity")
-    c.setFont("Helvetica", 9.5); c.setFillColor(HexColor("#BFD3E6"))
+    c.setFont("Helvetica", 9.5); c.setFillColor(HexColor("#ABA497"))
     c.drawString(m, H - 58, f"{meta['company']}  |  {meta['purpose']}")
     c.drawString(m, H - 72, f"Industry: {q['industry'].title()}  |  Project cost Rs {fmt(q['project_cost'])} crore  |  Base year: FY{meta['base_year']} ({meta['base_status']})  |  {datetime.date.today():%d %b %Y}")
-    c.setFont("Helvetica-Bold", 8); c.drawRightString(W - m, H - 40, "GLASS-BOX ADVISORY")
+    c.setFont("Helvetica-Bold", 8); c.drawRightString(W - m, H - 40, "AEGIS ASCEND FINANCIAL ADVISORS")
 
     # recommendation strip
     y = H - 156; sh = 52

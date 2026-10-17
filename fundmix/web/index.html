@@ -1,14 +1,14 @@
-<title>Debt vs Equity Funding Report</title>
+<title>CMA Funding Report</title>
 <style>
 /* Layout: brand band on top, inputs rail on the left, live report sheet on the right (stacks on phones). */
 :root{
-  --navy:#12263F;--teal:#1AA6A0;--orange:#F2A541;
-  --bg:#FFFFFF;--fg:#1E2935;--muted:#5B6B7C;--strong:#12263F;
+  --navy:#0D0E10;--teal:#7B5C1F;--orange:#C9A04F;--cfads:#1E8C68;
+  --bg:#FFFFFF;--fg:#1E1F22;--muted:#6A665D;--strong:#16171A;
   --alt:#F2F6FA;--panel:#F7F9FB;--line:#D9DEE5;--field:#FFFFFF;
-  --band:#12263F;--band-fg:#FFFFFF;--band-sub:#BFD3E6;
-  --debt:#12263F;--on-debt:#FFFFFF;--on-orange:#12263F;
+  --band:#0D0E10;--band-fg:#F1ECE2;--band-sub:#ABA497;
+  --debt:#3F6EA6;--on-debt:#FFFFFF;--on-orange:#0D0E10;
   --good:#1E8A5A;--warn:#B36B00;--bad:#B3261E;--bad-bg:#FDECEA;
-  --c-grid:#ECEFF3;--c-axis:#C7CED6;--c-tick:#5B6B7C;--c-ink:#12263F;
+  --c-grid:#ECE9E2;--c-axis:#BDB6A8;--c-tick:#6A665D;--c-ink:#16171A;
   --font:Arial,Helvetica,"Liberation Sans",sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -16,15 +16,15 @@
   --bg:#0D1722;--fg:#DCE4EC;--muted:#97A8BA;--strong:#EEF3F8;
   --alt:#132233;--panel:#101D2B;--line:#26384B;--field:#0B1520;
   --band:#0A1420;--band-fg:#FFFFFF;--band-sub:#A9C1D9;
-  --debt:#5E8FCB;--on-debt:#FFFFFF;--on-orange:#12263F;
-  --good:#4CC28A;--warn:#F2A541;--bad:#FF8A80;--bad-bg:#3A1C1C;
+  --debt:#5C88C4;--on-debt:#FFFFFF;--on-orange:#0D0E10;--teal:#DDB868;--cfads:#2FA38A;
+  --good:#4CC28A;--warn:#E9B45A;--bad:#FF8A80;--bad-bg:#3A1C1C;
   --c-grid:#1C2C3D;--c-axis:#34495F;--c-tick:#97A8BA;--c-ink:#EEF3F8;color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0D1722;--fg:#DCE4EC;--muted:#97A8BA;--strong:#EEF3F8;
   --alt:#132233;--panel:#101D2B;--line:#26384B;--field:#0B1520;
   --band:#0A1420;--band-fg:#FFFFFF;--band-sub:#A9C1D9;
-  --debt:#5E8FCB;--on-debt:#FFFFFF;--on-orange:#12263F;
-  --good:#4CC28A;--warn:#F2A541;--bad:#FF8A80;--bad-bg:#3A1C1C;
+  --debt:#5C88C4;--on-debt:#FFFFFF;--on-orange:#0D0E10;--teal:#DDB868;--cfads:#2FA38A;
+  --good:#4CC28A;--warn:#E9B45A;--bad:#FF8A80;--bad-bg:#3A1C1C;
   --c-grid:#1C2C3D;--c-axis:#34495F;--c-tick:#97A8BA;--c-ink:#EEF3F8;color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45}
@@ -124,7 +124,7 @@ details.spec[open] summary{border-bottom:1px solid var(--line);margin-bottom:12p
 <header class="top"><div class="top-in">
   <div><h1>Debt vs Equity Funding Report</h1>
   <p>Upload a company's CMA workbook, describe the project, and get a one-page, advisor-ready recommendation. Everything runs in this page: the CMA never leaves your browser.</p></div>
-  <div class="brand">GLASS-BOX ADVISORY</div>
+  <div class="brand"><a href="./#app" style="color:inherit">AEGIS ASCEND · back to the workspace</a></div>
 </div></header>
 
 <div class="wrap">
@@ -700,8 +700,8 @@ function legend(ops, items, x, y) {
     x += 16 + s.length * 5.6 + 16;
   }
 }
-const SVG_C = { teal: "var(--teal)", orange: "var(--orange)", debt: "var(--debt)", grid: "var(--c-grid)", axis: "var(--c-axis)", tick: "var(--c-tick)", ink: "var(--c-ink)" };
-const PDF_C = { teal: "#1AA6A0", orange: "#F2A541", debt: "#12263F", grid: "#EEEEEE", axis: "#BBBBBB", tick: "#5B6B7C", ink: "#12263F" };
+const SVG_C = { teal: "var(--cfads)", orange: "var(--orange)", debt: "var(--debt)", grid: "var(--c-grid)", axis: "var(--c-axis)", tick: "var(--c-tick)", ink: "var(--c-ink)" };
+const PDF_C = { teal: "#1E8C68", orange: "#B8892F", debt: "#3F6EA6", grid: "#ECE9E2", axis: "#BDB6A8", tick: "#6A665D", ink: "#16171A" };
 function toSVG(ops, label) {
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
   let s = '<svg viewBox="0 0 ' + CW + " " + CH + '" role="img" aria-label="' + esc(label) + '" font-family="Arial, Helvetica, sans-serif">';
@@ -778,7 +778,7 @@ function buildPDF(r, meta) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = 595.28, H = 841.89, m = 36, q = r.q;
-  const NAVY = "#12263F", TEAL = "#1AA6A0", OR = "#F2A541", GR = "#5B6B7C", ALT = "#F2F6FA", INK = "#222222", LINE = "#D9DEE5";
+  const NAVY = "#0D0E10", TEAL = "#7B5C1F", OR = "#C9A04F", GR = "#6A665D", ALT = "#F5F3EE", INK = "#1E1F22", LINE = "#E2DED5";
   const T = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : "normal"); doc.setFontSize(o.sz || 8); doc.setTextColor(o.c || INK); doc.text(String(s), x, y, o.a ? { align: o.a } : undefined); };
   const fit = (s, w, sz, b) => { doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(sz); if (doc.getTextWidth(s) <= w) return s; while (s.length > 1 && doc.getTextWidth(s + "...") > w) s = s.slice(0, -1); return s + "..."; };
   const box = (x, y, w, h, c) => { doc.setFillColor(c); doc.rect(x, y, w, h, "F"); };
@@ -786,9 +786,9 @@ function buildPDF(r, meta) {
   // header band
   box(0, 0, W, 92, NAVY); box(0, 92, W, 4, TEAL); box(0, 92, 160, 4, OR);
   T("Funding Recommendation: Debt vs Equity", m, 40, { b: true, sz: 17, c: "#FFFFFF" });
-  T("GLASS-BOX ADVISORY", W - m, 40, { b: true, sz: 8, c: "#BFD3E6", a: "right" });
-  T(fit(h1, W - 2 * m, 9.5), m, 58, { sz: 9.5, c: "#BFD3E6" });
-  T(fit(h2, W - 2 * m, 9.5), m, 72, { sz: 9.5, c: "#BFD3E6" });
+  T("AEGIS ASCEND FINANCIAL ADVISORS", W - m, 40, { b: true, sz: 8, c: "#C9A04F", a: "right" });
+  T(fit(h1, W - 2 * m, 9.5), m, 58, { sz: 9.5, c: "#ABA497" });
+  T(fit(h2, W - 2 * m, 9.5), m, 72, { sz: 9.5, c: "#ABA497" });
   // recommendation strip
   let y = 104; const sh = 56;
   box(m, y, W - 2 * m, sh, ALT); box(m, y, 4, sh, TEAL);

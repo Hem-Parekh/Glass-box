@@ -19,7 +19,7 @@
         mandate: { sectors: ["Chemicals", "Food processing"], past_sectors: ["Plastics & packaging"], stages: ["Expansion", "Growth"], ticket_min: 2, ticket_max: 10, instruments: ["equity", "CCD"] } },
       { id: "u_investor3", email: "familyoffice@demo.in", name: "Arvind Rao", role: "investor", firm: "Rao Family Office",
         mandate: { sectors: ["Plastics & packaging", "Auto components"], past_sectors: [], stages: ["Growth", "Mature"], ticket_min: 10, ticket_max: 30, instruments: ["equity"] } },
-      { id: "u_advisor", email: "advisor@demo.in", name: "CA Neha Joshi", role: "advisor", firm: "Glass-Box Advisory", title: "Reviewing advisor" },
+      { id: "u_advisor", email: "advisor@demo.in", name: "CA Neha Joshi", role: "advisor", firm: "Aegis Ascend Financial Advisors", title: "Reviewing advisor" },
       { id: "u_lender", email: "lender@demo.in", name: "Suresh Pillai", role: "lender", firm: "Harbour Bank (sample)", title: "Credit manager" },
       { id: "u_lender2", email: "nbfc@demo.in", name: "Kavita Rane", role: "lender", firm: "Sahyadri Finance NBFC (sample)", title: "Head of SME lending" },
     ];
@@ -230,7 +230,7 @@
       need(u.role === "lender" && l.lender_id === u.id, "Not your loan");
       need(l.status === "disbursed" && !l.transfer, "Only a disbursed loan with no open transfer can be transferred");
       l.transfer = { status: "open", step: 0, amount: Number(p.amount) || l.amount, requested_at: now() };
-      return { detail: "Asked Glass-Box to find a buyer for a Rs " + l.transfer.amount + " cr loan", company_id: l.company_id };
+      return { detail: "Asked Aegis Ascend to find a buyer for a Rs " + l.transfer.amount + " cr loan", company_id: l.company_id };
     },
     advance_transfer(db, u, p) {
       need(u.role === "advisor", "Only an advisor can move a transfer forward");
