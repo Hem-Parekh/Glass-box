@@ -193,7 +193,7 @@ The firm's gold emblem is not a logo placed on a page; it is the page's structur
 
 There are two scenes. **Persuade** (public pages) lives in the logo's world: obsidian ground with a faint warm grain, warm ivory reading text, gold reserved for structure, emphasis and action. **Operate** (the founder and advisor workspace) keeps an obsidian rail carrying the wordmark, then opens a light stone work area with white panels for daytime desk work, switching to a dark work area under `prefers-color-scheme: dark`. The workspace speaks in data: Hanken Grotesk, tabular numerals, three fixed series colours, and the gold diamond kept for the one recommended answer.
 
-Density is calm on the public side (generous section padding, ruled ledgers, long measure capped at 62-72ch) and working-dense in the workspace (20px panel padding, 12-20px gaps, KPI rows). Motion is ceremonial exactly once, the Ascent on the home hero, and purely feedback everywhere else. The world refuses the fintech template: no light hero, no dashboard screenshot, no row of icon cards.
+Density is calm on the public side (generous section padding, ruled ledgers, long measure capped at 62-72ch) and working-dense in the workspace (20px panel padding, 12-20px gaps, KPI rows). Motion is ceremonial once, the Ascent on the home hero; below it, home sections arrive on scroll with a short staggered rise, and the workspace uses feedback motion only. The world refuses the fintech template: no light hero, no dashboard screenshot, no row of icon cards.
 
 **Key Characteristics:**
 - Obsidian ground, gold geometry, ivory text on public pages; stone and white panels in the workspace.
@@ -201,7 +201,7 @@ Density is calm on the public side (generous section padding, ruled ledgers, lon
 - Gold hairline rules (`gold-line`) as the main structural device; very few filled containers.
 - The rotated-square diamond is the house marker: active place, chosen option, list bullet, recommended value.
 - Every number is a dashed-underlined, clickable "glass-box" figure that opens its formula.
-- One signature motion (the Ascent); workspace motion is 150-250ms feedback only.
+- One signature motion (the Ascent), quiet scroll reveals on the home page, and 150-250ms feedback motion in the workspace.
 
 ## Colors
 
@@ -335,7 +335,8 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 
 ### Decision Strip and the Ascent (signature)
 - The hero's live decision: a raised-obsidian strip with a gold hairline and 4px radius, a sample label, a 14px split bar (Debt Blue and Emblem Gold halves on an Obsidian Edge track, 2px gap), a diamond-keyed legend, and a three-cell stats grid divided by gold hairlines.
-- **The Ascent:** on first load the emblem's lines draw upward (1.1s; inner uprights delayed 0.12s, faint chevron 1.4s), the diamond lands at 0.95s (0.7s, dropping 14px from a quarter turn), the column's children rise in from 14px with a 4px blur (0.8s, staggered 0.55s to 1.05s), then the split bar fills to its mix at 1.25s over 1.1s. All on `cubic-bezier(.16,1,.3,1)`. It plays once per visit; with reduced motion the lines appear drawn and the bar is set instantly.
+- **The Ascent:** on first load the emblem's lines draw upward (1.1s; inner uprights delayed 0.12s, faint chevron 1.4s), the diamond lands at 0.95s (0.7s, dropping 14px from a quarter turn), the column's children rise in from 14px with a 4px blur (0.8s, staggered 0.55s to 1.05s), then the split bar fills to its mix at 1.25s over 1.1s. All on `cubic-bezier(.16,1,.3,1)`. It plays once per visit; with reduced motion the lines appear drawn and the bar is set instantly. After landing, the hero diamond drifts 5px on a 6s loop.
+- **Home scroll reveals:** `PUB.mountHome` adds `.rv` to section heads, promises, ledger rows, method steps, tool rows, founders and the closing CTA, and adds `.shown` through an IntersectionObserver. Items rise 22px and fade in over 0.8s, staggered 80ms by sibling index. The emblem anatomy draws its strokes, lands its diamond, then draws its leader lines. The method rule draws left to right as its diamonds pop. Founder portraits wipe up from the bottom. Everything is gated by `html.mo` (set only when motion is allowed), so the content is visible without JS or with reduced motion. Never use `.in` as a state class, because it is the input-field wrapper.
 
 ### Charts
 - Single axis, direct labels and value labels, a crosshair tooltip on hover, and a legend of short colour bars (dashed for reference lines). Bars have 4px corners; lines are 2px with round joins; reference lines are 1.5px dashed in Warn or Bad.
@@ -357,4 +358,4 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 - **Don't** put a gold diamond on any chart point other than the one "Best" mark, and don't use gold as a series colour beyond Equity Gold.
 - **Don't** set Emblem Gold (#C9A04F) as text on white; use Deep Gold Ink (#7B5C1F).
 - **Don't** add drop shadows to panels or cards at rest, or round corners beyond 6px.
-- **Don't** add a second ceremonial animation; the Ascent is the only one.
+- **Don't** add a second ceremonial animation; the Ascent is the only one. Scroll reveals stay short (≤0.8s per item) and never loop.

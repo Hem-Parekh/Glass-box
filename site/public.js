@@ -71,12 +71,12 @@
     // The mark, annotated with the meanings the firm gives it.
     return '<svg class="anatomy" viewBox="0 0 690 500" role="img" aria-label="The Aegis Ascend emblem: a diamond above a geometric frame">' +
       '<g transform="translate(40 20)"><g fill="none" class="ln" stroke-linejoin="miter" stroke-miterlimit="12">' +
-      '<path d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/>' +
-      '<path d="M172 404 L273 289 L374 404" clip-path="url(#emclipC)"/></g>' +
-      '<polygon points="273,62 302,91 273,120 244,91" fill="url(#goldv2)"/></g>' +
-      '<path class="lead" d="M352 111 L440 111 L456 84"/><circle class="dot" cx="352" cy="111" r="3.5"/>' +
+      '<path pathLength="1" d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path pathLength="1" d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/>' +
+      '<path pathLength="1" d="M172 404 L273 289 L374 404" clip-path="url(#emclipC)"/></g>' +
+      '<polygon class="dia" points="273,62 302,91 273,120 244,91" fill="url(#goldv2)"/></g>' +
+      '<path class="lead" pathLength="1" d="M352 111 L440 111 L456 84"/><circle class="dot" cx="352" cy="111" r="3.5"/>' +
       '<text x="460" y="60"><tspan class="k">DIAMOND</tspan><tspan x="460" dy="26">Clarity of vision,</tspan><tspan x="460" dy="24">sound judgment</tspan></text>' +
-      '<path class="lead" d="M410 272 L470 272 L490 248"/><circle class="dot" cx="410" cy="272" r="3.5"/>' +
+      '<path class="lead" pathLength="1" d="M410 272 L470 272 L490 248"/><circle class="dot" cx="410" cy="272" r="3.5"/>' +
       '<text x="494" y="226"><tspan class="k">THE FRAME</tspan><tspan x="494" dy="26">Structure, strategy,</tspan><tspan x="494" dy="24">upward ambition</tspan></text>' +
       "</svg>";
   }
@@ -100,8 +100,7 @@
       '<div><dt>AEGIS</dt><dd><p>Protection and trusted guidance.</p></dd></div>' +
       '<div><dt>ASCEND</dt><dd><p>Progress and the pursuit of greater potential.</p></dd></div>' +
       '<div><dt>THE EMBLEM</dt><dd><p>Structure, strategic thinking and upward ambition. The diamond at its peak stands for clarity of vision and sound financial judgment.</p></dd></div>' +
-      '<div><dt>GOLD</dt><dd><p>Value creation and excellence.</p></dd></div>' +
-      '<div><dt>BLACK</dt><dd><p>Authority, trust and professionalism.</p></dd></div></dl>' +
+      '</dl>' +
       '<p class="muted" style="margin-top:22px;max-width:60ch">Our philosophy is simple: Smarter Decisions. Stronger Futures. Guided by it, we help businesses navigate financial choices, evaluate capital-raising options, and build a stronger foundation for the future.</p>' +
       "</div></div></section>" +
       '<section class="sec tone"><div class="container"><div class="sec-head"><h2>What we stand for</h2></div><div class="ledger">' +
@@ -146,6 +145,25 @@
     const fill = () => sec.querySelectorAll(".split i").forEach((i) => { i.style.flexBasis = i.dataset.to + "%"; });
     if (!played && !reduce) setTimeout(fill, 1250); else { sec.querySelectorAll(".split i").forEach((i) => { i.style.transition = "none"; }); fill(); }
     played = true;
+    reveal(reduce);
+  }
+  // Below the hero, sections arrive as they scroll in: a short staggered rise, the
+  // emblem drawn line by line, founders' portraits uncovered from the bottom.
+  const RV = [".sec-head", ".promises>div", "#meaning .anatomy", ".meaning-list>div", "#meaning .muted", ".ledger>div", ".method", ".method li", ".golden", ".index a", ".founder", ".close>*"];
+  let io;
+  function reveal(reduce) {
+    const main = document.querySelector(".ascent"); if (!main) return;
+    if (io) io.disconnect();
+    if (reduce || !("IntersectionObserver" in window)) return;
+    document.documentElement.classList.add("mo");
+    io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("shown"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    RV.forEach((sel) => {
+      const seen = new Map();
+      document.querySelectorAll(sel).forEach((el) => {
+        const k = el.parentElement, i = seen.get(k) || 0; seen.set(k, i + 1);
+        el.classList.add("rv"); el.style.setProperty("--i", Math.min(i, 7)); io.observe(el);
+      });
+    });
   }
   let rz;
   window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { const s = document.getElementById("ascent"); if (s) { s.classList.remove("play"); drawAscent(); } }, 120); });
