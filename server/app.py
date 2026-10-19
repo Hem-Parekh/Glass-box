@@ -440,6 +440,10 @@ def asset_file(name):
 
 @app.get("/fundmix.html")
 def fundmix():
+    """The CMA funding report tool is for advisors only; everyone else gets the advisors-only page (same look as the site)."""
+    u = current_user()
+    if not u or u["role"] != "advisor":
+        return Response(open(os.path.join(SITE, "cma-lock.html"), encoding="utf-8").read(), status=403 if u else 401, mimetype="text/html")
     cma = open(os.path.join(ROOT, "fundmix", "web", "index.html"), encoding="utf-8").read()
     return Response('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
                     '<meta name="robots" content="noindex"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>' + cma + "</body></html>", mimetype="text/html")

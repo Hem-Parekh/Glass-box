@@ -148,8 +148,15 @@
   }
 
   // ---------- persistence ----------
+  /** Data saved by an older version of the demo may lack collections added since (e.g. deal rooms): take those from a fresh seed. */
+  function upgrade(db) {
+    if (!db || typeof db !== "object" || !Array.isArray(db.users)) return seed();
+    let fresh = null;
+    for (const c of COLLECTIONS.concat(["users", "audit"])) if (!Array.isArray(db[c])) { fresh = fresh || seed(); db[c] = fresh[c] || []; }
+    return db;
+  }
   function load() {
-    try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) { /* storage blocked */ }
+    try { const s = localStorage.getItem(KEY); if (s) return upgrade(JSON.parse(s)); } catch (e) { /* storage blocked or unreadable */ }
     return seed();
   }
   let DB = load();

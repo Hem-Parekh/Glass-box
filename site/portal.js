@@ -22,7 +22,7 @@
       '<button class="btn primary lg block" type="submit">Sign in</button></form>' +
       '<p class="small muted">New here? <a href="#signup">Create an account</a></p>' +
       (demo ? '<div class="demo-box"><b>Demo accounts</b><p class="small muted">This demo keeps accounts and data in your browser only. Pick a role to sign in instantly (password <code>' + esc(API.demoPassword) + "</code>).</p>" +
-        '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Aegis Ascend"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div></div>" : "") +
+        '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Aegis Ascend"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div>" + '<p class="small muted">Something not loading? <button type="button" class="linkbtn" data-act="reset-demo">Reset demo data</button> to start again from the sample companies.</p></div>' : "") +
       "</div></div>");
   }
   function signup(err) {
@@ -417,7 +417,11 @@
       if (!S.user) { location.hash = "#login"; return; }
       if (!S.data || (opts && opts.reload)) {
         if (!S.data) app().innerHTML = shell(route, KIT.skeleton());
-        try { await refresh(); } catch (e) { S.user = null; location.hash = "#login"; return; }
+        try { await refresh(); } catch (e) {
+          const signedOut = /sign in/i.test(e.message || "");
+          if (!signedOut) KIT.toast("Your workspace could not load: " + (e.message || e) + (API.mode === "demo" ? ". Use Reset demo data on the sign-in page to start fresh." : ""), "bad");
+          S.user = null; location.hash = "#login"; return;
+        }
       }
       const page = PAGES[S.user.role][route] || PAGES[S.user.role].app;
       html = shell(full, page(S.param));

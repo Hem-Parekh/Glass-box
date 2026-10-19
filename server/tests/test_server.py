@@ -54,7 +54,8 @@ def test_pages_served(client):
         assert client.get("/static/" + f).status_code == 200, f
     assert client.get("/static/store.js").status_code == 404  # demo store is never served
     assert client.get("/static/../server/app.py").status_code == 404
-    assert client.get("/fundmix.html").status_code == 200
+    r = client.get("/fundmix.html")  # the CMA tool is advisors-only
+    assert r.status_code == 401 and b"Advisors only" in r.data
     login(client, "advisor@demo.in")
     assert "noindex" in client.get("/api/state").headers["X-Robots-Tag"]
 
@@ -351,3 +352,13 @@ def test_only_advisors_submit_the_debt_vs_equity_report(client):
     act(client, "submit_report", payload, 403)
     login(client, "advisor@demo.in")
     act(client, "submit_report", payload)
+
+
+def test_cma_tool_is_for_advisors_only(client):
+    for email in ("founder@demo.in", "investor@demo.in", "lender@demo.in"):
+        login(client, email)
+        r = client.get("/fundmix.html")
+        assert r.status_code == 403 and b"Advisors only" in r.data and b"CMA" in r.data
+    login(client, "advisor@demo.in")
+    r = client.get("/fundmix.html")
+    assert r.status_code == 200 and b"Advisors only" not in r.data
