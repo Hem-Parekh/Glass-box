@@ -114,9 +114,33 @@
   }
   function sells() {
     const L = S.data.sell_requests.slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return WS.head("Sell requests", "Resales are private: your advisor introduces buyers one to one. Nothing is listed or shown to other investors.") +
+    return WS.head("Sell requests & exits", "Exit after the 6-month minimum holding, or earlier with the founder's written consent. Resales are private: your advisor introduces buyers one to one.") +
       (L.length ? L.map((x) => '<section class="panel"><div class="panel-head"><h2>' + esc(co(x.company_id).name) + "</h2>" + chip(x.status === "completed" ? "ok" : x.status === "rejected" || x.status === "withdrawn" ? "bad" : "warn", x.status.replace("_", " ")) + "</div>" + sellTimeline(x) + "</section>").join("")
-        : '<section class="panel">' + KIT.empty("No sell requests", "Holdings become eligible 6 months after allotment. Request a sale from the portfolio.", '<a class="btn primary" href="#app">Go to the portfolio</a>') + "</section>");
+        : '<section class="panel">' + KIT.empty("No sell requests", "Holdings become eligible 6 months after allotment. Request a sale from the portfolio.", '<a class="btn primary" href="#app">Go to the portfolio</a>') + "</section>") +
+      '<section class="panel"><h2>Exit tax view</h2><p class="small muted">Try a sale price before you ask to sell. An estimate, not tax advice.</p><form class="calc" data-calc="exit"><div class="fields f5">' + root.PUB.field("cost", "Amount invested", 1, "Rs cr") + root.PUB.field("sale", "Sale price", 1.4, "Rs cr") + root.PUB.field("months", "Months held", 14, "months") + root.PUB.field("slab", "Your slab rate", 30, "%") + root.PUB.field("fmv", "Fair market value", 1.4, "Rs cr") + '</div></form><div id="calc-exit">' + root.PUB.exitCalc({}) + "</div></section>";
+  }
+
+  // ---------- curated deals and deal rooms ----------
+  function deals() {
+    const offered = new Set(S.data.offers.filter((o) => o.response !== "declined").map((o) => o.company_id));
+    const L = S.data.companies.filter((c) => offered.has(c.id)).map((c) => Object.assign({ fit: root.GB.fitScore(Object.assign({}, c, { raise: (c.raise_paise || 0) / 1e9 }), S.user) }, c)).sort((a, b) => b.fit.score - a.fit.score);
+    return WS.head("Curated deals", "Companies that passed validation, the engine and an advisor's sign-off, and that your advisor has offered to you.") +
+      (L.length ? '<div class="cards" data-stagger>' + L.map((c) => { const i = (S.data.intros || []).find((x) => x.company_id === c.id), r = c.report, sm = (r && r.summary) || {};
+        return '<article class="card"><div class="card-top"><div><b>' + esc(c.name) + '</b><span class="muted small">' + esc(c.sector) + " · " + esc(c.stage) + " · " + esc(c.city || "") + '</span></div><div class="score" title="Investor Fit Score">' + c.fit.score + "<small>/100</small></div></div>" +
+          "<p>Raising <b>" + rs(c.raise_paise, true) + "</b> · revenue " + UI.cr(c.revenue, 0) + "</p>" + (r ? '<p class="small">Engine view: best mix ' + pct(sm.best_share) + " debt · lowest DSCR " + UI.xx(sm.min_dscr) + " (stress " + UI.xx(sm.min_dscr_stress) + ")</p>" : "") +
+          (r && r.reviewed_by ? '<span class="stamp">Reviewed by ' + esc(WS.userName(r.reviewed_by)) + "</span>" : "") +
+          '<ul class="reasons">' + c.fit.reasons.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" +
+          (i ? "<p>" + WS.statusChip(i.status) + (i.status === "granted" ? ' <a href="#app-rooms">Open deal room</a>' : "") + "</p>" : '<button class="btn primary sm" data-act="inv-intro" data-id="' + c.id + '">Request deal-room access</button>') + "</article>"; }).join("") + "</div>"
+        : '<section class="panel">' + KIT.empty("No deals yet", "Deals your advisor offers to you appear here with their fit score.", '<a class="btn ghost" href="#app-opportunities">See opportunities</a>') + "</section>");
+  }
+  function rooms() {
+    const mine = (S.data.intros || []).filter((i) => i.status === "granted");
+    return WS.head("Deal rooms", "Sign the NDA to open documents. Each document is watermarked with your name and every view is logged for the founder.") +
+      (mine.length ? mine.map((i) => { const c = co(i.company_id), r = c.report, sm = (r && r.summary) || {};
+        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label class=\"chk\"><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="inv-nda" data-id="' + i.id + '">Sign NDA</button></div>'
+          : "<p>" + chip("ok", "NDA signed " + UI.date(i.nda_signed_at)) + "</p>" + (r ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(sm.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + UI.cr(sm.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + UI.cr(sm.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(sm.min_dscr) + "</b><span>stress " + UI.xx(sm.min_dscr_stress) + "</span></div></div>" : "") +
+            '<h3>Documents</h3><ul class="docs">' + (c.docs || []).map((d) => "<li><span>" + esc(d) + '</span><button class="btn ghost sm" data-act="inv-room-doc" data-id="' + i.id + '" data-doc="' + esc(d) + '">Open</button></li>').join("") + "</ul>") + "</section>"; }).join("")
+        : '<section class="panel">' + KIT.empty("No open deal rooms", "Request access from Curated deals. The founder decides who gets in.", '<a class="btn primary" href="#app-deals">See curated deals</a>') + "</section>");
   }
 
   // ---------- opportunities ----------
@@ -140,6 +164,9 @@
 
   // ---------- actions ----------
   Object.assign(WS.clicks, {
+    "inv-intro": async (b, id) => WS.after(await WS.API.act("request_intro", { company_id: id }), "Request sent. The founder decides who enters the deal room."),
+    "inv-nda": async (b, id) => { const box = document.getElementById("nda_" + id); if (!box || !box.checked) throw new Error("Tick the box to agree to the NDA first."); return WS.after(await WS.API.act("sign_nda", { intro_id: id }), "NDA signed. The deal room is open."); },
+    "inv-room-doc": async (b, id) => WS.after(await WS.API.act("view_room_doc", { intro_id: id, doc: b.dataset.doc }), "Opened \"" + b.dataset.doc + "\", watermarked with your name. The view is logged for the founder."),
     "inv-sell": async (b, id) => {
       const v = views().find((x) => x.id === id);
       const vals = await KIT.dialog({ title: "Request to sell: " + v.c.name, confirm: "Send request",
@@ -177,5 +204,5 @@
     },
   });
 
-  Object.assign(WS.PAGES.investor, { app: portfolio, "app-holding": holding, "app-sells": sells, "app-opportunities": opportunities });
+  Object.assign(WS.PAGES.investor, { "app-deals": deals, "app-rooms": rooms, app: portfolio, "app-holding": holding, "app-sells": sells, "app-opportunities": opportunities });
 })(typeof globalThis !== "undefined" ? globalThis : this);

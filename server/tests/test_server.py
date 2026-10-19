@@ -316,3 +316,38 @@ def test_loan_transfer_between_regulated_lenders(client):
     client.post("/api/logout", headers=H)
     client.post("/api/signup", json={"name": "L", "email": "l@x.in", "password": "secret123", "role": "lender"}, headers=H)
     assert all((d.get("profile") or {}).get("regulated") for d in state(client)["directory"] if d["role"] == "lender" and d["id"].startswith("u_lender"))
+
+
+def test_deal_room_requests_need_an_offer_and_founder_approval(client):
+    login(client, "familyoffice@demo.in")  # declined Kalyan's offer
+    act(client, "request_intro", {"company_id": "c_kalyan"}, 403)
+    act(client, "request_intro", {"company_id": "c_nashik"}, 403)  # never offered
+    login(client, "investor@demo.in")  # Kalyan offer pending
+    act(client, "request_intro", {"company_id": "c_kalyan"})
+    act(client, "request_intro", {"company_id": "c_kalyan"}, 403)  # only once
+    iid = next(i["id"] for i in state(client)["intros"] if i["company_id"] == "c_kalyan")
+    act(client, "sign_nda", {"intro_id": iid}, 403)  # not granted yet
+    login(client, "rahul@demo.in")
+    act(client, "decide_intro", {"intro_id": iid, "decision": "grant"}, 403)  # another company's founder
+    login(client, "founder@demo.in")
+    s = state(client)
+    assert {i["investor_name"] for i in s["intros"]} >= {"Konkan Growth Partners", "Sahyadri Angels Network"}
+    act(client, "decide_intro", {"intro_id": iid, "decision": "grant"})
+    act(client, "suggest_investor", {"investor_id": "u_investor21"})
+    login(client, "investor@demo.in")
+    act(client, "view_room_doc", {"intro_id": iid, "doc": "Cap table"}, 403)  # NDA first
+    act(client, "sign_nda", {"intro_id": iid})
+    act(client, "view_room_doc", {"intro_id": iid, "doc": "Cap table"})
+    login(client, "founder@demo.in")
+    i = next(x for x in state(client)["intros"] if x["id"] == iid)
+    assert i["status"] == "granted" and i["nda_signed_at"] and i["views"][0]["doc"] == "Cap table"
+    login(client, "advisor@demo.in")
+    assert any("suggests offering" in n["text"] for n in state(client)["notes"])
+
+
+def test_only_advisors_submit_the_debt_vs_equity_report(client):
+    payload = {"company_id": "c_kalyan", "title": "Debt vs equity", "checks": CHECKS, "summary": {"best_share": 0.3}}
+    login(client, "founder@demo.in")
+    act(client, "submit_report", payload, 403)
+    login(client, "advisor@demo.in")
+    act(client, "submit_report", payload)

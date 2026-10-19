@@ -93,7 +93,34 @@
   }
   const UI_field = (id, label, val, sfx) => root.PUB.field("al_" + id, label, val, sfx).replace('name="al_' + id + '"', 'name="' + id + '"');
 
+  // ---------- investors (fit-ranked panel) and deal room ----------
+  function investors() {
+    const c = WS.myCompany(), I = D().intros || [];
+    const named = new Map(D().offers.filter((o) => o.investor_id).map((o) => [o.investor_id, o.response]));
+    const panel = (D().directory || []).filter((u) => u.role === "investor").map((u) => Object.assign({ fit: root.GB.fitScore(c, u) }, u)).sort((a, b) => b.fit.score - a.fit.score);
+    const asks = I.filter((i) => i.status === "requested");
+    return WS.head("Investors", "Ranked by Investor Fit Score. Your advisor decides who receives the offer; you decide who enters your deal room.") +
+      (asks.length ? '<section class="panel"><h2>Deal-room requests</h2>' + asks.map((i) => '<div class="item"><div><b>' + esc(i.investor_name) + '</b><span class="muted small">asked ' + UI.date(i.created_at) + '</span></div><div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div></div>').join("") + "</section>" : "") +
+      '<div class="cards" data-stagger>' + panel.map((u) => { const i = I.find((x) => x.investor_id === u.id), resp = named.get(u.id);
+        return '<article class="card"><div class="card-top"><div><b>' + esc(u.firm || u.name) + '</b><span class="muted small">' + esc(u.name) + '</span></div><div class="score" title="Investor Fit Score">' + u.fit.score + "<small>/100</small></div></div>" +
+          '<ul class="reasons">' + u.fit.reasons.map((r) => "<li>" + esc(r) + "</li>").join("") + "</ul>" +
+          (i ? "<p>" + WS.statusChip(i.status) + (i.nda_signed_at ? " " + chip("ok", "NDA signed") : "") + "</p>" : resp ? "<p>" + chip(resp === "invested" || resp === "interested" ? "ok" : "warn", resp === "invested" ? "Invested" : resp === "interested" ? "Interested" : "Offer " + resp) + "</p>" : "") +
+          (i && i.status === "requested" ? '<div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div>'
+            : !i && !resp ? '<button class="btn ghost sm" data-act="f-suggest" data-id="' + u.id + '">Suggest to my advisor</button>' : "") + "</article>"; }).join("") + "</div>";
+  }
+  function dealroom() {
+    const c = WS.myCompany(), I = D().intros || [];
+    const views = I.flatMap((i) => (i.views || []).map((v) => Object.assign({ who: i.investor_name }, v))).sort((a, b) => (a.at < b.at ? 1 : -1));
+    return WS.head("Deal room", "Documents investors can open after you grant access and they sign the NDA. Every view is watermarked and logged.") +
+      '<div class="grid2"><section class="panel"><h2>Documents</h2><ul class="docs">' + (c.docs || []).map((d, k) => "<li><span>" + esc(d) + '</span><button class="linkbtn small" data-act="doc-remove" data-k="' + k + '">Remove</button></li>').join("") + "</ul>" +
+      '<form class="row gap-s" data-form="doc-add"><span class="in grow"><input name="doc" id="doc_name2" placeholder="Document name, e.g. Board resolution" aria-label="Document name"></span><button class="btn ghost" type="submit">Add</button></form>' +
+      '<p class="small muted">Upload the files themselves in the <a href="#app-dataroom">data room</a>.</p></section>' +
+      '<section class="panel"><h2>Who has access</h2>' + (I.length ? '<ul class="docs">' + I.map((i) => "<li><span>" + esc(i.investor_name) + '</span><span>' + WS.statusChip(i.status) + (i.nda_signed_at ? " " + chip("ok", "NDA " + UI.date(i.nda_signed_at)) : "") + "</span></li>").join("") + "</ul>" : '<p class="muted">No requests yet.</p>') +
+      "<h3>Who viewed what</h3>" + (views.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Investor</th><th>Document</th><th>When</th></tr></thead><tbody>' + views.map((v) => "<tr><td>" + esc(v.who) + "</td><td>" + esc(v.doc) + "</td><td>" + UI.dt(v.at) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">No views yet.</p>') + "</section></div>";
+  }
+
   Object.assign(WS.clicks, {
+    "f-suggest": async (b, id) => { if (await KIT.confirm("Suggest this investor to your advisor?", "<p>Your advisor checks the investor's KYC and the offer limits, and decides whether to share the offer.</p>", "Suggest")) return WS.after(await API.act("suggest_investor", { investor_id: id })); },
     "f-upload": async (b, item) => {
       const l = (DATAROOM.find((x) => x[0] === item) || [item, item])[1];
       const v = await KIT.dialog({ title: "Upload: " + l, confirm: "Upload", fields: [{ name: "file", label: "File (PDF, Excel, Word, CSV or image)", type: "file", accept: ".pdf,.xlsx,.xls,.csv,.docx,.png,.jpg,.jpeg" }], validate: (x) => (x.file ? null : "Choose a file") });
@@ -120,5 +147,5 @@
       return WS.after(await API.act("apply_loan", { company_id: S.user.company_id, lender_id: v.lender_id, amount_paise: Math.round(amt * 1e9), rate_bps: Math.round(rate * 100), tenor_months: Math.round(ten * 12), moratorium_months: Math.round(mor) }));
     },
   });
-  Object.assign(WS.PAGES.founder, { "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
+  Object.assign(WS.PAGES.founder, { "app-investors": investors, "app-dealroom": dealroom, "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
 })(typeof globalThis !== "undefined" ? globalThis : this);

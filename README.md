@@ -37,17 +37,21 @@ Pages are hash routes, e.g. `http://127.0.0.1:8000/#app-directory`. All workspac
 - **Investor** (`investor@demo.in`): Portfolio `#app` (demat-style summary with XIRR, holdings table, lock-in badges),
   holding detail `#app-holding/<id>` (valuation history, value over time, valuer reports, SSA/SHA/allotment/PAS-4, tax estimate),
   sell request flow and timelines `#app-sells`, private offers `#app-opportunities`, `#app-notifications`.
-- **Lender** (`lender@demo.in`): Loan book `#app` (outstanding, interest earned, next repayment, DSCR bands, 24-month interest chart),
+- **Lender** (`lender@demo.in`): Loan book `#app`, lender desk overview `#app-desk`, (outstanding, interest earned, next repayment, DSCR bands, 24-month interest chart),
   loan detail `#app-loan/<id>` (schedule, balance and interest charts, monitoring, transfer request), `#app-applications`,
   `#app-monitor`, `#app-ltransfers`, `#app-lfees`.
-- **Advisor** (`advisor@demo.in`): Today `#app`, pipeline board/table `#app-pipeline`, company file `#app-companyfile/<id>`
+- **Advisor** (`advisor@demo.in`): Today `#app`, pipeline board/table `#app-pipeline`, companies with readiness and reports `#app-companies`,
+  deal-room requests `#app-intros`, company file `#app-companyfile/<id>`
   (cap table, offer log, valuations, documents checklist, fees, notes), investor directory and offer sharing `#app-directory`,
   resale requests `#app-requests`, revaluation centre `#app-revaluations`, loan transfers `#app-loantransfers`, loans and DSCR
   `#app-loansdesk`, compliance `#app-compliance`, revenue `#app-revenue`, notes and tasks `#app-tasks`, message templates
-  `#app-templates`, audit log `#app-activity`, settings `#app-settings`, plus the review queue and analysis tools.
-- **Founder** (`founder@demo.in`): fundraise tracker `#app-fundraise`, cap table with the planned round `#app-captable`,
-  data room `#app-dataroom`, revenue-share statements `#app-revshare`, loans and monitoring `#app-loans`, plus the Funding Twin,
-  Optimizer, CMA report, Readiness Score and Term Sheet Analyser.
+  `#app-templates`, audit log `#app-activity`, settings `#app-settings`, the review queue, and the analysis tools, which are
+  advisor-only: Funding Twin (where the advisor prepares and submits each company's report), Equity vs Debt Optimizer,
+  CMA funding report, Readiness Score and Term Sheet Analyser.
+- **Founder** (`founder@demo.in`): overview with deal-room decisions `#app`, fundraise tracker `#app-fundraise`, investors ranked by
+  fit score (suggest one to the advisor, grant or decline deal-room access) `#app-investors`, deal room with view log `#app-dealroom`,
+  cap table with the planned round `#app-captable`, data room `#app-dataroom`, revenue-share statements `#app-revshare`,
+  loans and monitoring `#app-loans`, fees, company profile. Founders do not have the analysis tools.
 
 Every table can be searched, filtered, sorted and exported to CSV or Excel, and every computed number can be clicked to show
 its formula and inputs.

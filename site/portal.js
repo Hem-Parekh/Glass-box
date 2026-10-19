@@ -43,14 +43,13 @@
   // ---------- workspace shell ----------
   // A string on its own starts a group in the rail.
   const NAVS = {
-    founder: [["app", "Overview"], "Fundraise", ["app-fundraise", "Fundraise tracker"], ["app-captable", "Cap table"], ["app-dataroom", "Data room"], ["app-revshare", "Revenue share"],
-      "Analysis", ["app-twin", "Funding Twin"], ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-readiness", "Readiness Score"], ["app-termsheet", "Term Sheet Analyser"],
+    founder: [["app", "Overview"], "Fundraise", ["app-fundraise", "Fundraise tracker"], ["app-investors", "Investors"], ["app-dealroom", "Deal room"], ["app-captable", "Cap table"], ["app-dataroom", "Data room"], ["app-revshare", "Revenue share"],
       "Debt", ["app-loans", "Loans & monitoring"], ["app-fees", "Fees"], "Account", ["app-company", "Company profile"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
-    investor: [["app", "Portfolio"], ["app-opportunities", "Opportunities"], ["app-sells", "Sell requests"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
-    advisor: [["app", "Today"], "Deals", ["app-pipeline", "Company pipeline"], ["app-directory", "Investor directory"], ["app-requests", "Resale requests"], ["app-revaluations", "Revaluation centre"],
+    investor: [["app", "Portfolio"], ["app-opportunities", "Opportunities"], ["app-deals", "Curated deals"], ["app-rooms", "Deal rooms"], ["app-sells", "Sell requests & exits"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
+    advisor: [["app", "Today"], "Deals", ["app-pipeline", "Company pipeline"], ["app-companies", "Companies"], ["app-directory", "Investor directory"], ["app-intros", "Deal rooms"], ["app-requests", "Resale requests"], ["app-revaluations", "Revaluation centre"],
       "Debt", ["app-loantransfers", "Loan transfers"], ["app-loansdesk", "Loans & DSCR"], "Practice", ["app-review", "Review queue"], ["app-compliance", "Compliance"], ["app-revenue", "Revenue"], ["app-tasks", "Notes & tasks"], ["app-templates", "Message templates"],
-      "Tools", ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-twin", "Funding Twin"], "Admin", ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"], ["app-settings", "Settings"]],
-    lender: [["app", "Loan book"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
+      "Tools", ["app-twin", "Funding Twin"], ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-readiness", "Readiness Score"], ["app-termsheet", "Term Sheet Analyser"], "Admin", ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"], ["app-settings", "Settings"]],
+    lender: [["app", "Loan book"], ["app-desk", "Lender desk"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
     const u = S.user, nav = NAVS[u.role];
@@ -77,25 +76,29 @@
 
   // ---------- FOUNDER ----------
   function founderHome() {
-    const c = myCompany(), rep = latestReport(c.id), rd = GB.readiness(c.readiness), t = GB.twin(Object.assign({}, c.twin, { raise: c.raise }));
+    const c = myCompany(), rep = latestReport(c.id), ok = rep && rep.status === "approved" ? rep : S.data.reports.filter((r) => r.status === "approved")[0];
     const mon = GB.monitor(c.quarters, c.covenants), last = mon[mon.length - 1];
     const offers = S.data.offers || [], keen = offers.filter((o) => o.response === "interested" || o.response === "invested");
+    const asks = (S.data.intros || []).filter((i) => i.status === "requested");
     const steps = [
-      ["Fill in the Funding Twin", Object.keys(c.twin || {}).length > 0, "app-twin"],
-      ["Check your Readiness Score", Object.keys(c.readiness || {}).length > 0, "app-readiness"],
-      ["Submit the report for advisor review", !!rep, "app-twin"],
-      ["Advisor sign-off", rep && rep.status === "approved", "app-twin"],
+      ["Complete your company profile", !!(c.revenue && c.raise), "app-company"],
+      ["Upload the data room", (c.docs || []).length + (S.data.files || []).filter((f) => f.purpose === "dataroom").length >= 4, "app-dataroom"],
+      ["Advisor prepares the debt vs equity report", !!rep, "app-fundraise"],
+      ["Advisor sign-off", !!ok, "app-fundraise"],
       ["Advisor shares the offer with investors", offers.length > 0, "app-fundraise"],
+      ["Approve deal-room requests", (S.data.intros || []).some((i) => i.status === "granted"), "app-investors"],
       ["Investors commit and shares are allotted", (S.data.holdings || []).length > 0, "app-captable"],
     ];
+    const stage = { applied: "Applied", under_review: "Under review", approved: "Approved", offering: "Offering", funded: "Funded", monitoring: "Monitoring", closed: "Closed", rejected: "Not taken forward" }[c.pipeline_stage] || "Applied";
     return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) +
       '<div class="kpis k4">' +
-      '<div class="kpi"><small>Recommended mix</small><b>' + pct(t.best.share) + " debt</b><span>" + pct(1 - t.best.share) + " equity · " + cr(t.best.loan) + " loan</span></div>" +
-      '<div class="kpi"><small>Debt readiness</small><b>' + rd.debt.score + "/100</b><span>" + rd.debt.verdict + "</span></div>" +
-      '<div class="kpi"><small>Equity readiness</small><b>' + rd.equity.score + "/100</b><span>" + rd.equity.verdict + "</span></div>" +
-      '<div class="kpi"><small>Report</small><b>' + (rep ? statusChip(rep.status) : "Not submitted") + "</b><span>" + (rep ? esc(rep.title) : "Run the Funding Twin first") + "</span></div></div>" +
-      '<div class="grid2"><section class="panel"><h2>Next steps</h2><ol class="checklist">' + steps.map(([t, ok, r]) => '<li class="' + (ok ? "done" : "") + '"><a href="#' + r + '">' + t + "</a></li>").join("") + "</ol>" + stamp(rep) + "</section>" +
-      '<section class="panel"><h2>Fundraise</h2><p>' + (offers.length ? "Your advisor has shared the offer with <b>" + offers.length + "</b> investor" + (offers.length === 1 ? "" : "s") + "; <b>" + keen.length + "</b> interested or committed." : "Your advisor shares the offer with investors once your report is signed off.") + ' <a href="#app-fundraise">Open the tracker</a></p>' +
+      '<div class="kpi"><small>Stage</small><b>' + stage + "</b><span>with your Aegis Ascend advisor</span></div>" +
+      '<div class="kpi"><small>Recommended mix</small><b>' + (ok ? pct(ok.summary.best_share) + " debt" : "–") + "</b><span>" + (ok ? pct(1 - ok.summary.best_share) + " equity · advisor-approved" : "after your advisor's review") + "</span></div>" +
+      '<div class="kpi"><small>Interested investors</small><b>' + keen.length + "</b><span>of " + offers.length + " offered</span></div>" +
+      '<div class="kpi"><small>Report</small><b>' + (rep ? statusChip(rep.status) : "Not started") + "</b><span>" + (rep ? esc(rep.title) : "Your advisor prepares it") + "</span></div></div>" +
+      '<div class="grid2"><section class="panel"><h2>Next steps</h2><ol class="checklist">' + steps.map(([t, ok2, r]) => '<li class="' + (ok2 ? "done" : "") + '"><a href="#' + r + '">' + t + "</a></li>").join("") + "</ol>" + stamp(ok) + "</section>" +
+      '<section class="panel"><h2>Needs your decision</h2>' + (asks.length ? asks.map((i) => '<div class="item"><div><b>' + esc(i.investor_name) + '</b><span class="muted small">asked for access to your deal room · ' + date(i.created_at) + '</span></div><div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div></div>').join("") : '<p class="muted">Nothing waiting. Deal-room requests from investors appear here.</p>') +
+      '<h3>Fundraise</h3><p>' + (offers.length ? "Your advisor has shared the offer with <b>" + offers.length + "</b> investor" + (offers.length === 1 ? "" : "s") + "; <b>" + keen.length + "</b> interested or committed." : "Your advisor shares the offer with investors once your report is signed off.") + ' <a href="#app-fundraise">Open the tracker</a></p>' +
       (last ? '<h3>Latest covenant check</h3><p>' + esc(last.q) + ": DSCR " + xx(last.dscr) + " " + chip(last.state === "ok" ? "ok" : last.state === "watch" ? "warn" : "bad", last.state === "ok" ? "Within covenants" : last.state === "watch" ? "Close to limit" : "Breach") + ' <a href="#app-loans">Details</a></p>' : "") +
       "</section></div>";
   }
@@ -168,7 +171,7 @@
       t.schedule.map((r) => "<tr><td>Y" + r.year + '</td><td class="num">' + n(r.opening, 2) + '</td><td class="num">' + n(r.interest, 2) + '</td><td class="num">' + n(r.principal, 2) + '</td><td class="num">' + n(r.payment, 2) + '</td><td class="num">' + n(Math.abs(r.closing) < 1e-9 ? 0 : r.closing, 2) + "</td></tr>").join("") +
       '</tbody></table></div><p class="muted small">Yearly instalment = P x r / (1 - (1 + r)^-n) = ' + gx(cr(t.payment, 2), { title: "Yearly loan instalment", formula: "P x r / (1 - (1 + r)^-n)", inputs: [["P (loan)", cr(q.raise), "founder"], ["r (rate)", pct(q.loan_rate, 2), "benchmark"], ["n (years)", q.tenor, "benchmark"]] }) + ". Total repaid " + cr(t.total_repaid, 2) + ".</p></section>" +
       '<section class="panel"><h2>Plain-language summary</h2><p class="narr">' + esc(narrative) + '</p><p class="small ' + (verified === found.length ? "t-good" : "t-bad") + '">Number check: ' + verified + " of " + found.length + " numbers in this summary match the engine output.</p>" +
-      (S.user.role === "founder" ? submitBlock(c, rep, t, q, verified === found.length) : "") + "</section>";
+      (S.user.role === "advisor" ? submitBlock(c, rep, t, q, verified === found.length) : "") + "</section>";
   }
   function simBlock(s) {
     return '<div class="kpis k3"><div class="kpi"><small>Debt leaves you better off</small><b>' + pct(s.p_debt_better) + '</b><span>of simulated futures (all-debt vs all-equity)</span></div><div class="kpi"><small>Risk of a year with DSCR below 1</small><b class="' + (s.p_default > 0.1 ? "t-bad" : "") + '">' + pct(s.p_default) + '</b><span>with the whole raise as debt</span></div><div class="kpi"><small>Net effect range (10th-90th)</small><b>' + cr(s.p10, 0) + " to " + cr(s.p90, 0) + "</b><span>median " + cr(s.p50, 0) + " (year-N value)</span></div></div><p class=\"muted small\">" + s.runs.toLocaleString("en-IN") + " runs, seed " + s.seed + ".</p>";
@@ -177,7 +180,7 @@
     if (rep && rep.status === "in_review") return '<div class="notice">Your report "' + esc(rep.title) + '" is with the advisor for review.</div>';
     const valid = q.raise > 0 && q.pre_money > 0 && q.horizon >= 3 && q.loan_rate > 0 && q.loan_rate < 0.3 && q.ebitda0 > 0 && q.tenor >= 1;
     return (rep ? '<p>Latest report: ' + statusChip(rep.status) + " " + stamp(rep) + (rep.review_note ? ' <span class="muted">"' + esc(rep.review_note) + '"</span>' : "") + "</p>" : "") +
-      '<h3>Release checklist</h3><ul class="checks"><li class="' + (valid ? "done" : "") + '">Validation checks ' + (valid ? "passed" : "failed: check raise, value, rate, EBITDA and tenor") + '</li><li class="done">Engine version recorded: ' + esc(t.version) + '</li><li class="' + (verifierOk ? "done" : "") + '">Number check by the verifier ' + (verifierOk ? "passed" : "failed") + '</li><li><label><input type="checkbox" id="confirm_data"> I confirm the figures above are correct for ' + esc(c.name) + "</label></li><li>Advisor review and sign-off (next)</li></ul>" +
+      '<h3>Release checklist</h3><ul class="checks"><li class="' + (valid ? "done" : "") + '">Validation checks ' + (valid ? "passed" : "failed: check raise, value, rate, EBITDA and tenor") + '</li><li class="done">Engine version recorded: ' + esc(t.version) + '</li><li class="' + (verifierOk ? "done" : "") + '">Number check by the verifier ' + (verifierOk ? "passed" : "failed") + '</li><li><label><input type="checkbox" id="confirm_data"> The founder of ' + esc(c.name) + " has confirmed these figures</label></li><li>Advisor review and sign-off (next)</li></ul>" +
       '<button class="btn primary" data-act="submit-report"' + (valid && verifierOk ? "" : " disabled") + ">Submit for advisor review</button>";
   }
 
@@ -386,9 +389,9 @@
 
   // Pages by role. ws-investor.js, ws-lender.js, ws-advisor.js and ws-founder.js add theirs through root.WS.
   const PAGES = {
-    founder: { app: founderHome, "app-twin": twinPage, "app-readiness": readinessPage, "app-cma": cmaPage, "app-optimizer": optimizerPage, "app-termsheet": termSheetPage, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage, "app-notifications": notificationsPage },
+    founder: { app: founderHome, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage, "app-notifications": notificationsPage },
     investor: { "app-activity": activityPage, "app-notifications": notificationsPage },
-    advisor: { "app-review": reviewPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
+    advisor: { "app-review": reviewPage, "app-termsheet": termSheetPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
     lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
 
@@ -516,7 +519,7 @@
         case "simulate": { const c = twinTarget(), q = twinInputs(c); b.disabled = true; b.textContent = "Running…"; await new Promise((r) => setTimeout(r, 20)); S.sim = { key: JSON.stringify(q), res: GB.simulate(q) }; $("#twin-out").innerHTML = twinResults(c, q); return; }
         case "submit-report": {
           if (!$("#confirm_data").checked) throw new Error("Tick the box to confirm the figures first.");
-          const c = myCompany(), q = twinInputs(c), t = GB.twin(q), disc = Math.pow(1 + q.discount_rate, q.horizon);
+          const c = twinTarget(), q = twinInputs(c), t = GB.twin(q), disc = Math.pow(1 + q.discount_rate, q.horizon);
           if (S.twinDraft[c.id]) await API.act("save_company", { company_id: c.id, patch: { twin: Object.assign({}, c.twin, S.twinDraft[c.id]) } });
           const res = await API.act("submit_report", { company_id: c.id, title: "Debt vs equity: " + cr(q.raise, 0) + " raise", engine_version: t.version, inputs: q,
             summary: { best_share: t.best.share, net: (t.best.value - t.equity.value) / disc, break_even: t.break_even, min_dscr: t.best.dscr, min_dscr_stress: t.best.dscr_stress },
@@ -526,6 +529,7 @@
         case "doc-remove": { const c = myCompany(); const docs = c.docs.slice(); docs.splice(+b.dataset.k, 1); return after(await API.act("save_company", { company_id: c.id, patch: { docs } }), "Document removed."); }
         case "opt-reset": S.opt = null; S.optSel = null; S.optYear = 1; return render({ keepScroll: true });
         case "ts-tab": S.tsTab = b.dataset.t; return render({ keepScroll: true });
+        case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);

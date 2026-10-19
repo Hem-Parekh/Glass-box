@@ -11,7 +11,7 @@
   const DEMO_PASSWORD = "demo1234";
   const MAX_UPLOAD = 1.5 * 1024 * 1024; // the file is kept in localStorage as a data URL
 
-  const COLLECTIONS = ["companies", "reports", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
+  const COLLECTIONS = ["companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
     "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings"];
   const COMPANY_FIELDS = ["name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs"];
   const ADVISOR_COMPANY_FIELDS = ["offer_price_paise", "fd_extra_shares", "security_type", "raise_paise"];
@@ -242,7 +242,8 @@
         return Object.assign({}, o, { investor_id: named ? o.investor_id : null, investor_name: named ? label(inv) : "Name shared after the investor consents", views: named ? get(o, "views", []) : [] });
       };
       const sellView = (x) => ({ id: x.id, company_id: x.company_id, shares: x.shares, full: x.full, status: x.status, rofr_until: get(x, "rofr_until"), created_at: x.created_at });
-      out = Object.assign(base, { directory: advisors.concat(lenders),
+      out = Object.assign(base, { directory: advisors.concat(st.users.filter((u) => u.role === "lender" || u.role === "investor").map((u) => pub(u))),
+        intros: only(st.intros).map((i) => Object.assign({}, i, { investor_name: label(userOf(st, i.investor_id)) })),
         companies: st.companies.filter((c) => c.id === cid), reports: only(st.reports), cap_table: only(st.cap_table),
         holdings: only(st.holdings).map((h) => Object.assign({}, h, { investor_name: label(userOf(st, h.investor_id)) })),
         offers: only(st.offers).map(offerView), valuations: only(st.valuations), sell_requests: only(st.sell_requests).map(sellView),
@@ -253,7 +254,7 @@
       const hold = st.holdings.filter((h) => h.investor_id === user.id);
       const cids = new Set(mine.map((o) => o.company_id).concat(hold.map((h) => h.company_id)));
       const held = new Set(hold.filter((h) => h.shares > 0).map((h) => h.company_id));
-      out = Object.assign(base, { directory: advisors, companies: st.companies.filter((c) => cids.has(c.id)).map((c) => companyBrief(st, c)),
+      out = Object.assign(base, { directory: advisors, intros: st.intros.filter((i) => i.investor_id === user.id), companies: st.companies.filter((c) => cids.has(c.id)).map((c) => companyBrief(st, c)),
         offers: mine, holdings: hold, valuations: st.valuations.filter((v) => held.has(v.company_id) || cids.has(v.company_id)),
         sell_requests: st.sell_requests.filter((x) => x.investor_id === user.id).map((x) => Object.assign({}, x, { buyer_investor_id: null })),
         transfers: st.transfers.filter((t) => t.from_investor_id === user.id || t.to_investor_id === user.id),
@@ -317,7 +318,7 @@
     },
 
     submit_report(st, u, p, day) {
-      need(u.role === "founder" && u.company_id === get(p, "company_id"), "Only the company's founder can submit its report");
+      need(u.role === "advisor", "Only an advisor prepares and submits the debt vs equity report");
       const c = companyOf(st, p.company_id);
       const ch = or(get(p, "checks"), {});
       if (!isObj(ch)) throw crash();
@@ -536,6 +537,49 @@
       return ["Viewed " + doc + " (watermarked: " + u.name + ")", c.id];
     },
 
+    // ---------- deal rooms (mirror of actions.a_request_intro and friends) ----------
+    request_intro(st, u, p) {
+      need(u.role === "investor", "Only investors can ask for deal-room access");
+      const cid = get(p, "company_id"), c = companyOf(st, cid);
+      need(st.offers.some((o) => o.company_id === cid && o.investor_id === u.id && o.response !== "declined"), "Deal rooms open only for companies your advisor has offered to you");
+      need(!st.intros.some((i) => i.company_id === cid && i.investor_id === u.id), "You have already asked for access to this deal room");
+      st.intros.push({ id: uid("i"), company_id: cid, investor_id: u.id, status: "requested", created_at: now(), nda_signed_at: null, views: [] });
+      for (const f of st.users) if (f.role === "founder" && f.company_id === cid) notify(st, f.id, "intro", label(u) + " asked for access to your deal room", "app-investors");
+      return ["Asked for access to the " + c.name + " deal room", cid];
+    },
+    decide_intro(st, u, p) {
+      const i = find(st.intros, get(p, "intro_id"));
+      need(i, "Introduction not found");
+      need(u.role === "founder" && u.company_id === i.company_id, "Only the company's founder can decide");
+      need(i.status === "requested", "This request was already decided");
+      need(["grant", "decline"].includes(get(p, "decision")), "Choose grant or decline");
+      i.status = p.decision === "grant" ? "granted" : "declined";
+      notify(st, i.investor_id, "intro", companyOf(st, i.company_id).name + " " + (i.status === "granted" ? "granted" : "declined") + " your deal-room request", "app-rooms");
+      return [(i.status === "granted" ? "Granted deal-room access to " : "Declined ") + label(userOf(st, i.investor_id)), i.company_id];
+    },
+    sign_nda(st, u, p) {
+      const i = find(st.intros, get(p, "intro_id"));
+      need(i && u.role === "investor" && i.investor_id === u.id, "Introduction not found");
+      need(i.status === "granted", "The founder has not granted access yet");
+      i.nda_signed_at = i.nda_signed_at || now();
+      return ["Signed the NDA for " + companyOf(st, i.company_id).name, i.company_id];
+    },
+    view_room_doc(st, u, p) {
+      const i = find(st.intros, get(p, "intro_id"));
+      need(i && u.role === "investor" && i.investor_id === u.id && i.status === "granted" && i.nda_signed_at, "Sign the NDA to open documents");
+      const c = companyOf(st, i.company_id);
+      need((c.docs || []).includes(get(p, "doc")), "Document not found");
+      (i.views = i.views || []).push({ doc: p.doc, at: now() });
+      return ["Viewed " + p.doc + " (watermarked: " + u.name + ")", c.id];
+    },
+    suggest_investor(st, u, p) {
+      need(u.role === "founder", "Only founders suggest investors");
+      const inv = userOf(st, get(p, "investor_id"), "investor"), c = companyOf(st, u.company_id);
+      const note = u.name + " suggests offering to " + label(inv);
+      st.notes.push({ id: uid("n"), subject_type: "company", subject_id: c.id, text: note + ".", due: null, done: false, by: u.id, at: now() });
+      notifyAdvisors(st, "suggest", note + " (" + c.name + ")", "app-directory");
+      return ["Suggested " + label(inv) + " to your advisor. Your advisor decides who receives the offer.", c.id];
+    },
     request_sell(st, u, p, day) {
       const h = find(st.holdings, get(p, "holding_id"));
       need(h && u.role === "investor" && h.investor_id === u.id, "Holding not found");

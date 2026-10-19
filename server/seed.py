@@ -213,7 +213,14 @@ def seed_data(rel):
         dict(id="nt_3", user_id=inv_id("3"), kind="sell", text="Your sell request for Vasai Precision Castings was submitted", link="app-portfolio", at=T(0, -2), read=False),
         dict(id="nt_4", user_id="u_lender2", kind="transfer", text="Loan transfer request for Kalyan Polymers received by Aegis Ascend", link="app-loanbook", at=T(0, -3), read=False),
     ]
-    return dict(users=users, companies=companies, reports=reports, cap_table=cap, holdings=holdings, offers=offers, valuations=valuations,
+    intros = [
+        dict(id="i_1", company_id="c_kalyan", investor_id=inv_id("2"), status="requested", created_at=T(0, -1), nda_signed_at=None, views=[]),
+        dict(id="i_2", company_id="c_kalyan", investor_id=inv_id("08"), status="granted", created_at=T(0, -4), nda_signed_at=T(0, -3),
+             views=[dict(doc="Audited accounts FY24-FY26", at=T(0, -3)), dict(doc="CMA data FY25-FY28", at=T(0, -2))]),
+        dict(id="i_3", company_id="c_vasai", investor_id=inv_id(""), status="granted", created_at=T(-9, 2), nda_signed_at=T(-9, 3),
+             views=[dict(doc="Debt vs equity report", at=T(-9, 3))]),
+    ]
+    return dict(users=users, companies=companies, reports=reports, intros=intros, cap_table=cap, holdings=holdings, offers=offers, valuations=valuations,
                 sell_requests=sell_requests, transfers=[], loans=loans, loan_transfers=loan_transfers, invoices=invoices, notes=notes,
                 notifications=notifications, files=[], enquiries=[], settings=[dict(SETTINGS_DEFAULT)])
 

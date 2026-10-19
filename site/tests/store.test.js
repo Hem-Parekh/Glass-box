@@ -269,6 +269,30 @@ test("test_audit_log_records_every_state_change", async () => {
   assert.strictEqual(db().audit.length, n);
 });
 
+test("test_deal_room_requests_need_an_offer_and_founder_approval", async () => {
+  await login("familyoffice@demo.in");
+  await act("request_intro", { company_id: "c_kalyan" }, 403);
+  await act("request_intro", { company_id: "c_nashik" }, 403);
+  await login("investor@demo.in");
+  await act("request_intro", { company_id: "c_kalyan" });
+  await act("request_intro", { company_id: "c_kalyan" }, 403);
+  const iid = (await api.state()).intros.find((i) => i.company_id === "c_kalyan").id;
+  await act("sign_nda", { intro_id: iid }, 403);
+  await login("rahul@demo.in");
+  await act("decide_intro", { intro_id: iid, decision: "grant" }, 403);
+  await login("founder@demo.in");
+  await act("decide_intro", { intro_id: iid, decision: "grant" });
+  await act("suggest_investor", { investor_id: "u_investor21" });
+  await login("investor@demo.in");
+  await act("view_room_doc", { intro_id: iid, doc: "Cap table" }, 403);
+  await act("sign_nda", { intro_id: iid });
+  await act("view_room_doc", { intro_id: iid, doc: "Cap table" });
+  await login("founder@demo.in");
+  const i = (await api.state()).intros.find((x) => x.id === iid);
+  assert.strictEqual(i.status, "granted"); assert.strictEqual(i.views[0].doc, "Cap table");
+  await act("submit_report", { company_id: "c_kalyan", checks: { validation: true, founder_confirmed: true, verifier: true } }, 403);
+});
+
 test("test_loan_transfer_between_regulated_lenders", async () => {
   await login("advisor@demo.in");
   await act("loan_transfer_step", { transfer_id: "lt_1", step: "consent" }, 403);

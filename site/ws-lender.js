@@ -106,6 +106,17 @@
     return KIT.timeline(LT_STEPS, cur, at, stop) + '<p class="small muted">' + (t.amount_paise ? rs(t.amount_paise) : "Full outstanding") + (t.buyer_lender_id ? " · buyer: " + esc(WS.userName(t.buyer_lender_id)) : "") + (t.fee_paise ? " · transfer fee " + rs(t.fee_paise) + " (" + pct(t.fee_rate, 1) + ")" : "") + (t.note ? " · " + esc(t.note) : "") + "</p>";
   }
 
+  // ---------- lender desk (overview) ----------
+  function desk() {
+    const L = S.data.loans, live = L.filter((l) => l.status === "disbursed");
+    const alerts = live.filter((l) => { const m = GB.monitor(co(l.company_id).quarters || [], co(l.company_id).covenants); return m.length && m[m.length - 1].state !== "ok"; });
+    return WS.head("Lender desk", esc(S.user.firm || "")) +
+      '<div class="kpis k4" data-stagger><div class="kpi"><small>New applications</small><b>' + L.filter((l) => l.status === "applied").length + '</b></div><div class="kpi"><small>Loans monitored</small><b>' + live.length + '</b></div>' +
+      '<div class="kpi"><small>Book</small><b>' + rs(live.reduce((a, l) => a + l.amount_paise, 0), true) + '</b><span>disbursed</span></div><div class="kpi"><small>Covenant alerts</small><b class="' + (alerts.length ? "t-bad" : "") + '">' + alerts.length + "</b></div></div>" +
+      '<section class="panel"><p>Every applicant arrives with founder-confirmed data, an engine-run DSCR analysis and an advisor\'s sign-off. <a href="#app-applications">Review applications</a> · <a href="#app-monitor">Monitoring</a> · <a href="#app">Loan book</a></p>' +
+      (alerts.length ? '<ul class="alerts">' + alerts.map((l) => '<li class="bad"><a href="#app-loan/' + l.id + '">' + esc(co(l.company_id).name) + ": latest quarter is close to or in breach of a covenant</a></li>").join("") + "</ul>" : "") + "</section>";
+  }
+
   // ---------- applications ----------
   function applications() {
     const L = S.data.loans.filter((l) => ["applied", "sanctioned", "declined"].includes(l.status));
@@ -156,6 +167,6 @@
 
   const calc = WS.PAGES.lender["app-lfees"];
   WS.PAGES.lender["app-lfees-calc"] = () => calc().replace(/^[\s\S]*?<section/, "<section");
-  Object.assign(WS.PAGES.lender, { app: book, "app-loan": detail, "app-applications": applications, "app-monitor": monitoring, "app-ltransfers": transfers, "app-lfees": fees });
+  Object.assign(WS.PAGES.lender, { "app-desk": desk, app: book, "app-loan": detail, "app-applications": applications, "app-monitor": monitoring, "app-ltransfers": transfers, "app-lfees": fees });
   WS.lender = { dscr, transferTimeline, LT_STEPS, rate, tenorTxt };
 })(typeof globalThis !== "undefined" ? globalThis : this);

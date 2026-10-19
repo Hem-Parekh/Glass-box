@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from server import domain as D
 
-COLLECTIONS = ("companies", "reports", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
+COLLECTIONS = ("companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
                "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings")
 COMPANY_FIELDS = ("name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs")
 ADVISOR_COMPANY_FIELDS = ("offer_price_paise", "fd_extra_shares", "security_type", "raise_paise")
@@ -181,7 +181,8 @@ def visible_state(st, user, audit_rows, today):
             return dict(o, investor_id=o["investor_id"] if named else None, investor_name=label(inv) if named else "Name shared after the investor consents", views=[] if not named else o.get("views", []))
         def sell_view(x):
             return dict(id=x["id"], company_id=x["company_id"], shares=x["shares"], full=x["full"], status=x["status"], rofr_until=x.get("rofr_until"), created_at=x["created_at"])
-        return dict(base, directory=advisors + [pub(u) for u in st.users if u["role"] == "lender"],
+        return dict(base, directory=advisors + [pub(u) for u in st.users if u["role"] in ("lender", "investor")],
+                    intros=[dict(i, investor_name=label(user_of(st, i["investor_id"]))) for i in only(st.intros)],
                     companies=[c for c in st.companies if c["id"] == cid], reports=only(st.reports), cap_table=only(st.cap_table),
                     holdings=[dict(h, investor_name=label(user_of(st, h["investor_id"]))) for h in only(st.holdings)],
                     offers=[offer_view(o) for o in only(st.offers)], valuations=only(st.valuations), sell_requests=[sell_view(x) for x in only(st.sell_requests)],
@@ -193,7 +194,8 @@ def visible_state(st, user, audit_rows, today):
         cids = {o["company_id"] for o in mine} | {h["company_id"] for h in hold}
         held = {h["company_id"] for h in hold if h["shares"] > 0}
         sells = [x for x in st.sell_requests if x["investor_id"] == user["id"]]
-        return dict(base, directory=advisors, companies=[company_brief(st, c, today) for c in st.companies if c["id"] in cids],
+        return dict(base, directory=advisors, intros=[i for i in st.intros if i["investor_id"] == user["id"]],
+                    companies=[company_brief(st, c, today) for c in st.companies if c["id"] in cids],
                     offers=mine, holdings=hold, valuations=[v for v in st.valuations if v["company_id"] in held or v["company_id"] in cids],
                     sell_requests=[dict(x, buyer_investor_id=None) for x in sells],
                     transfers=[t for t in st.transfers if user["id"] in (t["from_investor_id"], t["to_investor_id"])],
@@ -244,7 +246,7 @@ def a_save_company(st, u, p, today):
 
 
 def a_submit_report(st, u, p, today):
-    need(u["role"] == "founder" and u["company_id"] == p.get("company_id"), "Only the company's founder can submit its report")
+    need(u["role"] == "advisor", "Only an advisor prepares and submits the debt vs equity report")
     c = company_of(st, p["company_id"])
     ch = p.get("checks") or {}
     need(ch.get("validation") and ch.get("founder_confirmed") and ch.get("verifier"), "All release checks must pass before review")
@@ -478,6 +480,59 @@ def a_view_doc(st, u, p, today):
     need(p.get("doc") in (c.get("docs") or []) or p.get("doc") == "Advisor-reviewed report", "Document not found")
     o.setdefault("views", []).append(dict(doc=p["doc"], at=now()))
     return "Viewed " + p["doc"] + " (watermarked: " + u["name"] + ")", c["id"]
+
+
+# ---------------- deal rooms: investor asks, founder grants, investor signs the NDA ----------------
+def a_request_intro(st, u, p, today):
+    need(u["role"] == "investor", "Only investors can ask for deal-room access")
+    cid = p.get("company_id")
+    c = company_of(st, cid)
+    need(any(o["company_id"] == cid and o["investor_id"] == u["id"] and o["response"] != "declined" for o in st.offers),
+         "Deal rooms open only for companies your advisor has offered to you")
+    need(not any(i["company_id"] == cid and i["investor_id"] == u["id"] for i in st.intros), "You have already asked for access to this deal room")
+    st.intros.append(dict(id=uid("i"), company_id=cid, investor_id=u["id"], status="requested", created_at=now(), nda_signed_at=None, views=[]))
+    for f in st.users:
+        if f["role"] == "founder" and f.get("company_id") == cid:
+            notify(st, f["id"], "intro", label(u) + " asked for access to your deal room", "app-investors")
+    return "Asked for access to the %s deal room" % c["name"], cid
+
+
+def a_decide_intro(st, u, p, today):
+    i = find(st.intros, p.get("intro_id"))
+    need(i, "Introduction not found")
+    need(u["role"] == "founder" and u["company_id"] == i["company_id"], "Only the company's founder can decide")
+    need(i["status"] == "requested", "This request was already decided")
+    need(p.get("decision") in ("grant", "decline"), "Choose grant or decline")
+    i["status"] = "granted" if p["decision"] == "grant" else "declined"
+    notify(st, i["investor_id"], "intro", "%s %s your deal-room request" % (company_of(st, i["company_id"])["name"], "granted" if i["status"] == "granted" else "declined"), "app-rooms")
+    return ("Granted deal-room access to " if i["status"] == "granted" else "Declined ") + label(user_of(st, i["investor_id"])), i["company_id"]
+
+
+def a_sign_nda(st, u, p, today):
+    i = find(st.intros, p.get("intro_id"))
+    need(i and u["role"] == "investor" and i["investor_id"] == u["id"], "Introduction not found")
+    need(i["status"] == "granted", "The founder has not granted access yet")
+    i["nda_signed_at"] = i.get("nda_signed_at") or now()
+    return "Signed the NDA for " + company_of(st, i["company_id"])["name"], i["company_id"]
+
+
+def a_view_room_doc(st, u, p, today):
+    i = find(st.intros, p.get("intro_id"))
+    need(i and u["role"] == "investor" and i["investor_id"] == u["id"] and i["status"] == "granted" and i.get("nda_signed_at"), "Sign the NDA to open documents")
+    c = company_of(st, i["company_id"])
+    need(p.get("doc") in (c.get("docs") or []), "Document not found")
+    i.setdefault("views", []).append(dict(doc=p["doc"], at=now()))
+    return "Viewed " + p["doc"] + " (watermarked: " + u["name"] + ")", c["id"]
+
+
+def a_suggest_investor(st, u, p, today):
+    need(u["role"] == "founder", "Only founders suggest investors")
+    inv = user_of(st, p.get("investor_id"), "investor")
+    c = company_of(st, u["company_id"])
+    note = "%s suggests offering to %s" % (u["name"], label(inv))
+    st.notes.append(dict(id=uid("n"), subject_type="company", subject_id=c["id"], text=note + ".", due=None, done=False, by=u["id"], at=now()))
+    notify_advisors(st, "suggest", note + " (" + c["name"] + ")", "app-directory")
+    return "Suggested %s to your advisor. Your advisor decides who receives the offer." % label(inv), c["id"]
 
 
 def a_request_sell(st, u, p, today):

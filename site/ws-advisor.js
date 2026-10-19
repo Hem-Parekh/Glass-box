@@ -340,6 +340,28 @@
         : KIT.empty("Nobody to message yet", "Share the offer from the investor directory first; messages go only to investors who already hold this company's offer.")) + "</section></div>";
   }
 
+  // ---------- companies (readiness and reports) and deal rooms ----------
+  function companies() {
+    return WS.head("Companies", "All client companies, with readiness scores and report status. Open any company in the Funding Twin to prepare its report.") +
+      '<section class="panel">' + KIT.table("a-cos", { name: "companies", rows: D().companies,
+        columns: [{ k: "name", label: "Company", html: (c) => '<a href="#app-companyfile/' + c.id + '"><b>' + esc(c.name) + "</b></a>" }, { k: "sector", label: "Sector" },
+          { k: "revenue", label: "Revenue", num: true, html: (c) => UI.cr(c.revenue, 0) }, { k: "raise", label: "Raise", num: true, html: (c) => UI.cr(c.raise, 0) },
+          { k: "debt", label: "Debt ready", num: true, val: (c) => GB.readiness(c.readiness).debt.score, html: (c) => String(GB.readiness(c.readiness).debt.score) },
+          { k: "equity", label: "Equity ready", num: true, val: (c) => GB.readiness(c.readiness).equity.score, html: (c) => String(GB.readiness(c.readiness).equity.score) },
+          { k: "report", label: "Report", val: (c) => (WS.latestReport(c.id) || {}).status || "", html: (c) => (WS.latestReport(c.id) ? WS.statusChip(WS.latestReport(c.id).status) : "None") },
+          { k: "act", label: "", sort: false, export: false, html: (c) => '<button class="linkbtn" data-act="open-twin" data-id="' + c.id + '">Funding Twin</button>' }] }) + "</section>";
+  }
+  function intros() {
+    const I = (D().intros || []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    return WS.head("Deal rooms", "Investors who asked for a company's deal room after receiving its offer. The founder grants access; the investor signs the NDA; every document view is logged.") +
+      '<section class="panel">' + KIT.table("a-intros", { name: "deal-rooms", rows: I, filters: [{ k: "status", label: "Status", options: [["requested", "Requested"], ["granted", "Granted"], ["declined", "Declined"]] }],
+        empty: { title: "No deal-room requests", text: "Investors request access from their curated deals." },
+        columns: [{ k: "co", label: "Company", val: (i) => co(i.company_id).name, html: (i) => esc(co(i.company_id).name) }, { k: "inv", label: "Investor", val: (i) => who(i.investor_id), html: (i) => esc(who(i.investor_id)) },
+          { k: "status", label: "Status", html: (i) => WS.statusChip(i.status) }, { k: "nda", label: "NDA", val: (i) => i.nda_signed_at || "", html: (i) => (i.nda_signed_at ? dmy(i.nda_signed_at.slice(0, 10)) : "–") },
+          { k: "views", label: "Document views", num: true, val: (i) => (i.views || []).length, html: (i) => String((i.views || []).length) },
+          { k: "offer", label: "Offer", sort: false, html: (i) => { const o = D().offers.find((x) => x.company_id === i.company_id && x.investor_id === i.investor_id); return o ? chip(o.response === "interested" || o.response === "invested" ? "ok" : o.response === "declined" ? "bad" : "warn", o.response) + (o.response === "interested" ? ' <button class="linkbtn small" data-act="a-allot" data-id="' + o.id + '">Record allotment</button>' : "") : "–"; } }] }) + "</section>";
+  }
+
   // ---------- settings ----------
   function settingsPage() {
     const s = set();
@@ -491,6 +513,6 @@
     const btn = document.querySelector('[data-act="a-share"]'); if (!btn) return;
     const n = e.detail.selected.length; btn.disabled = !n; btn.textContent = "Share offer with " + n + " selected";
   });
-  Object.assign(WS.PAGES.advisor, { app: todayPage, "app-pipeline": pipeline, "app-companyfile": companyFile, "app-directory": directory, "app-requests": requests, "app-revaluations": revaluations,
+  Object.assign(WS.PAGES.advisor, { "app-companies": companies, "app-intros": intros, app: todayPage, "app-pipeline": pipeline, "app-companyfile": companyFile, "app-directory": directory, "app-requests": requests, "app-revaluations": revaluations,
     "app-loantransfers": loanTransfers, "app-loansdesk": loansDesk, "app-compliance": compliance, "app-revenue": revenue, "app-tasks": tasks, "app-templates": templates, "app-activity": audit, "app-settings": settingsPage });
 })(typeof globalThis !== "undefined" ? globalThis : this);
