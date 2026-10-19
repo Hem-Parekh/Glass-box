@@ -18,6 +18,14 @@
     async state() { return call("GET", "/api/state"); },
     async act(name, payload) { return call("POST", "/api/act/" + encodeURIComponent(name), payload || {}); },
     async enquiry(f) { await call("POST", "/api/enquiry", f); },
+    async upload(file, fields) {
+      const fd = new FormData(); fd.append("file", file);
+      for (const k in fields || {}) if (fields[k] != null) fd.append(k, fields[k]);
+      const res = await fetch("/api/upload", { method: "POST", credentials: "same-origin", headers: { "X-Requested-With": "glassbox" }, body: fd });
+      let data = null; try { data = await res.json(); } catch (e) { /* empty body */ }
+      if (!res.ok) throw new Error((data && data.error) || "Upload failed (" + res.status + ").");
+      return data.file;
+    },
     async reset() { throw new Error("Reset is only available in the demo."); },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

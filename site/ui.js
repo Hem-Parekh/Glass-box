@@ -54,7 +54,7 @@
     rows.forEach((r, i) => {
       const y = pad.t + i * rowH + 8, h = rowH - 16, x0 = x(0), x1 = x(r.value);
       s += '<text x="' + (pad.l - 10) + '" y="' + (y + h / 2 + 4) + '" text-anchor="end" class="lab">' + esc(r.label) + "</text>";
-      s += '<rect x="' + Math.min(x0, x1) + '" y="' + y + '" width="' + Math.max(Math.abs(x1 - x0), 1) + '" height="' + h + '" rx="4" fill="' + r.color + '"><title>' + esc(r.label + ": " + cr(r.value)) + "</title></rect>";
+      s += '<rect class="bar h" x="' + Math.min(x0, x1) + '" y="' + y + '" width="' + Math.max(Math.abs(x1 - x0), 1) + '" height="' + h + '" rx="4" fill="' + r.color + '"><title>' + esc(r.label + ": " + cr(r.value)) + "</title></rect>";
       s += '<text x="' + (Math.max(x0, x1) + 8) + '" y="' + (y + h / 2 + 4) + '" class="val">' + esc(opt.fmt ? opt.fmt(r.value) : cr(r.value)) + "</text>";
     });
     return s + "</svg>";
@@ -75,7 +75,7 @@
     for (const r of opt.refs || []) s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(r.y) + '" y2="' + Y(r.y) + '" stroke="' + (r.color || C.bad) + '" stroke-dasharray="5 4" stroke-width="1.5"/><text x="' + (W - pad.r) + '" y="' + (Y(r.y) - 5) + '" text-anchor="end" class="reflab">' + esc(r.label) + "</text>";
     for (const se of series) {
       const pts = se.values.map((v, i) => (Number.isFinite(v) ? X(i).toFixed(1) + "," + Y(v).toFixed(1) : null)).filter(Boolean);
-      s += '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + se.color + '" stroke-width="2"' + (se.dash ? ' stroke-dasharray="6 4"' : "") + ' stroke-linejoin="round"/>';
+      s += '<polyline class="ln" points="' + pts.join(" ") + '" fill="none" stroke="' + se.color + '" stroke-width="2"' + (se.dash ? ' stroke-dasharray="6 4"' : "") + ' stroke-linejoin="round"/>';
       if (se.diamonds) se.values.forEach((v, i) => { if (Number.isFinite(v)) s += '<rect x="' + (X(i) - 4.5).toFixed(1) + '" y="' + (Y(v) - 4.5).toFixed(1) + '" width="9" height="9" transform="rotate(45 ' + X(i).toFixed(1) + " " + Y(v).toFixed(1) + ')" fill="' + se.color + '" stroke="var(--surface,#fff)" stroke-width="1.5"/>'; });
       else se.values.forEach((v, i) => { if (Number.isFinite(v) && (se.dots || xs.length <= 12)) s += '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="' + (se.hollow && se.hollow[i] ? 4 : 4) + '" fill="' + (se.hollow && se.hollow[i] ? "var(--surface)" : se.color) + '" stroke="' + se.color + '" stroke-width="2"/>'; });
       if (se.endLabel !== false) { const last = se.values.length - 1; if (Number.isFinite(se.values[last])) s += '<text x="' + (X(last) - 4) + '" y="' + (Y(se.values[last]) - 9) + '" text-anchor="end" class="dl">' + esc(se.name) + "</text>"; }
@@ -117,9 +117,9 @@
     for (const t of ticks(0, hi)) s += '<line x1="' + pad.l + '" x2="' + (W - pad.r) + '" y1="' + Y(t) + '" y2="' + Y(t) + '" stroke="' + C.grid + '"/><text x="' + (pad.l - 6) + '" y="' + (Y(t) + 4) + '" text-anchor="end" class="tick">' + n(t, 0) + "</text>";
     cats.forEach((c, i) => {
       const x = pad.l + i * bw + bw * 0.2, w = bw * 0.6, y = Y(values[i]);
-      s += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + Math.max(H - pad.b - y, 0) + '" rx="4" fill="' + (Array.isArray(color) ? color[i] : color) + '"><title>' + esc(c + ": " + (opt.fmt ? opt.fmt(values[i]) : n(values[i]))) + "</title></rect>";
-      s += '<text x="' + (x + w / 2) + '" y="' + (y - 6) + '" text-anchor="middle" class="val">' + esc(opt.fmt ? opt.fmt(values[i]) : n(values[i])) + "</text>";
-      s += '<text x="' + (x + w / 2) + '" y="' + (H - 8) + '" text-anchor="middle" class="tick">' + esc(c) + "</text>";
+      s += '<rect class="bar" x="' + x + '" y="' + y + '" width="' + w + '" height="' + Math.max(H - pad.b - y, 0) + '" rx="4" fill="' + (Array.isArray(color) ? color[i] : color) + '"><title>' + esc(c + ": " + (opt.fmt ? opt.fmt(values[i]) : n(values[i]))) + "</title></rect>";
+      if (opt.values !== false) s += '<text x="' + (x + w / 2) + '" y="' + (y - 6) + '" text-anchor="middle" class="val">' + esc(opt.fmt ? opt.fmt(values[i]) : n(values[i])) + "</text>";
+      if (!opt.xEvery || i % opt.xEvery === 0) s += '<text x="' + (x + w / 2) + '" y="' + (H - 8) + '" text-anchor="middle" class="tick">' + esc(c) + "</text>";
     });
     return s + "</svg>";
   }
@@ -142,7 +142,7 @@
         const y0 = v >= 0 ? up : down, y1 = y0 + v;
         if (v >= 0) up = y1; else down = y1;
         const top = Math.min(Y(y0), Y(y1)), h = Math.abs(Y(y1) - Y(y0));
-        s += '<rect x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + Math.max(h - 1, 0.5).toFixed(1) + '" fill="' + se.color + '"><title>' + esc(c + " · " + se.name + ": " + (opt.fmt ? opt.fmt(v) : n(v))) + "</title></rect>";
+        s += '<rect class="bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + Math.max(h - 1, 0.5).toFixed(1) + '" fill="' + se.color + '"><title>' + esc(c + " · " + se.name + ": " + (opt.fmt ? opt.fmt(v) : n(v))) + "</title></rect>";
       }
       if (opt.tops) s += '<text x="' + (x + w / 2) + '" y="' + (Y(up) - 7) + '" text-anchor="middle" class="val">' + esc(opt.tops[i]) + "</text>";
       s += '<text x="' + (x + w / 2) + '" y="' + (H - 9) + '" text-anchor="middle" class="tick">' + esc(c) + "</text>";

@@ -359,3 +359,23 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 - **Don't** set Emblem Gold (#C9A04F) as text on white; use Deep Gold Ink (#7B5C1F).
 - **Don't** add drop shadows to panels or cards at rest, or round corners beyond 6px.
 - **Don't** add a second ceremonial animation; the Ascent is the only one. Scroll reveals stay short (≤0.8s per item) and never loop.
+
+## Workspace dashboards (added with the investor, lender, advisor and founder dashboards)
+
+- **Components** live in `site/kit.js`:
+  - **Data tables:** search, filters, sortable sticky headers, paging, CSV and .xlsx export; they turn into labelled cards below 720px.
+  - **Dialogs:** native `<dialog>` with a focus trap and Esc to close.
+  - **Toasts.**
+  - **Count-up figures:** they flash green or red when the value changes.
+  - **Status timelines:** the current step pulses.
+  - **Kanban board:** HTML5 drag, plus a "Move to" select for keyboard users.
+  - **Skeletons and empty states:** the empty states carry the emblem line drawing.
+- **Motion:**
+  - Every animation stays under 400ms on `--ease-out`.
+  - Page enter: 10px rise.
+  - List stagger: 40ms per item.
+  - Charts: lines draw in and bars grow, once, on entering the viewport.
+  - All of it is off under `prefers-reduced-motion`.
+- **Counters** (offers, members, platform investors) are thin meters with a tick at the warning threshold: green, then amber at the warning, then red at the limit.
+- **Colour:** gains and losses use `--good` and `--bad`. Projected values (future interest) use the series colour at 42% opacity.
+- **Cards and panels** keep the brand's 6px radius, with a soft two-layer shadow and a 2px lift on hover.

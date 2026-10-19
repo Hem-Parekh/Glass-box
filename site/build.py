@@ -1,14 +1,24 @@
 """Builds the Aegis Ascend demo website (one self-contained page) into site/dist/.
    python site/build.py   ->  site/dist/index.html (demo store) + site/dist/fundmix.html (CMA tool)"""
+import json
 import os
 import shutil
+import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 read = lambda p: open(os.path.join(HERE, p), encoding="utf-8").read()
 
+def seed_markers():
+    """The demo starts from the same seed as the server (server/seed.py), with dates relative to the visitor's today."""
+    sys.path.insert(0, os.path.dirname(HERE))
+    from server.seed import markers
+    return json.dumps(markers(), separators=(",", ":"))
+
+
 def scripts_inline():
-    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("store.js"),
+    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"),
+             "window.GB_SEED = " + seed_markers() + ";", read("store.js"),
              'window.GB_API = window.GBStore; window.GB_CMA_URL = "fundmix.html"; window.GB_ASSETS = "assets/";',
-             read("public.js"), read("portal.js")]
+             read("public.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
     return "\n".join("<script>\n" + p.replace("</script", "<\\/script") + "\n</script>" for p in parts)
 
 def main():

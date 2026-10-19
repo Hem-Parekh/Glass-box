@@ -3,6 +3,7 @@
   "use strict";
   const UI = root.UI;
   const { esc, n, cr, lakh, pct, xx, date, dt, gx, hbars, lines, vbars, meter, chip, C } = UI;
+  const KIT = root.KIT;
   const GB = root.GB, PUB = root.PUB;
   const API = root.GB_API;
   const S = { user: null, data: null, flash: "", twinDraft: {}, sim: null, tsTab: "loan" };
@@ -42,21 +43,25 @@
   // ---------- workspace shell ----------
   // A string on its own starts a group in the rail.
   const NAVS = {
-    founder: [["app", "Overview"], "Analysis", ["app-twin", "Funding Twin"], ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-readiness", "Readiness Score"], ["app-termsheet", "Term Sheet Analyser"],
-      "Deals", ["app-investors", "Investors"], ["app-dealroom", "Deal room"], ["app-loans", "Loans & monitoring"], ["app-fees", "Fees"], "Account", ["app-company", "Company profile"], ["app-activity", "Activity log"]],
-    investor: [["app", "Overview"], ["app-deals", "Curated deals"], ["app-rooms", "Deal rooms"], ["app-portfolio", "Portfolio & exits"], ["app-activity", "Activity log"]],
-    advisor: [["app", "Overview"], ["app-review", "Review queue"], ["app-companies", "Companies"], "Tools", ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-twin", "Funding Twin"],
-      "Desk", ["app-dealsdesk", "Deals & exits"], ["app-transfers", "Loan transfers"], ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"]],
-    lender: [["app", "Overview"], ["app-lender", "Applications & loans"], ["app-monitor", "Monitoring"], ["app-lfees", "Fees"], ["app-activity", "Activity log"]],
+    founder: [["app", "Overview"], "Fundraise", ["app-fundraise", "Fundraise tracker"], ["app-captable", "Cap table"], ["app-dataroom", "Data room"], ["app-revshare", "Revenue share"],
+      "Analysis", ["app-twin", "Funding Twin"], ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-readiness", "Readiness Score"], ["app-termsheet", "Term Sheet Analyser"],
+      "Debt", ["app-loans", "Loans & monitoring"], ["app-fees", "Fees"], "Account", ["app-company", "Company profile"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
+    investor: [["app", "Portfolio"], ["app-opportunities", "Opportunities"], ["app-sells", "Sell requests"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
+    advisor: [["app", "Today"], "Deals", ["app-pipeline", "Company pipeline"], ["app-directory", "Investor directory"], ["app-requests", "Resale requests"], ["app-revaluations", "Revaluation centre"],
+      "Debt", ["app-loantransfers", "Loan transfers"], ["app-loansdesk", "Loans & DSCR"], "Practice", ["app-review", "Review queue"], ["app-compliance", "Compliance"], ["app-revenue", "Revenue"], ["app-tasks", "Notes & tasks"], ["app-templates", "Message templates"],
+      "Tools", ["app-optimizer", "Equity vs Debt Optimizer"], ["app-cma", "CMA funding report"], ["app-twin", "Funding Twin"], "Admin", ["app-enquiries", "Enquiries"], ["app-activity", "Audit log"], ["app-settings", "Settings"]],
+    lender: [["app", "Loan book"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
     const u = S.user, nav = NAVS[u.role];
     const who = u.firm ? u.firm : companyName() || "";
+    const unread = S.data ? (S.data.notifications || []).filter((x) => !x.read).length : 0;
+    const base = route.split("/")[0], parent = { "app-holding": "app", "app-loan": "app", "app-companyfile": "app-pipeline" }[base] || base;
     return '<div class="ws"><aside class="ws-rail">' + PUB.wordmark("#home") +
-      '<nav class="ws-nav" aria-label="Workspace">' + nav.map((it) => (typeof it === "string" ? '<span class="group">' + it + "</span>" : '<a href="#' + it[0] + '"' + (route === it[0] ? ' aria-current="page"' : "") + ">" + it[1] + "</a>")).join("") + "</nav>" +
+      '<nav class="ws-nav" aria-label="Workspace">' + nav.map((it) => (typeof it === "string" ? '<span class="group">' + it + "</span>" : '<a href="#' + it[0] + '"' + (parent === it[0] ? ' aria-current="page"' : "") + ">" + it[1] + (it[0] === "app-notifications" && unread ? ' <span class="badge" aria-label="' + unread + ' unread">' + unread + "</span>" : "") + "</a>")).join("") + "</nav>" +
       '<div class="rail-foot"><div><b>' + esc(u.name) + "</b><br><span>" + esc(roleName(u.role)) + (who ? " · " + esc(who) : "") + "</span></div>" +
       '<div class="row gap-s"><button class="btn ghost sm" data-act="logout">Sign out</button>' + (API.mode === "demo" ? '<button class="linkbtn" data-act="reset-demo">Reset demo data</button>' : "") + "</div></div></aside>" +
-      '<main class="ws-main">' + (API.mode === "demo" ? '<span class="ws-demo">Demo: fictional companies and people, kept in this browser</span>' : "") +
+      '<main class="ws-main" id="ws-main">' + (API.mode === "demo" ? '<span class="ws-demo">Demo: fictional companies and people, kept in this browser</span>' : "") +
       (S.flash ? '<div class="notice ok" role="status">' + esc(S.flash) + "</div>" : "") + body + "</main></div>";
   }
   const roleName = (r) => ({ founder: "Founder", investor: "Investor", advisor: "Advisor", lender: "Lender" })[r];
@@ -73,14 +78,15 @@
   // ---------- FOUNDER ----------
   function founderHome() {
     const c = myCompany(), rep = latestReport(c.id), rd = GB.readiness(c.readiness), t = GB.twin(Object.assign({}, c.twin, { raise: c.raise }));
-    const reqs = S.data.intros.filter((i) => i.status === "requested"), cons = S.data.exits.filter((x) => x.status === "consent_needed");
     const mon = GB.monitor(c.quarters, c.covenants), last = mon[mon.length - 1];
+    const offers = S.data.offers || [], keen = offers.filter((o) => o.response === "interested" || o.response === "invested");
     const steps = [
       ["Fill in the Funding Twin", Object.keys(c.twin || {}).length > 0, "app-twin"],
       ["Check your Readiness Score", Object.keys(c.readiness || {}).length > 0, "app-readiness"],
       ["Submit the report for advisor review", !!rep, "app-twin"],
       ["Advisor sign-off", rep && rep.status === "approved", "app-twin"],
-      ["Approve investor introductions", S.data.intros.some((i) => i.status === "granted"), "app-investors"],
+      ["Advisor shares the offer with investors", offers.length > 0, "app-fundraise"],
+      ["Investors commit and shares are allotted", (S.data.holdings || []).length > 0, "app-captable"],
     ];
     return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) +
       '<div class="kpis k4">' +
@@ -89,10 +95,7 @@
       '<div class="kpi"><small>Equity readiness</small><b>' + rd.equity.score + "/100</b><span>" + rd.equity.verdict + "</span></div>" +
       '<div class="kpi"><small>Report</small><b>' + (rep ? statusChip(rep.status) : "Not submitted") + "</b><span>" + (rep ? esc(rep.title) : "Run the Funding Twin first") + "</span></div></div>" +
       '<div class="grid2"><section class="panel"><h2>Next steps</h2><ol class="checklist">' + steps.map(([t, ok, r]) => '<li class="' + (ok ? "done" : "") + '"><a href="#' + r + '">' + t + "</a></li>").join("") + "</ol>" + stamp(rep) + "</section>" +
-      '<section class="panel"><h2>Needs your decision</h2>' +
-      (reqs.length || cons.length ? reqs.map((i) => '<div class="item"><div><b>' + esc(userName(i.investor_id)) + '</b><span class="muted small">asked for access to your deal room · ' + date(i.created_at) + '</span></div><div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div></div>').join("") +
-        cons.map((x) => '<div class="item"><div><b>' + esc(userName(x.investor_id)) + '</b><span class="muted small">wants to sell after ' + x.months + ' months (under the 6-month minimum)</span></div><button class="btn primary sm" data-act="consent-exit" data-id="' + x.id + '">Give written consent</button></div>').join("")
-        : '<p class="muted">Nothing waiting. Investor requests and exit consents appear here.</p>') +
+      '<section class="panel"><h2>Fundraise</h2><p>' + (offers.length ? "Your advisor has shared the offer with <b>" + offers.length + "</b> investor" + (offers.length === 1 ? "" : "s") + "; <b>" + keen.length + "</b> interested or committed." : "Your advisor shares the offer with investors once your report is signed off.") + ' <a href="#app-fundraise">Open the tracker</a></p>' +
       (last ? '<h3>Latest covenant check</h3><p>' + esc(last.q) + ": DSCR " + xx(last.dscr) + " " + chip(last.state === "ok" ? "ok" : last.state === "watch" ? "warn" : "bad", last.state === "ok" ? "Within covenants" : last.state === "watch" ? "Close to limit" : "Breach") + ' <a href="#app-loans">Details</a></p>' : "") +
       "</section></div>";
   }
@@ -327,26 +330,6 @@
       r.exits.map((e) => "<tr><td>" + cr(e.exit, 0) + " (" + e.multiple + 'x post)</td><td class="num">' + cr(e.investor) + '</td><td class="num">' + cr(e.founder) + '</td><td class="num">' + pct(e.founder_pct, 1) + "</td></tr>").join("") + "</tbody></table></div><h3>Clauses</h3>" + flagList(r.flags) + "</section>";
   }
 
-  function investorsPage() {
-    const c = myCompany(), approved = S.data.reports.some((r) => r.status === "approved");
-    const invs = S.data.directory.filter((u) => u.role === "investor").map((u) => Object.assign({ fit: GB.fitScore(c, u) }, u)).sort((a, b) => b.fit.score - a.fit.score);
-    const introOf = (id) => S.data.intros.find((i) => i.investor_id === id);
-    return head("Investors", "Ranked by Investor Fit Score. You approve every introduction; nothing is shared without your permission.") +
-      (approved ? "" : '<div class="notice">Introductions open once an advisor approves your debt vs equity report. <a href="#app-twin">Go to the Funding Twin</a></div>') +
-      '<div class="cards">' + invs.map((u) => { const i = introOf(u.id); return '<article class="card"><div class="card-top"><div><b>' + esc(u.firm) + '</b><span class="muted small">' + esc(u.name) + '</span></div><div class="score" title="Investor Fit Score">' + u.fit.score + "<small>/100</small></div></div>" +
-        '<ul class="reasons">' + u.fit.reasons.map((r) => "<li>" + esc(r) + "</li>").join("") + "</ul>" +
-        (i ? "<p>" + statusChip(i.status) + (i.nda_signed_at ? " " + chip("ok", "NDA signed") : "") + "</p>" + (i.status === "requested" ? '<div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div>' : "")
-          : '<button class="btn primary sm" data-act="invite" data-id="' + u.id + '"' + (approved ? "" : " disabled") + ">Approve introduction</button>") + "</article>"; }).join("") + "</div>";
-  }
-
-  function dealRoomPage() {
-    const c = myCompany(), views = S.data.intros.flatMap((i) => (i.views || []).map((v) => Object.assign({ who: userName(i.investor_id) }, v))).sort((a, b) => (a.at < b.at ? 1 : -1));
-    return head("Deal room", "Documents investors can open after you grant access and they sign the NDA. Every view is watermarked and logged.") +
-      '<div class="grid2"><section class="panel"><h2>Documents</h2><ul class="docs">' + (c.docs || []).map((d, k) => '<li><span>' + esc(d) + '</span><button class="linkbtn small" data-act="doc-remove" data-k="' + k + '">Remove</button></li>').join("") + "</ul>" +
-      '<form class="row gap-s" data-form="doc-add"><span class="in grow"><input name="doc" id="doc_name" placeholder="Document name, e.g. Board resolution"></span><button class="btn ghost" type="submit">Add</button></form></section>' +
-      '<section class="panel"><h2>Who viewed what</h2>' + (views.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Investor</th><th>Document</th><th>When</th></tr></thead><tbody>' + views.map((v) => "<tr><td>" + esc(v.who) + "</td><td>" + esc(v.doc) + "</td><td>" + dt(v.at) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">No views yet.</p>') + "</section></div>";
-  }
-
   function monitorBlock(c, readOnly) {
     const m = GB.monitor(c.quarters, c.covenants), cov = Object.assign({}, GB.COVENANTS, c.covenants);
     return (m.length ? lines(m.map((x) => x.q), [{ name: "DSCR", color: C.debt, values: m.map((x) => x.dscr) }], { refs: [{ y: cov.dscr_min, label: "Covenant " + cov.dscr_min.toFixed(2) + "x", color: "var(--bad)" }], yfmt: (v) => v.toFixed(2) + "x", label: "DSCR by quarter", height: 200 }) +
@@ -355,13 +338,6 @@
       (m[m.length - 1].state !== "ok" ? '<div class="notice bad">Early warning: ' + esc(m[m.length - 1].q) + " is " + (m[m.length - 1].state === "watch" ? "within 10% of a covenant limit" : "in breach of a covenant") + ". Founder and lender have been alerted.</div>" : "")
       : '<p class="muted">No quarterly figures yet.</p>') +
       (readOnly ? "" : '<h3>Add a quarter</h3><form class="fields f5" data-form="quarter">' + PUB.field("q", "Quarter", "Q1 FY27", "") + PUB.field("ebitda", "EBITDA", "", "Rs cr") + PUB.field("interest", "Interest", "", "Rs cr") + PUB.field("principal", "Principal", "", "Rs cr") + PUB.field("debt", "Debt outstanding", "", "Rs cr") + '<button class="btn primary" type="submit">Add quarter</button></form>');
-  }
-  function loansPage() {
-    const c = myCompany(), lenders = S.data.directory.filter((u) => u.role === "lender");
-    return head("Loans & monitoring", "Your loans, applications and quarterly covenant checks. Lenders pay all Aegis Ascend debt fees.") +
-      '<section class="panel"><h2>Loans</h2>' + (S.data.loans.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Lender</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">Tenor</th><th>Status</th></tr></thead><tbody>' + S.data.loans.map((l) => "<tr><td>" + esc(userName(l.lender_id)) + '</td><td class="num">' + cr(l.amount, 1) + '</td><td class="num">' + pct(l.rate, 2) + '</td><td class="num">' + l.tenor + " yrs</td><td>" + statusChip(l.status) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">No loans yet.</p>') +
-      '<h3>Apply through Aegis Ascend</h3><form class="fields f5" data-form="apply-loan"><label class="fld"><span>Lender</span><span class="in"><select name="lender_id" id="al_lender">' + lenders.map((l) => '<option value="' + l.id + '">' + esc(l.firm) + "</option>").join("") + "</select></span></label>" + PUB.field("amount", "Amount", c.raise, "Rs cr") + PUB.field("rate", "Expected rate", 10.5, "%") + PUB.field("tenor", "Tenor", 7, "years") + '<button class="btn primary" type="submit">Send application</button></form></section>' +
-      '<section class="panel"><h2>Covenant monitoring</h2>' + monitorBlock(c, false) + "</section>";
   }
   function feesPage() {
     const c = myCompany();
@@ -383,48 +359,6 @@
       '<section class="panel">' + (rows.length ? '<div class="tw"><table class="tbl"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>' + rows.slice(0, 200).map((a) => "<tr><td>" + dt(a.at) + "</td><td>" + esc(a.user_name) + "</td><td>" + esc(a.detail) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">Nothing yet.</p>') + "</section>";
   }
 
-  // ---------- INVESTOR ----------
-  function investorHome() {
-    const m = S.user.mandate || {};
-    const deals = S.data.companies.filter((c) => c.teaser || S.data.intros.some((i) => i.company_id === c.id));
-    return head("Welcome, " + S.user.name.split(" ")[0], esc(S.user.firm)) +
-      '<div class="kpis k4"><div class="kpi"><small>Curated deals</small><b>' + deals.length + '</b><span>advisor-approved</span></div><div class="kpi"><small>Open deal rooms</small><b>' + S.data.intros.filter((i) => i.status === "granted").length + '</b></div><div class="kpi"><small>Holdings</small><b>' + S.data.holdings.length + '</b><span>' + cr(S.data.holdings.reduce((a, h) => a + h.amount, 0)) + ' invested</span></div><div class="kpi"><small>Exits in progress</small><b>' + S.data.exits.filter((x) => x.status !== "completed").length + "</b></div></div>" +
-      '<section class="panel"><h2>Your mandate</h2><p>Sectors: <b>' + esc((m.sectors || []).join(", ")) + "</b> · Stage: <b>" + esc((m.stages || []).join(", ")) + "</b> · Ticket: <b>Rs " + m.ticket_min + "-" + m.ticket_max + " cr</b> · Instruments: <b>" + esc((m.instruments || []).join(", ")) + '</b></p><a class="btn primary" href="#app-deals">See curated deals</a></section>';
-  }
-  function dealsPage() {
-    const list = S.data.companies.map((c) => Object.assign({ fit: GB.fitScore(c, S.user) }, c)).sort((a, b) => b.fit.score - a.fit.score);
-    return head("Curated deals", "Only companies that passed validation, the engine and an advisor's sign-off.") +
-      (list.length ? '<div class="cards">' + list.map((c) => { const i = S.data.intros.find((x) => x.company_id === c.id); const s = c.report_summary;
-        return '<article class="card"><div class="card-top"><div><b>' + esc(c.name) + '</b><span class="muted small">' + esc(c.sector) + " · " + esc(c.stage) + " · " + esc(c.city) + '</span></div><div class="score" title="Investor Fit Score">' + c.fit.score + "<small>/100</small></div></div>" +
-          '<p>Raising <b>' + cr(c.raise, 0) + "</b> · revenue " + cr(c.revenue, 0) + "</p>" + (s ? '<p class="small">Engine view: best mix ' + pct(s.best_share) + " debt · lowest DSCR " + xx(s.min_dscr) + " (stress " + xx(s.min_dscr_stress) + ")</p>" : "") +
-          (c.reviewed_by ? '<span class="stamp">Reviewed by ' + esc(userName(c.reviewed_by)) + "</span>" : "") +
-          '<ul class="reasons">' + c.fit.reasons.map((r) => "<li>" + esc(r) + "</li>").join("") + "</ul>" +
-          (i ? "<p>" + statusChip(i.status) + (i.status === "granted" ? ' <a href="#app-rooms">Open deal room</a>' : "") + "</p>" : '<button class="btn primary sm" data-act="request-intro" data-id="' + c.id + '">Request introduction</button>') + "</article>"; }).join("") + "</div>" : empty("No deals yet", "Approved deals that match the panel appear here."));
-  }
-  function roomsPage() {
-    const mine = S.data.intros.filter((i) => i.status === "granted");
-    return head("Deal rooms", "Sign the NDA to open documents. Each document is watermarked with your name and every view is logged for the founder.") +
-      (mine.length ? mine.map((i) => { const c = companyById(i.company_id), rep = S.data.reports.find((r) => r.company_id === i.company_id);
-        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="sign-nda" data-id="' + i.id + '">Sign NDA</button></div>'
-          : '<p>' + chip("ok", "NDA signed " + date(i.nda_signed_at)) + "</p>" + (rep ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(rep.summary.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + cr(rep.summary.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + cr(rep.summary.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + xx(rep.summary.min_dscr) + "</b><span>stress " + xx(rep.summary.min_dscr_stress) + "</span></div></div>" + stamp(rep) : "") +
-            '<h3>Documents</h3><ul class="docs">' + (c.docs || []).map((d) => "<li><span>" + esc(d) + '</span><button class="btn ghost sm" data-act="view-doc" data-id="' + i.id + '" data-doc="' + esc(d) + '">Open</button></li>').join("") + "</ul>") + "</section>"; }).join("") : empty("No open deal rooms", "Request an introduction from Curated deals. The founder decides who gets access."));
-  }
-  function portfolioPage() {
-    const MONTH = 30.44 * 24 * 3600 * 1000;
-    return head("Portfolio & exits", "Exit after a 6-month minimum holding, or earlier with the founder's written consent. Sales are private and negotiated.") +
-      '<section class="panel"><h2>Holdings</h2>' + (S.data.holdings.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Company</th><th class="num">Invested</th><th class="num">Stake</th><th>Since</th><th class="num">Months</th><th>Exit</th></tr></thead><tbody>' +
-        S.data.holdings.map((h) => { const c = companyById(h.company_id), mo = Math.floor((Date.now() - new Date(h.invested_at)) / MONTH), x = S.data.exits.find((e) => e.holding_id === h.id && e.status !== "completed");
-          return "<tr><td>" + esc(c ? c.name : h.company_id) + '</td><td class="num">' + cr(h.amount, 1) + '</td><td class="num">' + pct(h.stake, 1) + "</td><td>" + date(h.invested_at) + '</td><td class="num">' + mo + "</td><td>" + (x ? statusChip(x.status) : '<form class="row gap-s" data-form="exit" data-id="' + h.id + '"><span class="in sm"><input name="price" id="px_' + h.id + '" placeholder="Asking Rs cr" inputmode="decimal"></span><button class="btn ghost sm" type="submit">Request exit</button></form>') + "</td></tr>"; }).join("") + "</tbody></table></div>" : '<p class="muted">No holdings yet.</p>') + "</section>" +
-      '<section class="panel"><h2>Exit tax view</h2><form class="calc" data-calc="exit"><div class="fields f5">' + PUB.field("cost", "Amount invested", 1, "Rs cr") + PUB.field("sale", "Sale price", 1.4, "Rs cr") + PUB.field("months", "Months held", 14, "months") + PUB.field("slab", "Your slab rate", 30, "%") + PUB.field("fmv", "Fair market value", 1.4, "Rs cr") + '</div></form><div id="calc-exit">' + PUB.exitCalc({}) + "</div></section>";
-  }
-
-  // ---------- ADVISOR ----------
-  function advisorHome() {
-    const q = S.data.reports.filter((r) => r.status === "in_review");
-    return head("Advisor desk", "Every report shared with an investor or lender carries your review.") +
-      '<div class="kpis k4"><div class="kpi"><small>Waiting for review</small><b>' + q.length + '</b></div><div class="kpi"><small>Companies</small><b>' + S.data.companies.length + '</b></div><div class="kpi"><small>Open exits</small><b>' + S.data.exits.filter((x) => x.status !== "completed").length + '</b></div><div class="kpi"><small>New enquiries</small><b>' + S.data.enquiries.length + "</b></div></div>" +
-      '<section class="panel"><h2>Review queue</h2>' + (q.length ? q.map((r) => '<div class="item"><div><b>' + esc(r.title) + '</b><span class="muted small">' + esc(companyById(r.company_id).name) + " · submitted " + date(r.created_at) + '</span></div><a class="btn primary sm" href="#app-review">Review</a></div>').join("") : '<p class="muted">Nothing waiting.</p>') + "</section>";
-  }
   function reviewPage() {
     const q = S.data.reports.slice().sort((a, b) => (a.status === "in_review" ? -1 : 1));
     return head("Review queue", "Check the release checklist, challenge the assumptions, then sign off or send back.") +
@@ -435,79 +369,68 @@
           (r.status === "in_review" ? '<form data-form="review" data-id="' + r.id + '"><label class="fld"><span>Review note</span><span class="in"><textarea name="note" id="rv_' + r.id + '" rows="2" placeholder="What you checked and anything the founder should change"></textarea></span></label><div class="row gap-s"><button class="btn primary" type="submit" name="decision" value="approve">Approve and stamp</button><button class="btn ghost" type="submit" name="decision" value="changes">Request changes</button><button class="btn ghost" type="button" data-act="open-twin" data-id="' + c.id + '">Open in Funding Twin</button></div></form>'
             : stamp(r) + (r.review_note ? '<p class="muted">"' + esc(r.review_note) + '"</p>' : "")) + "</section>"; }).join("");
   }
-  function companiesPage() {
-    return head("Companies", "All client companies.") + '<section class="panel"><div class="tw"><table class="tbl"><thead><tr><th>Company</th><th>Sector</th><th class="num">Revenue</th><th class="num">Raise</th><th class="num">Debt ready</th><th class="num">Equity ready</th><th>Report</th><th></th></tr></thead><tbody>' +
-      S.data.companies.map((c) => { const r = GB.readiness(c.readiness), rep = latestReport(c.id); return "<tr><td><b>" + esc(c.name) + "</b></td><td>" + esc(c.sector) + '</td><td class="num">' + cr(c.revenue, 0) + '</td><td class="num">' + cr(c.raise, 0) + '</td><td class="num">' + r.debt.score + '</td><td class="num">' + r.equity.score + "</td><td>" + (rep ? statusChip(rep.status) : "None") + '</td><td><button class="linkbtn" data-act="open-twin" data-id="' + c.id + '">Funding Twin</button></td></tr>'; }).join("") + "</tbody></table></div></section>";
-  }
-  function dealsDeskPage() {
-    const steps = ["first_refusal", "buyer_intro", "valuation", "spa", "transfer", "completed"];
-    return head("Deals & exits", "Record closed investments (at most 3 investors per deal) and move private resales forward.") +
-      '<section class="panel"><h2>Introductions</h2><div class="tw"><table class="tbl"><thead><tr><th>Company</th><th>Investor</th><th>Status</th><th>NDA</th><th class="num">Doc views</th><th>Record investment</th></tr></thead><tbody>' +
-      S.data.intros.map((i) => "<tr><td>" + esc(companyById(i.company_id).name) + "</td><td>" + esc(userName(i.investor_id)) + "</td><td>" + statusChip(i.status) + "</td><td>" + (i.nda_signed_at ? date(i.nda_signed_at) : "-") + '</td><td class="num">' + (i.views || []).length + "</td><td>" + (i.status === "granted" ? '<form class="row gap-s" data-form="invest" data-id="' + i.id + '"><span class="in sm"><input name="amount" placeholder="Rs cr" inputmode="decimal" id="ia_' + i.id + '"></span><span class="in sm"><input name="stake" placeholder="Stake %" inputmode="decimal" id="is_' + i.id + '"></span><button class="btn ghost sm" type="submit">Record</button></form>' : "") + "</td></tr>").join("") + "</tbody></table></div></section>" +
-      '<section class="panel"><h2>Early exits</h2>' + (S.data.exits.length ? '<div class="tw"><table class="tbl"><thead><tr><th>Company</th><th>Seller</th><th class="num">Asking</th><th>Stage</th><th></th></tr></thead><tbody>' + S.data.exits.map((x) => "<tr><td>" + esc(companyById(x.company_id).name) + "</td><td>" + esc(userName(x.investor_id)) + '</td><td class="num">' + (x.price ? cr(x.price, 2) : "-") + "</td><td>" + statusChip(x.status) + '<div class="progress">' + steps.map((s, k) => '<i class="' + (steps.indexOf(x.status) >= k ? "on" : "") + '"></i>').join("") + "</div></td><td>" + (x.status !== "completed" && x.status !== "consent_needed" ? '<button class="btn ghost sm" data-act="advance-exit" data-id="' + x.id + '">Next step</button>' : "") + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="muted">No exits yet.</p>') + "</section>";
-  }
-  const TRANSFER_STEPS = ["Request", "Eligibility under RBI rules", "Borrower consent", "Buyer search", "Deed of assignment", "Security updated with ROC", "Repayments redirected", "Fees invoiced"];
-  function transfersPage() {
-    const open = S.data.loans.filter((l) => l.transfer);
-    return head("Loan transfers", "Transfers of loan exposures between regulated lenders.") +
-      (open.length ? open.map((l) => '<section class="panel"><h2>' + esc(companyById(l.company_id).name) + " · " + cr(l.transfer.amount) + "</h2><p class=\"muted\">Seller: " + esc(userName(l.lender_id)) + " · " + statusChip(l.transfer.status) + '</p><ol class="tsteps">' + TRANSFER_STEPS.map((s, k) => '<li class="' + (k <= l.transfer.step ? "done" : "") + '">' + s + "</li>").join("") + "</ol>" + (l.transfer.status === "open" ? '<button class="btn primary sm" data-act="advance-transfer" data-id="' + l.id + '">Mark next step done</button>' : "") + "</section>").join("") : empty("No transfers", "When a lender asks to transfer a loan, it appears here."));
-  }
   function enquiriesPage() {
     return head("Enquiries", "From the website contact form.") + '<section class="panel">' + (S.data.enquiries.length ? S.data.enquiries.slice().reverse().map((e) => '<div class="item col"><div><b>' + esc(e.name) + '</b> <span class="muted small">' + esc(e.email) + (e.company ? " · " + esc(e.company) : "") + " · " + dt(e.at) + "</span></div><p>" + esc(e.message) + "</p></div>").join("") : '<p class="muted">No enquiries yet. Send one from the Contact page.</p>') + "</section>";
   }
 
-  // ---------- LENDER ----------
-  function lenderHome() {
-    const L = S.data.loans;
-    return head("Lender desk", esc(S.user.firm)) + '<div class="kpis k4"><div class="kpi"><small>New applications</small><b>' + L.filter((l) => l.status === "applied").length + '</b></div><div class="kpi"><small>Loans monitored</small><b>' + L.filter((l) => l.status === "disbursed").length + '</b></div><div class="kpi"><small>Book</small><b>' + cr(L.filter((l) => l.status === "disbursed").reduce((a, l) => a + l.amount, 0)) + '</b></div><div class="kpi"><small>Covenant alerts</small><b>' + L.filter((l) => { const c = companyById(l.company_id); const m = c ? GB.monitor(c.quarters, c.covenants) : []; return m.length && m[m.length - 1].state !== "ok"; }).length + "</b></div></div>" +
-      '<section class="panel"><p>Every applicant arrives with founder-confirmed data, an engine-run DSCR analysis and an advisor\'s sign-off. <a href="#app-lender">Review applications</a></p></section>';
-  }
-  function lenderPage() {
-    return head("Applications & loans", "The lender-side view: the same analysis the founder sees, every number traceable.") +
-      (S.data.loans.length ? S.data.loans.map((l) => { const c = companyById(l.company_id), rep = S.data.reports.find((r) => r.company_id === l.company_id), rd = GB.readiness(c.readiness), t = GB.twin(Object.assign({}, c.twin, { raise: c.raise }));
-        return '<section class="panel"><div class="pg-head"><div><h2>' + esc(c.name) + '</h2><p class="muted">' + esc(c.sector) + " · revenue " + cr(c.revenue, 0) + " · asks " + cr(l.amount, 1) + " at " + pct(l.rate, 2) + " for " + l.tenor + " years</p></div>" + statusChip(l.status) + "</div>" +
-          '<div class="kpis k4"><div class="kpi"><small>Debt readiness</small><b>' + rd.debt.score + '/100</b><span>' + rd.debt.verdict + '</span></div><div class="kpi"><small>Lowest DSCR, all-debt</small><b>' + gx(xx(t.min_dscr), { title: "Lowest DSCR if the whole raise is debt", formula: "(EBITDA - tax) / (existing debt service + instalment)", inputs: [["EBITDA", cr(t.q.ebitda0), "founder"], ["Existing debt service", cr(t.q.existing_ds), "founder"], ["Instalment", cr(t.payment, 2), "engine"]] }) + '</b><span>stress ' + xx(t.min_dscr_stress) + '</span></div><div class="kpi"><small>Engine best mix</small><b>' + pct(t.best.share) + ' debt</b></div><div class="kpi"><small>Advisor report</small><b>' + (rep ? "Approved" : "None") + "</b>" + (rep ? "<span>" + date(rep.reviewed_at) + "</span>" : "") + "</div></div>" +
-          (l.status === "applied" ? '<div class="row gap-s"><button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="sanction">Sanction</button><button class="btn ghost sm" data-act="lender" data-id="' + l.id + '" data-d="decline">Decline</button></div>' : l.status === "sanctioned" ? '<button class="btn primary sm" data-act="lender" data-id="' + l.id + '" data-d="disburse">Mark disbursed</button>' : l.status === "disbursed" && !l.transfer ? '<button class="btn ghost sm" data-act="transfer" data-id="' + l.id + '">Ask Aegis Ascend to find a buyer for this loan</button>' : l.transfer ? "<p>Transfer: " + statusChip(l.transfer.status) + " · step " + (l.transfer.step + 1) + " of 8 (" + TRANSFER_STEPS[Math.min(l.transfer.step, 7)] + ")</p>" : "") + "</section>"; }).join("") : empty("No applications", "Applications sent to you through Aegis Ascend appear here."));
-  }
-  function monitorPage() {
-    const L = S.data.loans.filter((l) => l.status === "disbursed");
-    return head("Monitoring", "Quarterly covenant checks for loans you hold.") + (L.length ? L.map((l) => '<section class="panel"><h2>' + esc(companyById(l.company_id).name) + " · " + cr(l.amount, 1) + "</h2>" + monitorBlock(companyById(l.company_id), true) + "</section>").join("") : empty("No disbursed loans", "Monitoring starts at disbursal."));
-  }
   function lenderFeesPage() {
     return head("Fees", "Aegis Ascend debt fees are paid by the lender.") + '<section class="panel"><form class="calc" data-calc="debt"><div class="fields f3">' + PUB.field("loan", "Loan amount", 10, "Rs cr") + PUB.field("tenor", "Tenor", 7, "years") + PUB.field("rate", "Interest rate", 10.5, "%") + PUB.field("monitoring", "Monitoring fee", 0.35, "% a year") + PUB.field("transfer_amount", "Amount transferred", 6, "Rs cr") + PUB.field("transfer_fee", "Transfer fee", 0.4, "%") + '</div></form><div id="calc-debt">' + PUB.debtCalc({}) + "</div></section>";
   }
 
+  function notificationsPage() {
+    const N = S.data.notifications || [];
+    return head("Notifications", "Offers, revaluations, lock-in dates and request updates.", N.some((x) => !x.read) ? '<button class="btn ghost sm" data-act="read-all">Mark all read</button>' : "") +
+      '<section class="panel">' + (N.length ? '<ul class="notes" data-stagger>' + N.map((x) => '<li class="' + (x.read ? "" : "unread") + '"><span class="nt-kind nt-' + esc(x.kind) + '" aria-hidden="true"></span><div><a href="#' + esc(x.link || "app") + '">' + esc(x.text) + '</a><span class="muted small">' + (x.computed ? "Reminder" : dt(x.at)) + "</span></div></li>").join("") + "</ul>"
+        : KIT.empty("You are up to date", "New offers, revaluations and request updates will appear here.")) + "</section>";
+  }
+
+  // Pages by role. ws-investor.js, ws-lender.js, ws-advisor.js and ws-founder.js add theirs through root.WS.
   const PAGES = {
-    founder: { app: founderHome, "app-twin": twinPage, "app-readiness": readinessPage, "app-cma": cmaPage, "app-optimizer": optimizerPage, "app-termsheet": termSheetPage, "app-investors": investorsPage, "app-dealroom": dealRoomPage, "app-loans": loansPage, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage },
-    investor: { app: investorHome, "app-deals": dealsPage, "app-rooms": roomsPage, "app-portfolio": portfolioPage, "app-activity": activityPage },
-    advisor: { app: advisorHome, "app-review": reviewPage, "app-companies": companiesPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-dealsdesk": dealsDeskPage, "app-transfers": transfersPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
-    lender: { app: lenderHome, "app-lender": lenderPage, "app-monitor": monitorPage, "app-lfees": lenderFeesPage, "app-activity": activityPage },
+    founder: { app: founderHome, "app-twin": twinPage, "app-readiness": readinessPage, "app-cma": cmaPage, "app-optimizer": optimizerPage, "app-termsheet": termSheetPage, "app-fees": feesPage, "app-company": companyPage, "app-activity": activityPage, "app-notifications": notificationsPage },
+    investor: { "app-activity": activityPage, "app-notifications": notificationsPage },
+    advisor: { "app-review": reviewPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
+    lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
 
   // ---------- router ----------
   const PUBLIC = { home: PUB.home, services: PUB.services, "services-equity": PUB.services, "services-debt": PUB.services, pricing: PUB.pricing, investors: PUB.investors, lenders: PUB.lenders, trust: PUB.trust, about: PUB.about, contact: PUB.contact };
   async function refresh() { S.data = await API.state(); }
+  let lastRoute = "";
+  function robots(on) {
+    let m = document.querySelector('meta[name="robots"]');
+    if (!m) { m = document.createElement("meta"); m.name = "robots"; document.head.appendChild(m); }
+    m.content = on ? "noindex, nofollow" : "index, follow";
+  }
   async function render(opts) {
-    const route = (location.hash || "#home").slice(1) || "home";
+    const full = (location.hash || "#home").slice(1) || "home";
+    const route = full.split("/")[0];
+    S.param = decodeURIComponent(full.split("/").slice(1).join("/"));
     let html;
+    robots(route.startsWith("app"));
     if (PUBLIC[route]) html = PUBLIC[route](S.user, opts && opts.msg);
     else if (route === "login") html = S.user ? (location.hash = "#app", "") : login(opts && opts.err);
     else if (route === "signup") html = S.user ? (location.hash = "#app", "") : signup(opts && opts.err);
     else if (route.startsWith("app")) {
       if (!S.user) { location.hash = "#login"; return; }
-      if (!S.data || (opts && opts.reload)) { try { await refresh(); } catch (e) { S.user = null; location.hash = "#login"; return; } }
+      if (!S.data || (opts && opts.reload)) {
+        if (!S.data) app().innerHTML = shell(route, KIT.skeleton());
+        try { await refresh(); } catch (e) { S.user = null; location.hash = "#login"; return; }
+      }
       const page = PAGES[S.user.role][route] || PAGES[S.user.role].app;
-      html = shell(route, page());
+      html = shell(full, page(S.param));
     } else html = PUB.home(S.user);
     if (html === "") return;
+    const first = full !== lastRoute;
+    lastRoute = full;
     app().innerHTML = html;
     S.flash = "";
     if (route === "home") PUB.mountHome();
+    if (route.startsWith("app")) { const m = document.getElementById("ws-main"); if (first && m) m.classList.add("enter"); KIT.mount(app(), first); }
     if (PUBLIC[route] && route.startsWith("services-")) { const el = document.getElementById(route); if (el) el.scrollIntoView(); } else if (!(opts && opts.keepScroll)) window.scrollTo(0, 0);
-    document.title = PUBLIC[route] && route !== "home" ? document.querySelector("h1") ? document.querySelector("h1").textContent + " | Aegis Ascend" : "Aegis Ascend Financial Advisors" : "Aegis Ascend Financial Advisors";
+    document.title = route.startsWith("app") || (PUBLIC[route] && route !== "home") ? (document.querySelector("h1") ? document.querySelector("h1").textContent + " | Aegis Ascend" : "Aegis Ascend Financial Advisors") : "Aegis Ascend Financial Advisors";
   }
-  async function after(res, msg) { S.flash = msg || (res && res.detail) || "Saved."; await render({ reload: true, keepScroll: true }); }
-  function fail(e) { const box = document.createElement("div"); box.className = "notice bad toast"; box.setAttribute("role", "alert"); box.textContent = e.message || String(e); document.body.appendChild(box); setTimeout(() => box.remove(), 4500); }
+  async function after(res, msg) { KIT.toast(msg || (res && res.detail) || "Saved."); await render({ reload: true, keepScroll: true }); }
+  function fail(e) { KIT.toast(e.message || String(e), "bad"); }
 
   // ---------- input parsing ----------
   function readForm(form) {
@@ -600,20 +523,12 @@
             checks: { validation: true, founder_confirmed: true, verifier: true } });
           delete S.twinDraft[c.id]; return after(res);
         }
-        case "decide-intro": return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d }));
-        case "consent-exit": return after(await API.act("consent_exit", { exit_id: id }));
-        case "invite": return after(await API.act("invite_investor", { company_id: S.user.company_id, investor_id: id }));
         case "doc-remove": { const c = myCompany(); const docs = c.docs.slice(); docs.splice(+b.dataset.k, 1); return after(await API.act("save_company", { company_id: c.id, patch: { docs } }), "Document removed."); }
         case "opt-reset": S.opt = null; S.optSel = null; S.optYear = 1; return render({ keepScroll: true });
         case "ts-tab": S.tsTab = b.dataset.t; return render({ keepScroll: true });
-        case "request-intro": return after(await API.act("request_intro", { company_id: id }), "Introduction requested. The founder decides who gets access.");
-        case "sign-nda": if (!$("#nda_" + id).checked) throw new Error("Tick the box to agree to the NDA first."); return after(await API.act("sign_nda", { intro_id: id }), "NDA signed. The deal room is open.");
-        case "view-doc": { const res = await API.act("view_doc", { intro_id: id, doc: b.dataset.doc }); return after(res, "Opened \"" + b.dataset.doc + "\". Watermarked with your name; the view is logged for the founder. (File previews are not part of this demo.)"); }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
-        case "advance-exit": return after(await API.act("advance_exit", { exit_id: id }));
-        case "advance-transfer": return after(await API.act("advance_transfer", { loan_id: id }));
-        case "lender": return after(await API.act("lender_decide", { loan_id: id, decision: b.dataset.d }));
-        case "transfer": return after(await API.act("request_transfer", { loan_id: id }));
+        case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
+        default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
       }
     } catch (err) { fail(err); }
   });
@@ -637,15 +552,14 @@
           if (!q.q) throw new Error("Name the quarter, for example Q1 FY27.");
           return after(await API.act("save_company", { company_id: c.id, patch: { quarters: (c.quarters || []).concat([q]) } }), "Quarter added and covenants rechecked.");
         }
-        case "apply-loan": return after(await API.act("apply_loan", { company_id: S.user.company_id, lender_id: v.lender_id, amount: num(v.amount), rate: num(v.rate) / 100, tenor: num(v.tenor) }));
         case "company": {
           const patch = { name: String(v.name).trim().slice(0, 120), sector: v.sector, stage: v.stage, city: String(v.city).trim().slice(0, 60), revenue: num(v.revenue), raise: num(v.raise) };
           if (!patch.name || !(patch.revenue > 0) || !(patch.raise > 0)) throw new Error("Enter the company name, revenue and raise.");
           return after(await API.act("save_company", { company_id: S.user.company_id, patch }), "Profile saved.");
         }
+        default: if (WS.forms[kind]) return await WS.forms[kind](f, v, e);
+          break;
         case "review": { const decision = e.submitter && e.submitter.value; return after(await API.act("review_report", { report_id: f.dataset.id, decision, note: v.note })); }
-        case "invest": return after(await API.act("record_investment", { intro_id: f.dataset.id, amount: num(v.amount), stake: num(v.stake) / 100, round: "2026" }));
-        case "exit": return after(await API.act("request_exit", { holding_id: f.dataset.id, price: num(v.price) || null }));
       }
     } catch (err) {
       if (kind === "login") return render({ err: err.message });
@@ -654,6 +568,9 @@
     }
   });
 
+  // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
-  (async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); })();
+  const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
 })(typeof globalThis !== "undefined" ? globalThis : this);
