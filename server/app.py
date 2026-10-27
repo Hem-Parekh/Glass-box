@@ -24,7 +24,7 @@ SITE = os.path.join(ROOT, "site")
 SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "api-server.js", "public.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
-ASSET_FILES = {"founder-hem.jpg", "founder-yash.jpg", "founder-vivan.jpg"}
+ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
 UPLOAD_TYPES = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xls": "application/vnd.ms-excel",
                 ".csv": "text/csv", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 UPLOAD_PURPOSES = ("valuation_report", "dataroom", "monitoring", "loan_doc")
@@ -435,7 +435,7 @@ def static_file(name):
 def asset_file(name):
     if name not in ASSET_FILES:
         abort(404)
-    return send_file(os.path.join(SITE, "assets", name), mimetype="image/jpeg", max_age=86400)
+    return send_file(os.path.join(SITE, "assets", name), mimetype=ASSET_FILES[name], max_age=86400)
 
 
 @app.get("/fundmix.html")

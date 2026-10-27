@@ -93,7 +93,7 @@
 
   function home(user) {
     return page("home", user,
-      '<section class="intro" id="ascent"><div class="intro-stage">' + introMark() +
+      '<section class="intro" id="ascent"><div class="intro-stage"><div class="intro-sky" aria-hidden="true"></div>' + introMark() +
       '<div class="intro-word" aria-hidden="true"><p class="iw-name">AEGIS <span>ASCEND</span></p><p class="iw-sub">Financial Advisors</p><span class="intro-cue">Scroll</span></div>' +
       '<div class="intro-copy">' +
       "<h1>Smarter Decisions.<br><em>Stronger Futures.</em></h1>" +
@@ -124,7 +124,7 @@
       FEATURES.map(([t, d, r]) => '<a href="#' + r + '"><b>' + t + "</b><span>" + d + "</span><em>Open in the workspace</em></a>").join("") + "</div></div></section>" +
       '<section class="sec" id="founders"><div class="container"><div class="sec-head"><h2>The founders</h2><p>Aegis Ascend was founded by three partners who sign their names to the advice.</p></div><div class="founders">' +
       FOUNDERS.map(([nm, f]) => '<figure class="founder"><div class="frame"><img src="' + ASSETS + "founder-" + f + '.jpg" alt="Portrait of ' + nm + '" width="480" height="600" decoding="async"></div><figcaption><b>' + nm + "</b><span>Co-founder</span></figcaption></figure>").join("") + "</div></div></section>" +
-      '<section class="sec tone"><div class="container close"><h2>Should you raise debt, equity or a mix?</h2><p>Advisory engagements start from Rs 1 lakh plus GST, scaled by company size and complexity.</p><a class="btn primary lg" href="#contact">Talk to an advisor</a></div></section>');
+      '<section class="sec sky"><div class="container close"><h2>Should you raise debt, equity or a mix?</h2><p>Advisory engagements start from Rs 1 lakh plus GST, scaled by company size and complexity.</p><a class="btn primary lg" href="#contact">Talk to an advisor</a></div></section>');
   }
 
   // ---------- the intro: the emblem opens as the page scrolls ----------
@@ -143,7 +143,9 @@
     // on narrow screens it goes partly off-canvas and dims behind the text instead.
     const dx = narrow ? vw * 0.36 : Math.max(vw / 2 - 28 - (s1 * mw) / 2 + mw * 0.04, 0);
     const dTop = mr.top + mr.height * (39 / 400), dy = cr.top - 30 - dTop;
-    M = { sec, mark, l: sec.querySelector(".ia-l"), r: sec.querySelector(".ia-r"), d, copy, kids: [...copy.children], word: sec.querySelector(".intro-word"), dx, dy, s1, narrow };
+    const sky = sec.querySelector(".intro-sky"), tpl = document.getElementById("tpl-skyline");
+    if (sky && tpl && !sky.firstChild) sky.appendChild(tpl.content.cloneNode(true));
+    M = { st, sky, sec, mark, l: sec.querySelector(".ia-l"), r: sec.querySelector(".ia-r"), d, copy, kids: [...copy.children], word: sec.querySelector(".intro-word"), dx, dy, s1, narrow };
   }
   function update(force) {
     if (!M || !M.sec.isConnected) return;
@@ -164,6 +166,9 @@
       k.style.filter = c < 1 ? "blur(" + (6 * (1 - c)).toFixed(2) + "px)" : "";
     });
     M.copy.classList.toggle("live", p > 0.55);
+    M.st.style.setProperty("--lit", (0.25 + 0.75 * a).toFixed(3));
+    M.st.style.setProperty("--sky-y", (22 * (1 - a)).toFixed(2) + "%");
+    M.copy.style.setProperty("--plate", ease(clamp((p - 0.2) / 0.3)).toFixed(3));
   }
   function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); } }
   function mountHome() {
@@ -299,7 +304,7 @@
     return page("contact", user, '<div class="container page narrow">' +
       pageHead("Talk to an advisor", "Tell us about the company and what you are raising. An advisor will reply to the email you give.") +
       (msg ? '<div class="notice ok" role="status">' + esc(msg) + "</div>" : "") +
-      '<form class="form" data-form="enquiry" novalidate>' +
+      '<form class="form contact-card" data-form="enquiry" novalidate>' +
       '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="e_name" autocomplete="name" required></span></label>' +
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="e_email" type="email" autocomplete="email" required></span></label>' +
       '<label class="fld"><span>Company</span><span class="in"><input name="company" id="e_company" autocomplete="organization"></span></label>' +

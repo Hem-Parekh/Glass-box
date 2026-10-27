@@ -99,6 +99,7 @@ rounded:
   sm: "3px"
   md: "4px"
   panel: "6px"
+  glass: "12px"
 spacing:
   xs: "8px"
   sm: "14px"
@@ -285,6 +286,7 @@ The system is flat and line-built. Depth comes from tonal steps (obsidian to rai
 - **Tooltip** (`box-shadow: 0 10px 24px rgba(0,0,0,.14)`): chart crosshair tooltips.
 - **Accent edge** (`box-shadow: inset 0 2px 0 #C9A04F`): the highlighted KPI tile's gold top edge (a line, not a lift).
 - **Focus ring** (`box-shadow: 0 0 0 3px rgba(201,160,79,.2)`; workspace uses the Deep Gold Ink wash): input focus.
+- **Glass** (`box-shadow: inset 0 1px 0 rgba(255,241,214,.07), 0 30px 60px -34px rgba(0,0,0,.85)`): glass panels only; a light top edge plus a soft drop so the panel floats over the skyline.
 
 ### Named Rules
 **The Hairline Before Box Rule.** Separate content with a 1px gold hairline first; reach for a filled panel only in the workspace, where panels hold working tools.
@@ -357,7 +359,7 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 - **Don't** open with a light hero, a dashboard screenshot or a row of icon cards.
 - **Don't** put a gold diamond on any chart point other than the one "Best" mark, and don't use gold as a series colour beyond Equity Gold.
 - **Don't** set Emblem Gold (#C9A04F) as text on white; use Deep Gold Ink (#7B5C1F).
-- **Don't** add drop shadows to panels or cards at rest, or round corners beyond 6px.
+- **Don't** add drop shadows to panels or cards at rest, or round corners beyond 6px; glass panels (12px, below) are the one exception.
 - **Don't** add a second ceremonial animation; the Ascent is the only one. Scroll reveals stay short (≤0.8s per item) and never loop.
 
 ## Workspace dashboards (added with the investor, lender, advisor and founder dashboards)
@@ -379,3 +381,34 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 - **Counters** (offers, members, platform investors) are thin meters with a tick at the warning threshold: green, then amber at the warning, then red at the limit.
 - **Colour:** gains and losses use `--good` and `--bad`. Projected values (future interest) use the series colour at 42% opacity.
 - **Cards and panels** keep the brand's 6px radius, with a soft two-layer shadow and a 2px lift on hover.
+
+## Glass and the New York skyline
+
+The public site, the sign-in pages and the CMA lock page sit in front of a New York skyline at night: a black silhouette with gold lit windows. The skyline includes the Chrysler Building, the Empire State Building, 432 Park Avenue and One World Trade Center. Panels in front of it are smoked glass. In the workspace, only the rail and the page masthead carry it.
+
+- **Source:**
+  - `site/tools/skyline.py` draws the skyline from a fixed seed.
+  - It writes `site/assets/skyline.svg`, used as a background image.
+  - It also writes an inline copy into `site/shell.html` as `#tpl-skyline`. The home intro switches that copy's windows on as you scroll.
+  - Re-run the script after changing it; never edit the SVG by hand.
+- **Glass:**
+  - Tint `rgba(20,19,16,.6)`, with `rgba(15,15,13,.8)` for the strong variant.
+  - Blur `blur(14px) saturate(1.25)`.
+  - 1px edge `rgba(232,199,123,.22)`.
+  - 12px radius.
+  - The Glass shadow above.
+  - Glass is used on: the header, the decision strip, page headers, section cards, the CTA band, the auth card, the contact form, the explain panel and the footer.
+- **The Readable Text Rule:**
+  - Text never sits directly on the skyline.
+  - Every line of copy is on a glass panel tinted at least .6, or on a section ground at .9 or more.
+  - The header is tinted .8 (.9 on phones), so gold content scrolling under it never washes out the nav.
+- **Where the skyline shows:**
+  - In the hero, behind the decision strip, between inner-page cards and behind the sign-in card.
+  - Content sections cover it with near-solid obsidian. The closing CTA section (`.sec.sky`) lets it through.
+- **Phones (≤760px):**
+  - Panels drop the blur and use a .88 tint, so scrolling stays smooth.
+  - Readers who set `prefers-reduced-transparency`, and browsers without `backdrop-filter`, get solid panels.
+- **Workspace:**
+  - The rail shows the skyline at its foot behind a dark veil; the signed-in card there is a glass plate.
+  - Page headers are dark mastheads with the skyline at the right and ivory text.
+  - Data tables, KPI tiles and working panels stay solid white. Glass never touches data.
