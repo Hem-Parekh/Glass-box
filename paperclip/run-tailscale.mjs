@@ -12,32 +12,15 @@
 //
 // Usage, from the Glass-box folder:  node paperclip/run-tailscale.mjs
 
-import { spawn, execFileSync } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  CONFIG, LOCAL, LOG, WIN, createTeam, die, isUp, preflight, readConfig,
+  sleep, startPaperclip, stopPaperclip, waitFor, writeConfig,
+} from "./lib.mjs";
+import fs from "node:fs";
 
-const WIN = process.platform === "win32";
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const REPO_DIR = path.dirname(HERE);
-const PC_HOME = path.join(os.homedir(), ".paperclip");
-const CONFIG = path.join(PC_HOME, "instances", "default", "config.json");
-const LOG = path.join(PC_HOME, "glass-box-server.log");
-const TEAM = JSON.parse(fs.readFileSync(path.join(HERE, "team.json"), "utf8"));
-
-const die = (msg) => { console.error(`\nERROR: ${msg}\n`); process.exit(1); };
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-if (!WIN && process.getuid && process.getuid() === 0) die("Run this as your normal user, not with sudo.");
-
-function has(cmd) {
-  try { execFileSync(WIN ? "where" : "which", [cmd], { stdio: "ignore" }); return true; } catch { return false; }
-}
-if (!has("claude")) {
-  console.warn("Note: Claude Code isn't installed, so agents can't run yet.\n" +
-    "      Install it with:  npm install -g @anthropic-ai/claude-code   then run  claude  and log in.\n");
-}
+preflight();
 
 // --- Tailscale address --------------------------------------------------------
 const tsCandidates = WIN
@@ -54,74 +37,9 @@ if (!tsIp) die("Tailscale isn't installed or isn't connected.\n       Install it
 let tsName = "";
 try { tsName = JSON.parse(ts(["status", "--json"]) || "{}").Self.DNSName.replace(/\.$/, ""); } catch {}
 
-// --- Helpers -----------------------------------------------------------------
-fs.mkdirSync(PC_HOME, { recursive: true });
-
-function startPaperclip(args, env = {}) {
-  const out = fs.openSync(LOG, "w");
-  const child = spawn(WIN ? "npx.cmd" : "npx", ["-y", "paperclipai", ...args], {
-    stdio: ["ignore", out, out],
-    env: { ...process.env, ...env },
-    detached: !WIN, // own process group on macOS/Linux so we can stop it cleanly
-    shell: WIN,     // Windows needs a shell to run npx.cmd
-  });
-  return child;
-}
-function stopPaperclip(child) {
-  if (!child || child.exitCode !== null) return;
-  try {
-    if (WIN) execFileSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
-    else process.kill(-child.pid, "SIGTERM");
-  } catch {}
-}
-async function waitFor(base, child) {
-  for (let i = 0; i < 120; i++) {
-    if (child.exitCode !== null) return false;
-    try { if ((await fetch(`${base}/api/health`)).ok) return true; } catch {}
-    await sleep(3000);
-  }
-  return false;
-}
-async function api(base, method, p, body) {
-  const res = await fetch(base + p, {
-    method, headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!res.ok) die(`${method} ${p} failed: ${res.status} ${(await res.text()).slice(0, 400)}`);
-  return res.json();
-}
-async function createTeam(base) {
-  const co = TEAM.company;
-  let company = (await api(base, "GET", "/api/companies")).find((c) => c.name === co.name);
-  if (!company) company = await api(base, "POST", "/api/companies", co);
-  const ids = {};
-  for (const a of await api(base, "GET", `/api/companies/${company.id}/agents`)) ids[a.name] = a.id;
-  for (const a of TEAM.agents) {
-    if (ids[a.name]) continue;
-    const body = {
-      name: a.name, role: a.role, title: a.title, icon: a.icon, capabilities: a.capabilities,
-      adapterType: "claude_local", adapterConfig: { cwd: REPO_DIR },
-      instructionsBundle: { files: { "AGENTS.md": a.instructions } },
-      runtimeConfig: { heartbeat: { enabled: false, wakeOnDemand: true } },
-      budgetMonthlyCents: TEAM.agentBudgetMonthlyCents,
-    };
-    if (a.reportsTo) body.reportsTo = ids[a.reportsTo];
-    if (a.role === "ceo") body.permissions = { canCreateAgents: true };
-    const res = await api(base, "POST", `/api/companies/${company.id}/agent-hires`, body);
-    ids[a.name] = (res.agent || res).id;
-  }
-  await api(base, "PATCH", `/api/companies/${company.id}`, { budgetMonthlyCents: co.budgetMonthlyCents });
-  for (const id of Object.values(ids)) {
-    await api(base, "PATCH", `/api/agents/${id}`, { budgetMonthlyCents: TEAM.agentBudgetMonthlyCents });
-  }
-  console.log(`Created ${co.name}: ${Object.keys(ids).join(", ")} (budget $${co.budgetMonthlyCents / 100}/month)`);
-}
-const readConfig = () => (fs.existsSync(CONFIG) ? JSON.parse(fs.readFileSync(CONFIG, "utf8")) : null);
-
 // --- First run: create the team while Paperclip is in local-only mode ---------
-const LOCAL = "http://localhost:3100";
 if (readConfig()?.server?.deploymentMode !== "authenticated") {
-  try { if ((await fetch(`${LOCAL}/api/health`)).ok) die("Something is already running on port 3100. Close it and run this again."); } catch {}
+  if (await isUp(LOCAL)) die("Something is already running on port 3100. Close it and run this again.");
   console.log("First-time setup: installing Paperclip and creating your team (this can take a few minutes)...");
   const child = startPaperclip(readConfig() ? ["run"] : ["onboard", "-y", "--no-install-service"]);
   if (!(await waitFor(LOCAL, child))) { stopPaperclip(child); die(`Paperclip failed to start. See ${LOG}`); }
@@ -136,7 +54,7 @@ if (!cfg) die(`Paperclip config not found at ${CONFIG}. See ${LOG}`);
 Object.assign(cfg.server, { deploymentMode: "authenticated", exposure: "private", bind: "tailnet" });
 cfg.server.allowedHostnames = [...new Set([...(cfg.server.allowedHostnames || []), tsIp, tsName].filter(Boolean))].sort();
 cfg.auth = { baseUrlMode: "auto", ...(cfg.auth || {}) };
-fs.writeFileSync(CONFIG, JSON.stringify(cfg, null, 2));
+writeConfig(cfg);
 
 const URL_IP = `http://${tsIp}:3100`;
 console.log("Starting Paperclip on your Tailscale network...");
