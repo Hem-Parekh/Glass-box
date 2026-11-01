@@ -3,7 +3,7 @@
 # Opens at http://localhost:3100. Agents use the Claude Code login already on
 # this computer (your Pro subscription); no API key is needed. Spending is capped at $20/month.
 #
-# Needs: Node.js 20+, python3, and Claude Code signed in with your Pro account
+# Needs: Node.js 24+, python3, and Claude Code signed in with your Pro account
 # (run `claude` once and log in). Do not run with sudo.
 #
 # Usage, from the Glass-box repo folder: bash paperclip/run-local.sh
