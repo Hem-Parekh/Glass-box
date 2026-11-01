@@ -4,8 +4,8 @@
 #
 # Agents run Claude Code with your Claude Pro/Max subscription. Create a token
 # on your own computer with `claude setup-token` and add it to the cloud
-# environment as the variable CLAUDE_CODE_OAUTH_TOKEN. No API key or budget
-# is used.
+# environment as the variable CLAUDE_CODE_OAUTH_TOKEN. No API key is used;
+# spending is capped at $20/month (see create_team.py).
 #
 # Usage (as root): bash paperclip/setup.sh
 set -euo pipefail

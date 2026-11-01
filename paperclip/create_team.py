@@ -1,7 +1,8 @@
 """Create the Glass-box dev team company and agents in Paperclip (idempotent).
 
 Usage: python3 create_team.py <paperclip-url> <agent-working-dir>
-Budgets are 0 (no spending cap); agents use the Claude subscription login.
+Spending is capped at $20/month (the Pro plan price), $5 per agent; Paperclip
+pauses an agent when it reaches its cap. Agents use the Claude subscription login.
 """
 import json
 import sys
@@ -10,6 +11,8 @@ import urllib.request
 
 U, CWD = sys.argv[1], sys.argv[2]
 COMPANY = "Glass-box dev team"
+COMPANY_BUDGET_CENTS = 2000  # $20/month, same as Claude Pro
+AGENT_BUDGET_CENTS = 500     # $5/month per agent (4 agents = $20)
 
 
 def call(method, path, body=None):
@@ -27,7 +30,7 @@ if not company:
     company = call("POST", "/api/companies", {
         "name": COMPANY,
         "description": "Build and maintain the Glass-box software project (github.com/hem-parekh/glass-box).",
-        "budgetMonthlyCents": 0,
+        "budgetMonthlyCents": COMPANY_BUDGET_CENTS,
     })
 C = company["id"]
 existing = {a["name"]: a["id"] for a in call("GET", f"/api/companies/{C}/agents")}
@@ -62,7 +65,7 @@ for name, role, title, icon, boss, caps, agents_md in TEAM:
         "adapterType": "claude_local", "adapterConfig": {"cwd": CWD},
         "instructionsBundle": {"files": {"AGENTS.md": agents_md}},
         "runtimeConfig": {"heartbeat": {"enabled": False, "wakeOnDemand": True}},
-        "budgetMonthlyCents": 0,
+        "budgetMonthlyCents": AGENT_BUDGET_CENTS,
     }
     if boss:
         body["reportsTo"] = existing[boss]
@@ -71,4 +74,10 @@ for name, role, title, icon, boss, caps, agents_md in TEAM:
     res = call("POST", f"/api/companies/{C}/agent-hires", body)
     existing[name] = res.get("agent", res)["id"]
 
-print(f"{COMPANY} ({company.get('issuePrefix')}): " + ", ".join(existing))
+# Re-apply the caps so re-running also fixes older setups.
+call("PATCH", f"/api/companies/{C}", {"budgetMonthlyCents": COMPANY_BUDGET_CENTS})
+for agent_id in existing.values():
+    call("PATCH", f"/api/agents/{agent_id}", {"budgetMonthlyCents": AGENT_BUDGET_CENTS})
+
+print(f"{COMPANY} ({company.get('issuePrefix')}): " + ", ".join(existing)
+      + f" | budget ${COMPANY_BUDGET_CENTS / 100:.0f}/month")
