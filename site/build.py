@@ -15,7 +15,7 @@ def seed_markers():
 
 
 def scripts_inline():
-    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"),
+    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("hero3d.js"),
              "window.GB_SEED = " + seed_markers() + ";", read("store.js"),
              'window.GB_API = window.GBStore; window.GB_CMA_URL = "fundmix.html"; window.GB_ASSETS = "assets/";',
              read("public.js"), read("motion.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]

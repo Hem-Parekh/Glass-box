@@ -158,6 +158,7 @@
     if (!M || !M.sec.isConnected) return;
     const r = M.sec.getBoundingClientRect(), run = r.height - innerHeight;
     const p = force != null ? force : clamp(-r.top / (run * 0.8 || 1));
+    M.p = p;   // read by the 3D scene each frame
     const a = ease(clamp(p / 0.6)), w = clamp(p / 0.22);
     const op = M.narrow ? 1 - 0.78 * a : 1;
     // the A's swing open like a pair of doors as they part, then settle facing the reader
@@ -187,7 +188,7 @@
   const ptr = { x: 0, y: 0 }, lean = { x: 0, y: 0 };
   function turn(now) {
     spin = 0;
-    if (!M || !M.sec.isConnected || M.sec.classList.contains("still")) return;
+    if (!M || !M.sec.isConnected || M.sec.classList.contains("still") || M.three) return;
     const r = M.sec.getBoundingClientRect();
     if (r.bottom > 0 && r.top < innerHeight) {
       lean.x += (ptr.x - lean.x) * 0.06; lean.y += (ptr.y - lean.y) * 0.06;
@@ -208,7 +209,12 @@
     played = true;
     measure(); update(reduce ? 1 : null);
     if (reduce) { M.mark.style.setProperty("--ry", "-16deg"); M.mark.style.setProperty("--rx", "6deg"); }
-    else if (!spin) spin = requestAnimationFrame(turn);
+    else {
+      // the WebGL scene (site/hero3d.js) when the browser can run it; the layered SVG emblem otherwise
+      if (root.HERO3D) M.three = root.HERO3D.mount(M.st, () => (M && M.p) || 0);
+      sec.classList.toggle("gl", !!M.three);
+      if (!M.three && !spin) spin = requestAnimationFrame(turn);
+    }
     reveal(reduce);
     if (root.BOARD) root.BOARD.mount(!!reduce);
   }

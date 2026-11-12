@@ -415,11 +415,13 @@ The public site, the sign-in pages and the CMA lock page sit in front of a New Y
 
 ## Home page motion: the 3D emblem and the whiteboard
 
-- **3D emblem (hero):**
-  - Each piece of the mark (left A, right A, diamond) is a gold face over 16 darker slices set back 1.7px apart, so it reads as solid gold.
-  - The mark always stays upright: it sways at most about 14° side to side and 8° up and down, and leans toward the pointer.
-  - As the page scrolls, the two A's swing open like doors (up to 24°) while they part.
-  - With reduced motion it holds still at a slight angle.
+- **3D emblem (hero), WebGL:** `site/hero3d.js`, built from `site/src/hero3d.js` with `sh site/tools/build-hero3d.sh` (three.js r160).
+  - Two extruded, bevelled gold A's (metalness 1, roughness .24) and a floating octahedron diamond, slowly turning, leaning toward the pointer.
+  - On scroll, the camera flies in; the A's part to the screen edges, each leaning outward; and a city of 170 buildings rises, its windows lighting up. Bloom and a vignette finish it, over obsidian with fog and gold stars.
+  - **Both A's always stand upright.** Never rotate either A by 180°.
+- **3D emblem fallback:**
+  - Without WebGL, the layered SVG emblem is used: 16 darker slices behind a gold face. It sways at most about 14° and 8°, and the A's swing open like doors (up to 24°) as they part.
+  - With reduced motion, the SVG emblem holds still at a slight angle.
 - **Whiteboard annotations (`site/motion.js`):**
   - Two collaboration cursors, Advisor (gold) and Founder (ivory), visit the live example and the eight method steps.
   - They leave hand-drawn ink in light gold #E8C77B (2.4px round strokes): loops, underlines and curved arrows.

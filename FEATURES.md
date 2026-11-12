@@ -94,8 +94,8 @@ The look is black and gold, matching the Aegis Ascend logo.
 
 ### Home page
 Each item below is a section of the page, in the order a visitor scrolls through them.
-1. **Opening animation.** The page opens on the emblem: both A's draw upward, the diamond lands on top, and the name rises in.
-2. **Scroll intro.** As you scroll, the two A's slide apart to the edges of the screen. The diamond rises above the headline, and "Smarter Decisions. Stronger Futures." comes forward with a short description and two buttons: "Book an engagement" and "Try the live model".
+1. **Opening animation.** The page opens on a 3D gold AA emblem, made of two upright A's with a floating diamond. It turns slowly and follows the pointer, and the name rises in under it. Browsers without WebGL, and visitors who prefer reduced motion, get a layered 2D version.
+2. **Scroll intro.** As you scroll, the camera flies in, the two A's slide apart to the edges of the screen, and a city of lit buildings rises behind the headline. The diamond rises above the headline, and "Smarter Decisions. Stronger Futures." comes forward with a short description and two buttons: "Book an engagement" and "Try the live model".
 3. **Live example.** A sample company needs Rs 12 crore. A split bar fills to show the recommended debt and equity shares, with three figures you can click to see their working:
    - how much better off the founder is than with all-equity;
    - the lowest repayment safety (DSCR);
