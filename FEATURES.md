@@ -79,6 +79,12 @@ These apply across the whole product, not to one login.
 
 - **Website assistant ("Ask Aegis").** A chat button at the bottom right of every page, public and workspace, opens a chat panel.
   - It answers questions about services, fees, raises, exits, loans, compliance and how numbers are checked, with links to the relevant page. It suggests five starter questions.
+  - **It guides people around the site.** It knows every public page and every workspace page for each role (from `site/sitemap.json`), and which page the visitor is on and whether they are signed in.
+    - "Where is…" and "How do I…" get a link that opens the page.
+    - "What can I do on this page?" explains the current page and suggests the next one.
+    - "Show me around" gives a short tour, for a visitor or for the signed-in role.
+    - A page from another role's workspace comes with sign-in directions; advisor-only tools come with an explanation.
+    - Starter questions change with the role.
   - It gives general information only: no personal advice, no calculations (it points to the calculators or an advisor), and nothing beyond what the website says.
   - On the server it answers with Claude, using the website's own facts. Each visitor can ask at most 20 questions in 10 minutes.
   - Without Claude credentials, and on the demo, it answers from built-in quick answers and says so.

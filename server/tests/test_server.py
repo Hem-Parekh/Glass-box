@@ -369,7 +369,7 @@ def test_chat_assistant(client, monkeypatch):
     srv._CHATS.clear()
     seen = {}
 
-    def fake_answer(msgs):
+    def fake_answer(msgs, page=None, role=None):
         seen["msgs"] = msgs
         return "Advisory engagements start from Rs 1 lakh plus GST."
     monkeypatch.setattr(CHAT, "answer", fake_answer)
@@ -395,7 +395,7 @@ def test_chat_assistant(client, monkeypatch):
     # without Claude credentials the endpoint says it is offline, so the page uses its quick answers
     srv._CHATS.clear()
 
-    def offline(msgs):
+    def offline(msgs, page=None, role=None):
         raise CHAT.Offline("no credentials")
     monkeypatch.setattr(CHAT, "answer", offline)
     r = client.post("/api/chat", json={"messages": convo}, headers=H)
@@ -419,3 +419,44 @@ def test_chat_answer_reads_the_reply(monkeypatch):
         monkeypatch.setattr(CHAT, "_client", NS(beta=NS(messages=FakeMessages(stop))))
         assert CHAT.answer([{"role": "user", "content": "Where are you?"}]) == expect
     assert calls["model"] == "claude-opus-5-5" and "Rs 1 lakh" in calls["system"] and calls["fallbacks"] == "default"
+
+
+def test_sitemap_matches_the_site():
+    """The assistant's site map lists exactly the pages in each role's workspace menu, and the public routes the router knows."""
+    import re as _re
+    from server import chat as CHAT
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    portal = open(os.path.join(root, "site", "portal.js"), encoding="utf-8").read()
+    menus = _re.search(r"const NAVS = \{(.*?)\n  \};", portal, _re.S)
+    for role in CHAT.ROLES:
+        line = _re.search(role + r": \[(.*?\])\],?(?:\n|$)", menus.group(1), _re.S).group(1)
+        menu = _re.findall(r'\["(app[a-z-]*)", "([^"]+)"\]', line)
+        mapped = [(p["route"], p["label"]) for p in CHAT.SITEMAP["roles"][role]["pages"]]
+        assert menu == mapped, role
+    public = _re.search(r"const PUBLIC = \{(.*?)\};", portal).group(1)
+    routes = set(_re.findall(r'"?([a-z-]+)"?: PUB\.', public)) | {"login", "signup"}
+    assert {p["route"] for p in CHAT.SITEMAP["public"]} == routes
+
+
+def test_chat_knows_where_the_visitor_is(client, monkeypatch):
+    from server import chat as CHAT
+    srv._CHATS.clear()
+    seen = {}
+
+    def fake_answer(msgs, page=None, role=None):
+        seen.update(page=page, role=role)
+        return "ok"
+    monkeypatch.setattr(CHAT, "answer", fake_answer)
+    convo = [{"role": "user", "content": "Where is my cap table?"}]
+    client.post("/api/chat", json={"messages": convo, "page": "pricing"}, headers=H)
+    assert seen == {"page": "pricing", "role": None}
+    login(client, "founder@demo.in")
+    client.post("/api/chat", json={"messages": convo, "page": "app-captable"}, headers=H)
+    assert seen == {"page": "app-captable", "role": "founder"}
+    client.post("/api/chat", json={"messages": convo, "page": "<script>"}, headers=H)
+    assert seen["page"] == ""                                   # anything that isn't a route is dropped
+    # the prompt carries the site map; links to unknown pages are stripped from replies
+    assert "[Cap table](#app-captable)" in CHAT.SYSTEM and "INVESTOR WORKSPACE" in CHAT.SYSTEM
+    assert CHAT.keep_known_links("Open [Pricing](#pricing) or [Admin](#secret-admin).") == "Open [Pricing](#pricing) or Admin."
+    note = CHAT.context_note("app-captable", "founder")
+    assert "Cap table" in note and "founder" in note

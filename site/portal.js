@@ -410,6 +410,7 @@
     S.param = decodeURIComponent(full.split("/").slice(1).join("/"));
     let html;
     robots(route.startsWith("app"));
+    root.GB_ROLE = S.user ? S.user.role : null;   // lets the website assistant give directions for this account
     if (PUBLIC[route]) html = PUBLIC[route](S.user, opts && opts.msg);
     else if (route === "login") html = S.user ? (location.hash = "#app", "") : login(opts && opts.err);
     else if (route === "signup") html = S.user ? (location.hash = "#app", "") : signup(opts && opts.err);

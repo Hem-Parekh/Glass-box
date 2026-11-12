@@ -39,19 +39,86 @@
     [["tool", "tools", "funding twin", "optimizer", "cma", "readiness", "term sheet"],
       "Our advisors use the Funding Twin, the Equity vs Debt Optimizer, the CMA funding report, the Readiness Score and the Term Sheet Analyser, and founders receive the finished, reviewed report. See \"Tools behind the advice\" on the [home page](#home)."],
   ];
-  const UNKNOWN = "I don't have that detail. I can tell you about our services, fees, how a raise or loan works, investor exits, and how we keep numbers accurate. For anything else, the [Contact](#contact) form reaches an advisor.";
-  const GREET = "Hello. I can answer questions about Aegis Ascend: what we do, our fees, how raises, exits and loans work, and how every number is checked. I give general information, not financial advice.";
-  const CHIPS = ["What do you do?", "What are your fees?", "How does a raise work?", "How do investors exit?", "How do you keep numbers accurate?"];
+  const UNKNOWN = "I don't have that detail. I can tell you about our services, fees, how a raise or loan works, investor exits, and how we keep numbers accurate, or help you find any page. For anything else, the [Contact](#contact) form reaches an advisor.";
+  const GREET = "Hello. I can answer questions about Aegis Ascend and help you find your way around the site: ask me where something is, or say \"show me around\". I give general information, not financial advice.";
+
+  // ---------- finding your way (site/sitemap.json, inlined as window.GB_SITEMAP) ----------
+  const SM = root.GB_SITEMAP || { public: [], roles: {} };
+  const ROLE_NAME = { founder: "founder", investor: "investor", lender: "lender", advisor: "advisor" };
+  const role = () => root.GB_ROLE || null;                       // set by the router (site/portal.js)
+  const here = () => ((location.hash || "#home").slice(1).split("/")[0] || "home");
+  const norm = (q) => " " + q.toLowerCase().replace(/[^a-z0-9%&\s-]/g, " ").replace(/\s+/g, " ") + " ";
+  const hits = (t, words) => words.reduce((s, w) => s + (t.includes(" " + w + " ") || (w.includes(" ") && t.includes(w)) ? w.split(" ").length + 1 : 0), 0);
+  const link = (p) => "[" + p.label + "](#" + p.route + ")";
+  const NAV = /\b(where|find|go to|goto|open|take me|show me|get to|navigate|located|which page|what page|link to|how do i (get|see|find|reach|open|check|view|upload|sell|share|apply|sign|log|create|book|contact|edit|download|request))\b/;
+
+  // every page a question could mean: public pages, then each role's workspace pages
+  function candidates() {
+    const out = SM.public.map((p) => ({ p, role: null }));
+    Object.keys(SM.roles).forEach((r) => SM.roles[r].pages.forEach((p) => out.push({ p, role: r })));
+    return out;
+  }
+  function findPage(t) {
+    const mine = role();
+    let best = null, top = 0;
+    candidates().forEach((c) => {
+      const words = c.p.keywords.indexOf(c.p.label.toLowerCase()) < 0 ? c.p.keywords.concat([c.p.label.toLowerCase()]) : c.p.keywords;
+      let score = hits(t, words);
+      if (!score) return;
+      if (c.role && c.role === mine) score += 2;          // your own workspace first
+      else if (c.role) score -= 1.5;                      // someone else's workspace only when nothing else fits
+      if (score > top) { top = score; best = c; }
+    });
+    return best;
+  }
+  const an = (w) => (/^[aeiou]/.test(w) ? "an " : "a ") + w;
+  function directions(c) {
+    const p = c.p, mine = role();
+    if (!c.role) return link(p) + ": " + p.what;
+    if (c.role === mine) return "It's in your workspace: " + link(p) + ". " + p.what;
+    if (c.role === "advisor") return p.label + " is used by Aegis Ascend advisors" + (mine === "founder" ? "; your advisor prepares your report with it and shares the finished version with you." : ". To have it used for your company, [talk to an advisor](#contact).");
+    const r = SM.roles[c.role];
+    const who = "the " + ROLE_NAME[c.role] + " workspace";
+    if (mine) return p.label + " is in " + who + ", and you're signed in as " + an(mine) + ". It opens with " + an(c.role) + " account.";
+    return p.label + " is in " + who + ": " + p.what + " [Sign in](#login) as " + an(c.role) + " to open it (demo: " + r.demo + ", password demo1234), or [create an account](#signup).";
+  }
+  function onThisPage() {
+    const cur = here(), mine = role();
+    const p = (mine && SM.roles[mine].pages.find((x) => x.route === cur)) || SM.public.find((x) => x.route === cur);
+    if (!p) return tour();
+    const list = mine ? SM.roles[mine].pages : SM.public;
+    const next = list[(list.indexOf(p) + 1) % list.length];
+    return "You're on " + p.label + ". " + p.what + " A good next stop: " + link(next) + ".";
+  }
+  function tour() {
+    const mine = role();
+    const pick = mine ? SM.roles[mine].pages.slice(0, 6) : ["home", "services", "pricing", "investors", "lenders", "contact"].map((r) => SM.public.find((p) => p.route === r)).filter(Boolean);
+    return (mine ? "Your " + mine + " workspace, in the menu on the left (tabs at the top on phones):" : "Here's the quickest way around the site:") + "\n" +
+      pick.map((p) => "- " + link(p) + ": " + p.what).join("\n") + (mine ? "" : "\nWhen you're ready, [sign in](#login) to see your workspace.");
+  }
 
   function quickAnswer(q) {
-    const t = " " + q.toLowerCase().replace(/[^a-z0-9%\s-]/g, " ").replace(/\s+/g, " ") + " ";
+    const t = norm(q);
     if (/^\s*(hi|hello|hey|namaste)\s*$/.test(t)) return GREET;
+    if (/\b(show me around|tour|guide me|where (do|should) i start|what can i do on this site|help me navigate|site map|sitemap|menu)\b/.test(t)) return tour();
+    if (/\b(this page|here|what is this|where am i)\b/.test(t) && /\b(what|where|do)\b/.test(t)) return onThisPage();
+    const page = findPage(t);
+    if (page && NAV.test(t)) return directions(page);
     let best = null, top = 0;
-    QA.forEach(([words, a]) => {
-      const score = words.reduce((s, w) => s + (t.includes(" " + w + " ") || (w.includes(" ") && t.includes(w)) ? w.split(" ").length + 1 : 0), 0);
-      if (score > top) { top = score; best = a; }
-    });
-    return best || UNKNOWN;
+    QA.forEach(([words, a]) => { const score = hits(t, words); if (score > top) { top = score; best = a; } });
+    if (best) return best;
+    return page ? directions(page) : UNKNOWN;
+  }
+  function chips() {
+    const mine = role();
+    const extra = {
+      founder: ["Where do I upload documents?", "Where is my cap table?"],
+      investor: ["How do I sell my shares?", "Where are new offers?"],
+      lender: ["Where are new applications?", "Where do I see overdue loans?"],
+      advisor: ["Where do I share an offer?", "Where are reports to review?"],
+    };
+    return mine ? ["What can I do on this page?", "Show me around"].concat(extra[mine])
+      : ["Show me around", "What do you do?", "Where are your fees?", "How do I sign in?", "How does a raise work?"];
   }
   // answers may carry [label](#route) links; everything else is escaped text
   const render = (s) => esc(s).replace(/\[([^\]]+)\]\((#[a-z0-9/_-]*)\)/gi, '<a href="$2">$1</a>');
@@ -66,7 +133,7 @@
     try {
       const res = await fetch(root.GB_CHAT_URL, { method: "POST", credentials: "same-origin",
         headers: { "Content-Type": "application/json", "X-Requested-With": "glassbox" },
-        body: JSON.stringify({ messages: msgs.filter((m) => !m.local).map((m) => ({ role: m.role, content: m.text })) }) });
+        body: JSON.stringify({ page: here(), messages: msgs.filter((m) => !m.local).map((m) => ({ role: m.role, content: m.text })) }) });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.reply) return data.reply;
       if (data.offline) { online = false; note("The live assistant is offline, so I'm answering from our quick answers."); return quickAnswer(q); }
@@ -90,7 +157,7 @@
       '<button class="cb-close" type="button" aria-label="Close the assistant">×</button></header>' +
       '<div class="cb-log" aria-live="polite"></div>' +
       '<div class="cb-chips"></div>' +
-      '<form class="cb-form"><label class="sr-only" for="cb-q">Your question</label><textarea id="cb-q" rows="1" maxlength="800" placeholder="Ask about fees, raises, exits..."></textarea>' +
+      '<form class="cb-form"><label class="sr-only" for="cb-q">Your question</label><textarea id="cb-q" rows="1" maxlength="800" placeholder="Ask a question or find a page"></textarea>' +
       '<button class="btn primary" type="submit">Send</button></form></section>';
     document.body.appendChild(el);
     const open = el.querySelector(".cb-open"), panel = el.querySelector(".cb-panel"), q = el.querySelector("#cb-q");
@@ -114,7 +181,7 @@
     log.innerHTML = '<p class="cb-msg bot">' + render(GREET) + "</p>" +
       msgs.map((m) => '<p class="cb-msg ' + (m.role === "user" ? "me" : "bot") + (m.local ? " note" : "") + '">' + (m.role === "user" ? esc(m.text) : render(m.text)) + "</p>").join("") +
       (busy ? '<p class="cb-msg bot typing" aria-label="The assistant is typing"><i></i><i></i><i></i></p>' : "");
-    el.querySelector(".cb-chips").innerHTML = msgs.length ? "" : CHIPS.map((c) => '<button type="button">' + esc(c) + "</button>").join("");
+    el.querySelector(".cb-chips").innerHTML = msgs.length ? "" : chips().map((c) => '<button type="button">' + esc(c) + "</button>").join("");
     log.scrollTop = log.scrollHeight;
   }
   async function send(text) {
@@ -129,5 +196,5 @@
   if (typeof document !== "undefined") {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
   }
-  root.CHAT = { quickAnswer };
+  root.CHAT = { quickAnswer, findPage: (q) => findPage(norm(q)) };
 })(typeof window !== "undefined" ? window : globalThis);

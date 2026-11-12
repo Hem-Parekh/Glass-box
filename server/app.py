@@ -428,7 +428,9 @@ def chat_reply():
         _CHATS.clear()
     _CHATS[key] = recent + [time.time()]
     try:
-        return jsonify(reply=CHAT.answer(msgs))
+        page = str(body().get("page") or "")[:60]
+        user = current_user()
+        return jsonify(reply=CHAT.answer(msgs, page=page if re.fullmatch(r"[a-z0-9/_-]*", page) else "", role=user and user["role"]))
     except CHAT.Offline:
         return jsonify(error="The assistant is offline.", offline=True), 503
 
@@ -439,7 +441,7 @@ def index():
     shell = open(os.path.join(SITE, "shell.html"), encoding="utf-8").read()
     pre, post = SCRIPTS[:SCRIPTS.index("api-server.js") + 1], SCRIPTS[SCRIPTS.index("api-server.js") + 1:]
     tags = "".join('<script src="/static/%s"></script>' % f for f in pre)
-    tags += '<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/"; window.GB_CHAT_URL = "/api/chat";</script>'
+    tags += '<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/"; window.GB_CHAT_URL = "/api/chat"; window.GB_SITEMAP = ' + json.dumps(CHAT.SITEMAP, separators=(",", ":")).replace("</", "<\\/") + ';</script>'
     tags += "".join('<script src="/static/%s"></script>' % f for f in post)
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"

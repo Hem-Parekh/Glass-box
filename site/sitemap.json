@@ -1,0 +1,88 @@
+{
+  "note": "The website assistant's map of the site. Read by server/chat.py (Claude's site map) and inlined by site/build.py for the browser's quick answers. server/tests check the workspace pages against the menus in site/portal.js.",
+  "public": [
+    {"route": "home", "label": "Home", "what": "The 3D emblem intro, a live debt-vs-equity example, what we stand for, how every report is made, the tools, the founders.", "keywords": ["home", "start", "main page", "homepage", "landing", "live example", "how every report is made", "method"]},
+    {"route": "services", "label": "Services", "what": "Debt vs equity advisory, equity raise and early exit, and debt arranging, monitoring and transfers.", "keywords": ["services", "service", "what you do", "advisory", "offerings"]},
+    {"route": "services-equity", "label": "Equity raise and early exit", "what": "How a raise closes, step by step, and how an early exit works.", "keywords": ["equity raise", "raise", "early exit", "exit steps", "how a raise closes"]},
+    {"route": "services-debt", "label": "Debt: arrange, monitor, transfer", "what": "How we arrange a loan, monitor it, and help lenders transfer it.", "keywords": ["debt service", "arrange a loan", "loan arranging", "debt arranging"]},
+    {"route": "investors", "label": "For investors", "what": "Why fewer but checked companies, direct ownership, deal rooms, a tax table and the exit tax calculator.", "keywords": ["for investors", "investor page", "tax", "exit tax", "tax calculator", "capital gains", "invest"]},
+    {"route": "lenders", "label": "For lenders", "what": "The lender-side view, monitoring, loan transfers and the debt fee calculator.", "keywords": ["for lenders", "lender page", "bank", "nbfc", "debt fee calculator", "monitoring fee"]},
+    {"route": "pricing", "label": "Pricing", "what": "The fee schedule and the 'What one deal is worth' calculator.", "keywords": ["pricing", "price", "fees", "fee", "cost", "charges", "fee calculator", "how much"]},
+    {"route": "trust", "label": "Trust & compliance", "what": "How each activity is structured legally, our commitments, planned security controls and the release checklist.", "keywords": ["trust", "compliance", "legal", "security", "privacy", "regulation", "sebi", "rbi", "section 42"]},
+    {"route": "about", "label": "About", "what": "The founders, who we serve first, how we compare, and the roadmap.", "keywords": ["about", "founders", "team", "who are you", "roadmap", "company"]},
+    {"route": "contact", "label": "Contact", "what": "The enquiry form: an advisor replies to the email you give.", "keywords": ["contact", "talk", "enquiry", "book", "engagement", "email", "call", "reach", "get in touch", "advisor"]},
+    {"route": "login", "label": "Sign in", "what": "Sign in to your workspace; the demo has one-click sign-ins for each role.", "keywords": ["sign in", "login", "log in", "signin", "demo", "workspace", "dashboard"]},
+    {"route": "signup", "label": "Create an account", "what": "Sign up as a founder, investor or lender. Advisor accounts are created by the firm.", "keywords": ["sign up", "signup", "register", "create an account", "new account", "join"]}
+  ],
+  "roles": {
+    "founder": {
+      "demo": "founder@demo.in",
+      "pages": [
+        {"route": "app", "label": "Overview", "what": "Your stage, the advisor-approved mix, interested investors, next steps and decisions waiting for you.", "keywords": ["overview", "home", "dashboard", "next steps", "status"]},
+        {"route": "app-fundraise", "label": "Fundraise tracker", "what": "The stage timeline, offers this year out of 200, interested and committed investors, pending documents.", "keywords": ["fundraise", "tracker", "progress", "offers", "raise status"]},
+        {"route": "app-investors", "label": "Investors", "what": "Investors ranked by Fit Score with reasons; suggest one to your advisor; grant deal-room requests.", "keywords": ["investors", "fit score", "suggest investor", "investor list"]},
+        {"route": "app-dealroom", "label": "Deal room", "what": "Your deal-room documents, who has access, and who viewed what.", "keywords": ["deal room", "dealroom", "access", "who viewed", "nda"]},
+        {"route": "app-captable", "label": "Cap table", "what": "Every shareholder, ownership now and after the round, members out of 200, and the round calculator.", "keywords": ["cap table", "captable", "shareholders", "ownership", "dilution", "shares"]},
+        {"route": "app-dataroom", "label": "Data room", "what": "The 8-item checklist and uploads: accounts, GST returns, CMA data and more.", "keywords": ["data room", "dataroom", "upload", "documents", "files", "gst", "accounts"]},
+        {"route": "app-revshare", "label": "Revenue share", "what": "Paid to date, amount due, the quarterly estimate and statements.", "keywords": ["revenue share", "revshare", "0.4%", "statements"]},
+        {"route": "app-loans", "label": "Loans & monitoring", "what": "Your loans, applying through Aegis Ascend, quarterly accounts and covenant (DSCR) monitoring.", "keywords": ["loans", "loan", "monitoring", "dscr", "covenant", "emi", "apply for loan", "quarterly accounts", "quarterly results"]},
+        {"route": "app-fees", "label": "Fees", "what": "The fee calculator for your raise and revenue.", "keywords": ["fees", "fee", "invoice", "cost"]},
+        {"route": "app-company", "label": "Company profile", "what": "Edit your company's name, sector, stage, city, revenue and raise.", "keywords": ["company profile", "profile", "edit company", "settings"]},
+        {"route": "app-notifications", "label": "Notifications", "what": "Deal-room requests and updates.", "keywords": ["notifications", "alerts", "messages"]},
+        {"route": "app-activity", "label": "Activity log", "what": "Everything done for your company.", "keywords": ["activity", "log", "history"]}
+      ]
+    },
+    "investor": {
+      "demo": "investor@demo.in",
+      "pages": [
+        {"route": "app", "label": "Portfolio", "what": "Total invested, current value, gain or loss, XIRR, your holdings and lock-in dates.", "keywords": ["portfolio", "holdings", "investments", "returns", "xirr", "value", "home", "dashboard"]},
+        {"route": "app-opportunities", "label": "Opportunities", "what": "Private offers your advisor shared with you: read the report, express interest or decline.", "keywords": ["opportunities", "offers", "private offer", "new deals", "express interest"]},
+        {"route": "app-deals", "label": "Curated deals", "what": "Companies offered to you, ranked by Fit Score; request deal-room access.", "keywords": ["curated deals", "deals", "companies", "request access"]},
+        {"route": "app-rooms", "label": "Deal rooms", "what": "Rooms the founder opened for you: sign the NDA online, then read the documents.", "keywords": ["deal rooms", "deal room", "nda", "documents"]},
+        {"route": "app-sells", "label": "Sell requests & exits", "what": "Your sell requests with their timelines, and the exit tax calculator.", "keywords": ["sell", "sell my shares", "exit", "sell request", "resale", "exit tax", "withdraw"]},
+        {"route": "app-notifications", "label": "Notifications", "what": "New offers, revaluations, allotments, updates and lock-in reminders.", "keywords": ["notifications", "alerts", "lock-in", "reminders"]},
+        {"route": "app-activity", "label": "Activity log", "what": "Your own actions.", "keywords": ["activity", "log", "history"]}
+      ]
+    },
+    "lender": {
+      "demo": "lender@demo.in",
+      "pages": [
+        {"route": "app", "label": "Loan book", "what": "Total lent, principal outstanding, interest earned, next repayment, and every loan with its DSCR badge.", "keywords": ["loan book", "loans", "book", "portfolio", "home", "dashboard", "overdue"]},
+        {"route": "app-desk", "label": "Lender desk", "what": "New applications, loans monitored, book size and covenant alerts.", "keywords": ["lender desk", "desk", "covenant alerts", "overview"]},
+        {"route": "app-applications", "label": "Applications", "what": "Loan applications: sanction, decline, then mark disbursed.", "keywords": ["applications", "sanction", "disburse", "new loans", "approve loan"]},
+        {"route": "app-monitor", "label": "Monitoring", "what": "Quarterly covenant checks for every disbursed loan.", "keywords": ["monitoring", "covenants", "dscr", "quarterly"]},
+        {"route": "app-ltransfers", "label": "Loan transfers", "what": "Transfer requests and their timelines.", "keywords": ["loan transfers", "transfer", "sell loan", "assignment"]},
+        {"route": "app-lfees", "label": "Fees", "what": "Your monitoring and transfer fee invoices, and the debt fee calculator.", "keywords": ["fees", "invoices", "fee"]},
+        {"route": "app-notifications", "label": "Notifications", "what": "New applications, transfer updates and loans moved into your book.", "keywords": ["notifications", "alerts"]},
+        {"route": "app-activity", "label": "Activity log", "what": "Your own actions.", "keywords": ["activity", "log", "history"]}
+      ]
+    },
+    "advisor": {
+      "demo": "advisor@demo.in",
+      "pages": [
+        {"route": "app", "label": "Today", "what": "Everything needing attention, most urgent first.", "keywords": ["today", "home", "dashboard", "alerts", "urgent"]},
+        {"route": "app-pipeline", "label": "Company pipeline", "what": "The board of companies by stage; drag to move; table view.", "keywords": ["pipeline", "board", "kanban", "stages"]},
+        {"route": "app-companies", "label": "Companies", "what": "Every client company with readiness scores and report status.", "keywords": ["companies", "clients", "company list"]},
+        {"route": "app-directory", "label": "Investor directory", "what": "Every investor with KYC and filters; share an offer from here.", "keywords": ["investor directory", "directory", "investors", "kyc", "share offer", "share an offer", "send an offer", "send offer", "shortlist"]},
+        {"route": "app-intros", "label": "Deal rooms", "what": "Every deal-room request and the investor's response.", "keywords": ["deal rooms", "intros", "requests", "nda"]},
+        {"route": "app-requests", "label": "Resale requests", "what": "The resale queue: review, first-refusal window, buyer introduction, SPA, transfer.", "keywords": ["resale", "resale requests", "sell requests", "first refusal", "transfer shares"]},
+        {"route": "app-revaluations", "label": "Revaluation centre", "what": "Companies due for revaluation and the publish form.", "keywords": ["revaluation", "valuation", "valuer", "publish revaluation"]},
+        {"route": "app-loantransfers", "label": "Loan transfers", "what": "The loan transfer queue and next-step buttons.", "keywords": ["loan transfers", "transfer", "assignment"]},
+        {"route": "app-loansdesk", "label": "Loans & DSCR", "what": "Every disbursed loan with its latest DSCR.", "keywords": ["loans", "dscr", "loans desk"]},
+        {"route": "app-review", "label": "Review queue", "what": "Reports waiting for sign-off: approve and stamp, or request changes.", "keywords": ["review", "review queue", "sign off", "approve report", "reports"]},
+        {"route": "app-compliance", "label": "Compliance", "what": "Offer, member and investor counters, missing filings and holding-period timers.", "keywords": ["compliance", "counters", "filings", "lock-in", "section 42"]},
+        {"route": "app-revenue", "label": "Revenue", "what": "Fees by type and month, and invoices.", "keywords": ["revenue", "invoices", "income", "fees"]},
+        {"route": "app-tasks", "label": "Notes & tasks", "what": "Notes on any investor, lender or company; dated notes become tasks.", "keywords": ["notes", "tasks", "to do", "todo"]},
+        {"route": "app-templates", "label": "Message templates", "what": "One email template with placeholders, and individual messages per investor.", "keywords": ["templates", "message templates", "email", "whatsapp"]},
+        {"route": "app-twin", "label": "Funding Twin", "what": "The live model of a company where the report is prepared and submitted.", "keywords": ["funding twin", "twin", "model", "best mix", "submit report"]},
+        {"route": "app-optimizer", "label": "Equity vs Debt Optimizer", "what": "Every mix from 0% to 100% equity, year by year.", "keywords": ["optimizer", "equity vs debt", "optimiser"]},
+        {"route": "app-cma", "label": "CMA funding report", "what": "The CMA tool: upload a bank CMA workbook and get a one-page PDF.", "keywords": ["cma", "cma report", "funding report", "pdf"]},
+        {"route": "app-readiness", "label": "Readiness Score", "what": "Debt and equity readiness out of 100 with a fix-it plan.", "keywords": ["readiness", "readiness score", "score"]},
+        {"route": "app-termsheet", "label": "Term Sheet Analyser", "what": "The true cost of a loan sanction letter, or dilution and risky clauses in an equity term sheet.", "keywords": ["term sheet", "termsheet", "sanction letter", "analyser", "analyzer"]},
+        {"route": "app-enquiries", "label": "Enquiries", "what": "Messages from the website's contact form.", "keywords": ["enquiries", "inquiries", "contact messages", "leads"]},
+        {"route": "app-activity", "label": "Audit log", "what": "Every action, with before and after values, filters and export.", "keywords": ["audit", "audit log", "activity", "history"]},
+        {"route": "app-settings", "label": "Settings", "what": "The platform-investor limit per company.", "keywords": ["settings", "limit", "configuration"]}
+      ]
+    }
+  }
+}
