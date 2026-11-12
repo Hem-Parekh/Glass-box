@@ -201,6 +201,13 @@ def seed_data(rel):
         inv("f_10", "revenue_share", "c_vasai", "company", "c_vasai", "Quarter 3", q_rev_vasai, D(0, -5), D(0, 10), None),
         inv("f_11", "monitoring", "c_vasai", "lender", "u_lender", "Loan l_1, last quarter", 18 * CRORE * 35 // 10000 // 4, D(-1), D(0, -15), D(0, -14)),
         inv("f_12", "monitoring", "c_kalyan", "lender", "u_lender2", "Loan l_4, last quarter", 25 * CRORE // 10 * 35 // 10000 // 4, D(-1), D(0, -15), None),
+        # 2.5% debt success fee, paid by the company when a loan arranged through Aegis Ascend is disbursed
+        inv("f_13", "debt_success", "c_vasai", "company", "c_vasai", "Loan from Harbour Bank (sample)", 18 * CRORE * 25 // 1000, D(-18), D(-18, 15), D(-18, 10)),
+        inv("f_14", "debt_success", "c_kalyan", "company", "c_kalyan", "Loan from Harbour Bank (sample)", 6 * CRORE * 25 // 1000, D(-20, -10), D(-20, 5), D(-20, 2)),
+        inv("f_15", "debt_success", "c_taloja", "company", "c_taloja", "Loan from Harbour Bank (sample)", 35 * CRORE // 10 * 25 // 1000, D(-7), D(-7, 15), D(-7, 12)),
+        inv("f_16", "debt_success", "c_kalyan", "company", "c_kalyan", "Loan from Sahyadri Finance NBFC (sample)", 25 * CRORE // 10 * 25 // 1000, D(-14), D(-14, 15), D(-14, 9)),
+        inv("f_17", "debt_success", "c_vasai", "company", "c_vasai", "Loan from Konkan Co-operative Bank (sample)", 5 * CRORE * 25 // 1000, D(-30), D(-30, 15), D(-30, 11)),
+        inv("f_18", "debt_success", "c_nashik", "company", "c_nashik", "Loan from Deccan Capital NBFC (sample)", 15 * CRORE // 10 * 25 // 1000, D(-5), D(-5, 15), D(-5, 14)),
     ]
     notes = [
         dict(id="n_1", subject_type="company", subject_id="c_taloja", text="Chase the depository for the demat credit confirmation.", due=D(0, 2), done=False, by="u_advisor", at=T(0, -4)),

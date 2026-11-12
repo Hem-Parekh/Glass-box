@@ -183,6 +183,7 @@
     need(u && (role == null || u.role === role), capitalize(role || "User") + " not found");
     return u;
   }
+  const DEBT_SUCCESS_PERMILLE = 25; // 2.5% of a loan arranged through Aegis Ascend, paid by the company at disbursal
   const label = (u) => (["investor", "lender"].includes(u.role) && truthy(get(u, "firm")) ? u.firm : u.name);
   function notify(st, userId, kind, text, link) {
     st.notifications.push({ id: uid("nt"), user_id: userId, kind, text, link, at: now(), read: false });
@@ -698,7 +699,15 @@
       need(nxt && l.status === nxt[0], "That step is not available now");
       l.status = nxt[1];
       if (nxt[1] === "sanctioned") l.sanction_date = day;
-      if (nxt[1] === "disbursed") Object.assign(l, { disbursal_date: day, payments: {} });
+      if (nxt[1] === "disbursed") {
+        Object.assign(l, { disbursal_date: day, payments: {} });
+        // loans arranged through Aegis Ascend: the company pays a 2.5% debt success fee on the amount disbursed
+        const fee = floorDiv(l.amount_paise * DEBT_SUCCESS_PERMILLE, 1000), c = companyOf(st, l.company_id), lname = label(u);
+        st.invoices.push({ id: uid("f"), kind: "debt_success", company_id: c.id, payer: "company", payer_id: c.id,
+          period: "Loan from " + lname, amount_paise: fee, gst_paise: floorDiv(fee * 18, 100), issued: day, due: DOM.addDays(day, 15), paid_on: null });
+        for (const f of st.users) if (f.role === "founder" && f.company_id === c.id)
+          notify(st, f.id, "fee", "Your " + rs(l.amount_paise) + " loan from " + lname + " is disbursed. Aegis Ascend's 2.5% debt success fee: " + rs(fee) + " + GST, due " + ddmmmyyyy(DOM.addDays(day, 15)), "app-fees");
+      }
       return ["Loan " + l.status + " (" + rs(l.amount_paise) + ")", l.company_id];
     },
 
@@ -726,7 +735,7 @@
       st.loan_transfers.push({ id: uid("lt"), loan_id: l.id, from_lender_id: u.id, amount_paise: amount, note: cut(pystr(or(get(p, "note"), "")), 500),
         status: "submitted", buyer_lender_id: null, fee_rate: null, fee_paise: null, created_at: now(),
         history: [{ status: "submitted", at: now(), by: u.id }] });
-      notifyAdvisors(st, "transfer", "Loan transfer request: " + label(u) + ", " + companyOf(st, l.company_id).name, "app-loantransfers");
+      notifyAdvisors(st, "transfer", "Loan sale request: " + label(u) + " wants to sell its " + companyOf(st, l.company_id).name + " loan", "app-loantransfers");
       return ["Asked Aegis Ascend to transfer " + rs(or(amount, pending)) + " of the " + companyOf(st, l.company_id).name + " loan", l.company_id];
     },
 
@@ -810,7 +819,7 @@
     save_invoice(st, u, p, day) {
       need(u.role === "advisor", "Only an advisor raises invoices");
       const kind = get(p, "kind");
-      need(["advisory", "success", "revenue_share", "monitoring", "transfer"].includes(kind), "Unknown fee type");
+      need(["advisory", "success", "debt_success", "revenue_share", "monitoring", "transfer"].includes(kind), "Unknown fee type");
       const c = companyOf(st, get(p, "company_id"));
       const amount = inum(get(p, "amount_paise"));
       need(amount && amount > 0, "Enter the amount");

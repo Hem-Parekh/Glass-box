@@ -286,7 +286,7 @@
   const short = (v) => { const s = v === undefined ? "–" : JSON.stringify(v); return s.length > 90 ? s.slice(0, 87) + "..." : s; };
 
   // ---------- revenue ----------
-  const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"]];
+  const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["debt_success", "Debt success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"]];
   function invoiceTable(id, F, compact) {
     return KIT.table(id, { name: "invoices", rows: F, noSearch: compact, pageSize: compact ? 8 : 25, empty: { title: "No invoices", text: "" },
       filters: compact ? [] : [{ k: "kind", label: "Fee", options: KINDS }, { k: "st", label: "Status", options: [["paid", "Paid"], ["due", "Due"], ["overdue", "Overdue"]], match: (f, v) => (f.paid_on ? "paid" : f.due < today() ? "overdue" : "due") === v }],
@@ -298,9 +298,9 @@
   function revenue() {
     const F = D().invoices, sum = (L) => L.reduce((a, f) => a + f.amount_paise, 0);
     const months = []; for (let k = -11; k <= 0; k++) months.push(DOM.addMonths(today().slice(0, 8) + "01", k).slice(0, 7));
-    const ser = KINDS.map(([k, l], i) => ({ name: l, color: ["var(--s-equity)", "var(--s-mix)", "var(--gold-ink, #7B5C1F)", "var(--s-debt)", "var(--muted)"][i], values: months.map((m) => sum(F.filter((f) => f.kind === k && (f.paid_on || f.issued).slice(0, 7) === m)) / 1e7) }));
-    return WS.head("Revenue", "Every fee Aegis Ascend earns, with GST at 18%. Revenue share is 0.4% of revenue for 5 years; monitoring 0.25% to 0.5% a year; transfers 0.3% to 0.5%.", '<button class="btn ghost" data-act="a-invoice">Raise invoice</button>') +
-      '<div class="kpis k5" data-stagger>' + KINDS.map(([k, l]) => { const L = F.filter((f) => f.kind === k), paid = L.filter((f) => f.paid_on), due = L.filter((f) => !f.paid_on);
+    const ser = KINDS.map(([k, l], i) => ({ name: l, color: ["var(--s-equity)", "var(--s-mix)", "#C9A04F", "var(--gold-ink, #7B5C1F)", "var(--s-debt)", "var(--muted)"][i], values: months.map((m) => sum(F.filter((f) => f.kind === k && (f.paid_on || f.issued).slice(0, 7) === m)) / 1e7) }));
+    return WS.head("Revenue", "Every fee Aegis Ascend earns, with GST at 18%. Debt success fee is 2.5% of a loan we arrange, paid by the company at disbursal; revenue share is 0.4% of revenue for 5 years; monitoring 0.25% to 0.5% a year; transfers 0.3% to 0.5%.", '<button class="btn ghost" data-act="a-invoice">Raise invoice</button>') +
+      '<div class="kpis k6" data-stagger>' + KINDS.map(([k, l]) => { const L = F.filter((f) => f.kind === k), paid = L.filter((f) => f.paid_on), due = L.filter((f) => !f.paid_on);
         return '<div class="kpi"><small>' + esc(l) + "</small><b>" + rs(sum(paid), true) + '</b><span>paid · ' + rs(sum(due), true) + " due</span></div>"; }).join("") + "</div>" +
       '<section class="panel"><h2>Fees by month</h2>' + UI.stack(months.map((m) => my(m + "-01")), ser, { fmt: (v) => "Rs " + UI.n(v, 2) + " L", yfmt: (y) => UI.n(y, 0) + " L", label: "Fees invoiced or received by month, Rs lakh", height: 240 }) + "</section>" +
       '<section class="panel"><h2>Invoices</h2>' + invoiceTable("a-rev", F.slice().sort((a, b) => (a.issued < b.issued ? 1 : -1)), false) + "</section>";

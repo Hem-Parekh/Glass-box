@@ -26,7 +26,7 @@
         {"route": "app-dataroom", "label": "Data room", "what": "The 8-item checklist and uploads: accounts, GST returns, CMA data and more.", "keywords": ["data room", "dataroom", "upload", "documents", "files", "gst", "accounts"]},
         {"route": "app-revshare", "label": "Revenue share", "what": "Paid to date, amount due, the quarterly estimate and statements.", "keywords": ["revenue share", "revshare", "0.4%", "statements"]},
         {"route": "app-loans", "label": "Loans & monitoring", "what": "Your loans, applying through Aegis Ascend, quarterly accounts and covenant (DSCR) monitoring.", "keywords": ["loans", "loan", "monitoring", "dscr", "covenant", "emi", "apply for loan", "quarterly accounts", "quarterly results"]},
-        {"route": "app-fees", "label": "Fees", "what": "The fee calculator for your raise and revenue.", "keywords": ["fees", "fee", "invoice", "cost"]},
+        {"route": "app-fees", "label": "Fees", "what": "The fee calculator and your invoices, including the 2.5% debt success fee on loans arranged through us.", "keywords": ["fees", "fee", "invoice", "cost"]},
         {"route": "app-company", "label": "Company profile", "what": "Edit your company's name, sector, stage, city, revenue and raise.", "keywords": ["company profile", "profile", "edit company", "settings"]},
         {"route": "app-notifications", "label": "Notifications", "what": "Deal-room requests and updates.", "keywords": ["notifications", "alerts", "messages"]},
         {"route": "app-activity", "label": "Activity log", "what": "Everything done for your company.", "keywords": ["activity", "log", "history"]}
@@ -51,7 +51,7 @@
         {"route": "app-desk", "label": "Lender desk", "what": "New applications, loans monitored, book size and covenant alerts.", "keywords": ["lender desk", "desk", "covenant alerts", "overview"]},
         {"route": "app-applications", "label": "Applications", "what": "Loan applications: sanction, decline, then mark disbursed.", "keywords": ["applications", "sanction", "disburse", "new loans", "approve loan"]},
         {"route": "app-monitor", "label": "Monitoring", "what": "Quarterly covenant checks for every disbursed loan.", "keywords": ["monitoring", "covenants", "dscr", "quarterly"]},
-        {"route": "app-ltransfers", "label": "Loan transfers", "what": "Transfer requests and their timelines.", "keywords": ["loan transfers", "transfer", "sell loan", "assignment"]},
+        {"route": "app-ltransfers", "label": "Loan transfers", "what": "Sell all or part of a loan: press Sell a loan, and your advisor arranges the buyer; follow each sale's timeline here.", "keywords": ["loan transfers", "transfer", "sell loan", "sell a loan", "sell my loan", "sell loans", "assignment", "exit a loan"]},
         {"route": "app-lfees", "label": "Fees", "what": "Your monitoring and transfer fee invoices, and the debt fee calculator.", "keywords": ["fees", "invoices", "fee"]},
         {"route": "app-notifications", "label": "Notifications", "what": "New applications, transfer updates and loans moved into your book.", "keywords": ["notifications", "alerts"]},
         {"route": "app-activity", "label": "Activity log", "what": "Your own actions.", "keywords": ["activity", "log", "history"]}
@@ -67,7 +67,7 @@
         {"route": "app-intros", "label": "Deal rooms", "what": "Every deal-room request and the investor's response.", "keywords": ["deal rooms", "intros", "requests", "nda"]},
         {"route": "app-requests", "label": "Resale requests", "what": "The resale queue: review, first-refusal window, buyer introduction, SPA, transfer.", "keywords": ["resale", "resale requests", "sell requests", "first refusal", "transfer shares"]},
         {"route": "app-revaluations", "label": "Revaluation centre", "what": "Companies due for revaluation and the publish form.", "keywords": ["revaluation", "valuation", "valuer", "publish revaluation"]},
-        {"route": "app-loantransfers", "label": "Loan transfers", "what": "The loan transfer queue and next-step buttons.", "keywords": ["loan transfers", "transfer", "assignment"]},
+        {"route": "app-loantransfers", "label": "Loan transfers", "what": "Lenders' loan sale requests: check eligibility, record consent, introduce the buyer, complete.", "keywords": ["loan transfers", "transfer", "assignment"]},
         {"route": "app-loansdesk", "label": "Loans & DSCR", "what": "Every disbursed loan with its latest DSCR.", "keywords": ["loans", "dscr", "loans desk"]},
         {"route": "app-review", "label": "Review queue", "what": "Reports waiting for sign-off: approve and stamp, or request changes.", "keywords": ["review", "review queue", "sign off", "approve report", "reports"]},
         {"route": "app-compliance", "label": "Compliance", "what": "Offer, member and investor counters, missing filings and holding-period timers.", "keywords": ["compliance", "counters", "filings", "lock-in", "section 42"]},

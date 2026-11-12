@@ -460,3 +460,31 @@ def test_chat_knows_where_the_visitor_is(client, monkeypatch):
     assert CHAT.keep_known_links("Open [Pricing](#pricing) or [Admin](#secret-admin).") == "Open [Pricing](#pricing) or Admin."
     note = CHAT.context_note("app-captable", "founder")
     assert "Cap table" in note and "founder" in note
+
+
+def test_debt_success_fee_on_disbursal(client):
+    """A loan arranged through Aegis Ascend: the company is invoiced 2.5% + GST when the lender disburses it, and the founder is told."""
+    login(client, "founder@demo.in")
+    act(client, "apply_loan", {"company_id": "c_kalyan", "lender_id": "u_lender", "amount_paise": 4 * 10**9, "rate_bps": 1100, "tenor_months": 60, "moratorium_months": 0})
+    login(client, "lender@demo.in")
+    loan = next(l for l in state(client)["loans"] if l["status"] == "applied" and l["company_id"] == "c_kalyan")
+    act(client, "lender_decide", {"loan_id": loan["id"], "decision": "sanction"})
+    act(client, "lender_decide", {"loan_id": loan["id"], "decision": "disburse"})
+    login(client, "founder@demo.in")
+    st = state(client)
+    fee = [f for f in st["invoices"] if f["kind"] == "debt_success" and f["period"] == "Loan from Harbour Bank (sample)" and f["issued"] == TODAY]
+    assert len(fee) == 1 and fee[0]["amount_paise"] == 4 * 10**9 * 25 // 1000 and fee[0]["gst_paise"] == fee[0]["amount_paise"] * 18 // 100
+    assert fee[0]["payer"] == "company" and fee[0]["company_id"] == "c_kalyan"
+    assert any("2.5% debt success fee" in n["text"] for n in st["notifications"])
+    # the advisor can also raise one by hand
+    login(client, "advisor@demo.in")
+    act(client, "save_invoice", {"kind": "debt_success", "company_id": "c_vasai", "amount_paise": 100000, "period": "Loan"})
+
+
+def test_lender_sells_a_loan_through_the_advisor(client):
+    login(client, "lender@demo.in")
+    act(client, "request_loan_transfer", {"loan_id": "l_1", "note": "Rebalancing the book"})
+    login(client, "advisor@demo.in")
+    st = state(client)
+    assert any(t["loan_id"] == "l_1" and t["status"] == "submitted" for t in st["loan_transfers"])
+    assert any("Loan sale request" in n["text"] and n["link"] == "app-loantransfers" for n in st["notifications"])

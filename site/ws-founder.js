@@ -80,7 +80,7 @@
   // ---------- loans and monitoring ----------
   function loans() {
     const c = WS.myCompany(), L = D().loans, lenders = (D().directory || []).filter((u) => u.role === "lender");
-    return WS.head("Loans & monitoring", "Your loans, applications and quarterly covenant checks. Lenders pay all Aegis Ascend debt fees.") +
+    return WS.head("Loans & monitoring", "Your loans, applications and quarterly covenant checks. A loan arranged through Aegis Ascend carries a 2.5% debt success fee (plus GST), invoiced to the company when the loan is disbursed; see <a href=\"#app-fees\">Fees</a>.") +
       '<section class="panel"><h2>Loans</h2>' + KIT.table("f-loans", { name: "loans", rows: L, noSearch: true, empty: { title: "No loans yet", text: "Apply through Aegis Ascend below." },
         columns: [{ k: "lender", label: "Lender", val: (l) => WS.userName(l.lender_id), html: (l) => esc(WS.userName(l.lender_id)) }, { k: "amount_paise", label: "Amount", num: true, csv: (l) => l.amount_paise / 100, html: (l) => rs(l.amount_paise, true) },
           { k: "rate_bps", label: "Rate", num: true, html: (l) => (l.rate_bps / 100).toFixed(2) + "%" }, { k: "tenor_months", label: "Tenor", html: (l) => l.tenor_months + " months" + (l.moratorium_months ? " · " + l.moratorium_months + " mo moratorium" : "") },
@@ -89,6 +89,7 @@
           { k: "status", label: "Status", html: (l) => WS.statusChip(l.status) }] }) +
       '<h3>Apply through Aegis Ascend</h3><form class="fields f5" data-form="f-apply"><label class="fld"><span>Lender</span><span class="in"><select name="lender_id" id="al_lender">' + lenders.map((l) => '<option value="' + l.id + '">' + esc(l.firm) + "</option>").join("") + "</select></span></label>" +
       UI_field("amount", "Amount", c.raise, "Rs cr") + UI_field("rate", "Expected rate", 10.5, "%") + UI_field("tenor", "Tenor", 7, "years") + UI_field("moratorium", "Moratorium", 0, "months") + '<button class="btn primary" type="submit">Send application</button></form></section>' +
+      '<p class="small muted">Aegis Ascend\'s debt success fee on a loan we arrange: 2.5% of the loan amount, plus GST, invoiced to the company when the lender disburses it.</p>' +
       '<section class="panel"><div class="panel-head"><h2>Covenant monitoring</h2><button class="btn ghost sm" data-act="f-upload-q">Upload quarterly accounts</button></div>' + WS.monitorBlock(c, false) + "</section>";
   }
   const UI_field = (id, label, val, sfx) => root.PUB.field("al_" + id, label, val, sfx).replace('name="al_' + id + '"', 'name="' + id + '"');
@@ -147,5 +148,18 @@
       return WS.after(await API.act("apply_loan", { company_id: S.user.company_id, lender_id: v.lender_id, amount_paise: Math.round(amt * 1e9), rate_bps: Math.round(rate * 100), tenor_months: Math.round(ten * 12), moratorium_months: Math.round(mor) }));
     },
   });
-  Object.assign(WS.PAGES.founder, { "app-investors": investors, "app-dealroom": dealroom, "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
+  // ---------- fees: the calculator, then the company's own invoices ----------
+  const FEE_NAMES = { advisory: "Advisory fee", success: "Equity success fee (2.5%)", debt_success: "Debt success fee (2.5%)", revenue_share: "Revenue share (0.4%)" };
+  const feeCalc = WS.PAGES.founder["app-fees"];
+  function fees() {
+    const c = WS.myCompany(), F = (D().invoices || []).filter((f) => f.company_id === c.id && f.payer === "company").sort((a, b) => (a.issued < b.issued ? 1 : -1));
+    return feeCalc() + '<section class="panel"><h2>Your invoices</h2><p class="muted small">Advisory, equity success and revenue-share fees, and a 2.5% debt success fee on each loan arranged through Aegis Ascend, invoiced when it is disbursed. GST at 18% is added.</p>' +
+      KIT.table("f-inv", { name: "invoices", rows: F, noSearch: true, empty: { title: "No invoices yet", text: "Invoices from Aegis Ascend appear here." },
+        columns: [{ k: "kind", label: "Fee", html: (f) => esc(FEE_NAMES[f.kind] || f.kind) + '<span class="muted small block">' + esc(f.period || "") + "</span>" },
+          { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
+          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
+          { k: "due", label: "Due", html: (f) => dmy(f.due) },
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>";
+  }
+  Object.assign(WS.PAGES.founder, { "app-fees": fees, "app-investors": investors, "app-dealroom": dealroom, "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
 })(typeof globalThis !== "undefined" ? globalThis : this);

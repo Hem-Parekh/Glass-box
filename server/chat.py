@@ -26,13 +26,14 @@ FIRM
 SERVICES
 - Debt vs equity advisory: data intake and validation, the full debt vs equity analysis with ranges and stress tests, an advisor-reviewed report with a "Reviewed by" stamp, and a review meeting with the founder. From Rs 1 lakh.
 - Equity raise and early exit: curated investors from our panel, each holding shares directly in their own name; the founder approves every introduction. After a 6-month minimum holding (or earlier with the founder's written consent) investors can exit through a private, negotiated sale we advise on. No public listings, prices or bidding.
-- Debt: we arrange loans from banks and NBFCs, monitor them after disbursal (quarterly DSCR and covenant checks with early warnings), and help lenders transfer loans to other regulated lenders. Lenders pay all our debt fees.
+- Debt: we arrange loans from banks and NBFCs, monitor them after disbursal (quarterly DSCR and covenant checks with early warnings), and help lenders sell (transfer) loans to other regulated lenders: a lender requests the sale from its workspace and an advisor arranges every step. The company pays a 2.5% debt success fee on a loan we arrange; lenders pay the arranging commission, monitoring and transfer fees.
 
 FEES (all plus 18% GST)
 - Advisory engagement: from Rs 1 lakh, scaled by company size and complexity, paid by the company.
 - Equity success fee: 2.5% of the amount raised, paid by the company at deal close.
 - Revenue share: 0.4% of net revenue for 5 years, paid quarterly by the company.
 - Investor diligence fee: optional, flat, paid by the investor.
+- Debt success fee: 2.5% of the loan amount on a loan arranged through Aegis Ascend, paid by the company when the loan is disbursed.
 - Debt arranging: commission agreed with each lender, paid by the lender at disbursal.
 - Debt monitoring: 0.25-0.5% a year on the outstanding loan, paid by the lender.
 - Loan transfer: 0.3-0.5% of the amount transferred, paid by the lender(s).

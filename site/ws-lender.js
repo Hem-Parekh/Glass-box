@@ -36,7 +36,7 @@
     const sum = (k) => R.reduce((a, r) => a + (r.s[k] || 0), 0);
     const next = R.filter((r) => r.s.next_due).sort((a, b) => (a.s.next_due < b.s.next_due ? -1 : 1))[0];
     const e = earnings(L), overdue = R.filter((r) => r.s.overdue);
-    return WS.head("Loan book", esc(S.user.firm || "") + " · every figure is worked out from each loan's repayment schedule") +
+    return WS.head("Loan book", esc(S.user.firm || "") + " · every figure is worked out from each loan's repayment schedule", sellButton()) +
       (overdue.length ? '<div class="notice bad" role="status">' + overdue.length + " loan" + (overdue.length === 1 ? " has" : "s have") + " an overdue instalment: " + overdue.map((r) => '<a href="#app-loan/' + r.l.id + '">' + esc(r.c.name) + "</a>").join(", ") + ".</div>" : "") +
       '<div class="kpis k6" data-stagger>' +
       '<div class="kpi"><small>Total lent</small><b>' + KIT.figure("l-lent", sum("disbursed"), (y) => rs(y, true)) + "</b></div>" +
@@ -65,6 +65,13 @@
       '<p class="small muted"><span class="key solid"></span>Earned (instalments received) <span class="key light"></span>Projected from the schedules. Rs lakh.</p></section>';
   }
 
+  // loans this lender can put up for sale: its own, disbursed, with no sale already open
+  function sellable() {
+    const open = new Set((S.data.loan_transfers || []).filter((t) => !["completed", "rejected"].includes(t.status)).map((t) => t.loan_id));
+    return S.data.loans.filter((l) => l.lender_id === S.user.id && l.status === "disbursed" && !open.has(l.id));
+  }
+  const sellButton = () => (sellable().length ? '<button class="btn primary" data-act="l-sell">Sell a loan</button>' : "");
+
   // ---------- loan detail ----------
   function detail(id) {
     const l = S.data.loans.find((x) => x.id === id);
@@ -75,7 +82,7 @@
     const paid = rows.filter((r) => r.status === "paid").slice(-18);
     const mine = l.lender_id === S.user.id;
     return WS.head(c.name, rs(l.amount_paise, true) + " at " + rate(l) + " · " + tenorTxt(l) + ' · <a href="#app">Back to the loan book</a>',
-      mine && l.status === "disbursed" && !openT ? '<button class="btn ghost" data-act="l-transfer" data-id="' + l.id + '">Request loan transfer</button>' : "") +
+      mine && l.status === "disbursed" && !openT ? '<button class="btn primary" data-act="l-sell" data-id="' + l.id + '">Sell this loan</button>' : "") +
       '<div class="kpis k4" data-stagger><div class="kpi"><small>Outstanding</small><b>' + rs(s.principal_pending, true) + "</b><span>of " + rs(s.disbursed, true) + ' disbursed</span></div><div class="kpi"><small>Interest earned</small><b class="t-good">' + rs(s.interest_earned, true) + "</b></div>" +
       '<div class="kpi"><small>Next instalment</small><b>' + (s.next_due ? rs(s.next_amount, true) : "–") + "</b><span>" + (s.next_due ? dmy(s.next_due) : "Fully repaid") + '</span></div><div class="kpi"><small>Latest DSCR</small><b>' + dscr(c).html + "</b></div></div>" +
       (tr ? '<section class="panel"><h2>Loan transfer</h2>' + transferTimeline(tr) + "</section>" : "") +
@@ -134,13 +141,13 @@
   }
   function transfers() {
     const T = (S.data.loan_transfers || []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return WS.head("Loan transfers", "Loans move only between regulated banks and NBFCs, arranged by Aegis Ascend. Request one from a loan's page.") +
+    return WS.head("Loan transfers", "Sell all or part of a loan to another regulated bank or NBFC. Your request goes to your Aegis Ascend advisor, who checks eligibility, gets the borrower's consent and introduces the buyer.", sellButton()) +
       (T.length ? T.map((t) => { const l = S.data.loans.find((x) => x.id === t.loan_id); return '<section class="panel"><div class="panel-head"><h2>' + esc(co(l ? l.company_id : "").name) + "</h2>" + chip(t.status === "completed" ? "ok" : t.status === "rejected" ? "bad" : "warn", t.status.replace("_", " ")) + "</div>" + transferTimeline(t) + "</section>"; }).join("")
-        : '<section class="panel">' + KIT.empty("No transfer requests", "Open a loan to request a transfer to another regulated lender.", '<a class="btn primary" href="#app">Open the loan book</a>') + "</section>");
+        : '<section class="panel">' + KIT.empty("No loan sales yet", "Choose a loan to sell; your advisor arranges the rest.", sellButton()) + "</section>");
   }
   function fees() {
     const F = S.data.invoices || [];
-    return WS.head("Fees", "Aegis Ascend debt fees are paid by the lender: monitoring 0.25% to 0.5% a year, transfers 0.3% to 0.5%. All plus 18% GST.") +
+    return WS.head("Fees", "Your fees to Aegis Ascend: monitoring 0.25% to 0.5% a year, transfers 0.3% to 0.5%. All plus 18% GST.") +
       '<section class="panel"><h2>Your invoices</h2>' + KIT.table("l-fees", { name: "fees", rows: F, noSearch: true, empty: { title: "No invoices yet", text: "Monitoring and transfer fees appear here." },
         columns: [{ k: "kind", label: "Fee", html: (f) => esc(f.kind.replace("_", " ")) + '<span class="muted small block">' + esc(f.period) + "</span>" }, { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
           { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) }, { k: "due", label: "Due", html: (f) => dmy(f.due) }, { k: "paid_on", label: "Status", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : f.due < today() ? chip("bad", "Overdue") : chip("warn", "Due")) }] }) + "</section>" +
@@ -155,13 +162,17 @@
     "l-paid": async (b, id) => {
       if (await KIT.confirm("Record this instalment as received?", "<p>Instalment due " + dmy(b.dataset.due) + ". This updates interest earned and principal outstanding.</p>", "Record payment")) return WS.after(await WS.API.act("record_repayment", { loan_id: id, due: b.dataset.due }));
     },
-    "l-transfer": async (b, id) => {
-      const l = S.data.loans.find((x) => x.id === id), s = DOM.loanSummary(l, today());
-      const v = await KIT.dialog({ title: "Request a loan transfer", confirm: "Send to Aegis Ascend",
-        text: "<p>Aegis Ascend checks eligibility (RBI minimum holding: " + DOM.minHoldingMonths(l) + " months for this loan), gets the borrower's consent and introduces regulated buyers only.</p>",
-        fields: [{ name: "amount", label: "Amount to transfer (blank for the full outstanding " + rs(s.principal_pending) + ")", type: "number", min: 0, step: "0.01", unit: "Rs" }, { name: "note", label: "Note (optional)", type: "textarea" }],
-        validate: (x) => (x.amount && !(+x.amount > 0 && Math.round(+x.amount * 100) <= s.principal_pending) ? "Enter an amount up to " + rs(s.principal_pending) : null) });
-      if (v) return WS.after(await WS.API.act("request_loan_transfer", { loan_id: id, amount_paise: v.amount ? Math.round(+v.amount * 100) : null, note: v.note }), "Transfer request sent to Aegis Ascend.");
+    // sell a loan: from a loan's page (id given) or from the loan book / transfers page (pick the loan)
+    "l-sell": async (b, id) => {
+      const L = sellable();
+      if (!L.length) return KIT.toast("No loan can be sold right now: a loan must be disbursed, yours, and without an open sale.", "warn");
+      const pick = id ? null : { name: "loan", label: "Loan", type: "select", options: L.map((l) => [l.id, co(l.company_id).name + " · " + rs(DOM.loanSummary(l, today()).principal_pending, true) + " outstanding"]) };
+      const v = await KIT.dialog({ title: "Sell a loan", confirm: "Send to my advisor",
+        text: "<p>Your Aegis Ascend advisor checks eligibility (the RBI minimum holding period), gets the borrower's consent and introduces a regulated buyer. You'll see each step on the Loan transfers page. A transfer fee of 0.3% to 0.5% applies on completion.</p>",
+        fields: (pick ? [pick] : []).concat([{ name: "amount", label: "Amount to sell, in Rs (leave blank to sell the full outstanding)", type: "number", min: 0, step: "0.01", unit: "Rs" }, { name: "note", label: "Note for your advisor (optional)", type: "textarea" }]),
+        validate: (x) => { const l = L.find((y) => y.id === (id || x.loan)), pend = l ? DOM.loanSummary(l, today()).principal_pending : 0;
+          return x.amount && !(+x.amount > 0 && Math.round(+x.amount * 100) <= pend) ? "Enter an amount up to " + rs(pend) : null; } });
+      if (v) return WS.after(await WS.API.act("request_loan_transfer", { loan_id: id || v.loan, amount_paise: v.amount ? Math.round(+v.amount * 100) : null, note: v.note }), "Sale request sent to your Aegis Ascend advisor.");
     },
   });
 

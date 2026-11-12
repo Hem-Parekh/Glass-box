@@ -643,6 +643,8 @@ def a_sell_step(st, u, p, today):
 
 
 # ---------------- lender ----------------
+DEBT_SUCCESS_PERMILLE = 25   # 2.5% of a loan arranged through Aegis Ascend, paid by the company at disbursal
+
 def a_lender_decide(st, u, p, today):
     l = find(st.loans, p.get("loan_id"))
     need(l and u["role"] == "lender" and l["lender_id"] == u["id"], "Not your loan")
@@ -653,6 +655,14 @@ def a_lender_decide(st, u, p, today):
         l["sanction_date"] = today
     if nxt[1] == "disbursed":
         l.update(disbursal_date=today, payments={})
+        # loans arranged through Aegis Ascend: the company pays a 2.5% debt success fee on the amount disbursed
+        fee = l["amount_paise"] * DEBT_SUCCESS_PERMILLE // 1000
+        c = company_of(st, l["company_id"])
+        st.invoices.append(dict(id=uid("f"), kind="debt_success", company_id=c["id"], payer="company", payer_id=c["id"],
+                                period="Loan from " + label(u), amount_paise=fee, gst_paise=fee * 18 // 100, issued=today, due=D.add_days(today, 15), paid_on=None))
+        for f in st.users:
+            if f["role"] == "founder" and f.get("company_id") == c["id"]:
+                notify(st, f["id"], "fee", "Your %s loan from %s is disbursed. Aegis Ascend's 2.5%% debt success fee: %s + GST, due %s" % (rs(l["amount_paise"]), label(u), rs(fee), ddmmmyyyy(D.add_days(today, 15))), "app-fees")
     return "Loan %s (%s)" % (l["status"], rs(l["amount_paise"])), l["company_id"]
 
 
@@ -680,7 +690,7 @@ def a_request_loan_transfer(st, u, p, today):
     st.loan_transfers.append(dict(id=uid("lt"), loan_id=l["id"], from_lender_id=u["id"], amount_paise=amount, note=str(p.get("note") or "")[:500],
                                   status="submitted", buyer_lender_id=None, fee_rate=None, fee_paise=None, created_at=now(),
                                   history=[dict(status="submitted", at=now(), by=u["id"])]))
-    notify_advisors(st, "transfer", "Loan transfer request: %s, %s" % (label(u), company_of(st, l["company_id"])["name"]), "app-loantransfers")
+    notify_advisors(st, "transfer", "Loan sale request: %s wants to sell its %s loan" % (label(u), company_of(st, l["company_id"])["name"]), "app-loantransfers")
     return "Asked Aegis Ascend to transfer %s of the %s loan" % (rs(amount or pending), company_of(st, l["company_id"])["name"]), l["company_id"]
 
 
@@ -765,7 +775,7 @@ def a_mark_invoice_paid(st, u, p, today):
 def a_save_invoice(st, u, p, today):
     need(u["role"] == "advisor", "Only an advisor raises invoices")
     kind = p.get("kind")
-    need(kind in ("advisory", "success", "revenue_share", "monitoring", "transfer"), "Unknown fee type")
+    need(kind in ("advisory", "success", "debt_success", "revenue_share", "monitoring", "transfer"), "Unknown fee type")
     c = company_of(st, p.get("company_id"))
     amount = inum(p.get("amount_paise"))
     need(amount and amount > 0, "Enter the amount")

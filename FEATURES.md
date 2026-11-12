@@ -136,7 +136,7 @@ Each item below is a section of the Services page.
 - A call to become a partner lender.
 
 ### Pricing
-- A fee schedule: the advisory fee from Rs 1 lakh, a 2.5% success fee, a 0.4% revenue share for 5 years, an investor diligence fee, and debt fees paid by lenders. All fees are plus 18% GST.
+- A fee schedule: the advisory fee from Rs 1 lakh, a 2.5% equity success fee, a 2.5% debt success fee on loans we arrange (paid by the company at disbursal), a 0.4% revenue share for 5 years, an investor diligence fee, and the lenders' arranging commission, monitoring and transfer fees. All fees are plus 18% GST.
 - A **"What one deal is worth" calculator.** You enter the equity raised, revenue, revenue growth and advisory fee. It shows each fee and the 5-year total, with GST and a bar chart.
 - Revenue share terms.
 
@@ -230,6 +230,7 @@ Founders do **not** have the analysis tools (Funding Twin, Optimizer, CMA report
 ### Loans & monitoring
 - **Loans table:** lender, amount, rate, tenor and moratorium, amount outstanding, next EMI with its amount, any overdue instalments, and status.
 - **Apply through Aegis Ascend.** Choose a lender, then enter the amount, expected rate, tenor and moratorium. The lender is notified.
+- **Debt success fee.** A loan arranged through Aegis Ascend carries a 2.5% fee (plus GST), paid by the company. It is invoiced automatically when the lender disburses the loan, and the founder is notified.
 - **Upload quarterly accounts.** The file goes to the advisor and lenders.
 - **Covenant monitoring:**
   - a DSCR line chart by quarter against the covenant line;
@@ -239,6 +240,7 @@ Founders do **not** have the analysis tools (Funding Twin, Optimizer, CMA report
 
 ### Fees
 - The fee calculator for this company's raise and revenue, plus 18% GST.
+- **Your invoices:** every invoice to the company (advisory, equity success, debt success, revenue share), with GST, due date and Paid, Due or Overdue status.
 
 ### Company profile
 - Edit the company name, sector, stage, city, revenue and amount to raise.
@@ -359,7 +361,7 @@ Menu: Loan book, Lender desk, Applications, Monitoring, Loan transfers, Fees, No
 - **How the schedule works:** interest only during the moratorium, then a level EMI. The last instalment clears the balance exactly.
 - **Quarterly monitoring:** the same DSCR chart and covenant table the founder sees.
 - **Documents:** the standard loan documents are held by Aegis Ascend, and any uploaded files can be downloaded.
-- **"Request loan transfer".** Enter an amount (or leave it blank for the full outstanding) and a note. The request goes to the advisor. Once a transfer exists, its timeline appears here.
+- **"Sell this loan".** Enter an amount (or leave it blank for the full outstanding) and a note. The request goes to the advisor. Once a sale exists, its timeline appears here.
 
 ### Lender desk
 - **Overview cards:** new applications, loans monitored, book size, covenant alerts.
@@ -373,6 +375,7 @@ Menu: Loan book, Lender desk, Applications, Monitoring, Loan transfers, Fees, No
 - Quarterly covenant checks for every disbursed loan.
 
 ### Loan transfers
+- **"Sell a loan" button** (also on the Loan book). Pick one of your disbursed loans, enter the amount (blank for the full outstanding) and a note. The request goes to your Aegis Ascend advisor's Loan transfers queue, with a notification.
 - **Each transfer request has a timeline:** Requested → Eligibility checked → Borrower consent → Buyer lender introduced → Assignment deed signed → Charge updated with the ROC (Registrar of Companies) → Transfer complete. A rejected transfer shows its reason.
 - **Details shown:** the amount, the buyer and the fee.
 
@@ -516,6 +519,7 @@ Menu groups: Today; **Deals** (Company pipeline, Companies, Investor directory, 
 - **Cards for each fee type,** showing paid and due:
   - advisory fees;
   - success fees (2.5%);
+  - debt success fees (2.5% of loans arranged);
   - revenue share (0.4%);
   - debt monitoring fees;
   - transfer fees.
@@ -605,6 +609,7 @@ These are checked by the server on every action, so the screens cannot get aroun
 - **Recording an allotment** ticks "Shares allotted" on the checklist and starts the PAS-3 15-day countdown.
 - **Completing a resale updates:** both investors' portfolios, the cap table, the member count and the platform investor count. The seller's cost is reduced in proportion to the shares sold.
 - **Completing a loan transfer** moves the loan to the buyer's book and raises the transfer fee invoice.
+- **Disbursing a loan** raises the company's 2.5% debt success fee invoice (plus GST, due in 15 days) and notifies the founder.
 - **Worked out each time a page opens:**
   - revaluation due dates (3 months after the last valuation);
   - lock-in end dates;

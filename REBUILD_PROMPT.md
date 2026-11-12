@@ -232,7 +232,7 @@ Over the live example strip and the method steps, add a decorative, `aria-hidden
   - Lender-side view, monitoring and transfers.
   - A **debt fee calculator**: loan, tenor, rate, monitoring fee % (0.25–0.5%), transfer amount and fee % (0.3–0.5%). Show the totals and a bar chart by year.
 - **Pricing:**
-  - Fee schedule: advisory from Rs 1 lakh; 2.5% success fee; 0.4% revenue share for 5 years; investor diligence fee; debt fees paid by lenders. All fees are +18% GST.
+  - Fee schedule: advisory from Rs 1 lakh; 2.5% equity success fee; 2.5% debt success fee on loans we arrange (paid by the company at disbursal); 0.4% revenue share for 5 years; investor diligence fee; lenders pay the arranging commission, monitoring and transfer fees. All fees are +18% GST.
   - A **"What one deal is worth" calculator**: equity raised, revenue, growth and advisory fee give each fee and a 5-year total, with a bar chart.
 - **Trust & compliance:** compliance by design (table), commitments, legal opinions being obtained, planned security controls (labelled as planned), quality controls and the release checklist.
 - **About:** founders, the pilot target, a comparison with other players, and a roadmap (Validate → MVP → Ongoing services → Debt desk).
