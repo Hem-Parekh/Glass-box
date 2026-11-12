@@ -81,14 +81,21 @@
       "</svg>";
   }
 
-  // The emblem as three layers: the left A, the right A (each with its half of the
-  // shared crossbar) and the diamond, so the intro can pull the A's apart.
+  // The emblem as three solid pieces: the left A, the right A (each with its half of the
+  // shared crossbar) and the diamond, so the intro can pull the A's apart. Each piece is a
+  // gold face over a stack of darker slices set back in depth, which reads as a 3D extrusion
+  // when the mark turns. The mark always stays upright.
+  const DEPTH = 16;
   function introMark() {
-    const vb = 'viewBox="62 52 420 400" aria-hidden="true"', g = '<g fill="none" stroke="url(#goldv2)" stroke-width="17" stroke-linejoin="miter" stroke-miterlimit="12">';
-    return '<div class="intro-mark">' +
-      '<svg class="ia ia-l" ' + vb + ">" + g + '<path pathLength="1" d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path pathLength="1" d="M172 404 L273 289 L300 320" clip-path="url(#emclipCL)"/></g></svg>' +
-      '<svg class="ia ia-r" ' + vb + ">" + g + '<path pathLength="1" d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/><path pathLength="1" d="M374 404 L273 289 L246 320" clip-path="url(#emclipCR)"/></g></svg>' +
-      '<svg class="ia ia-d" ' + vb + '><polygon class="dia" points="273,62 302,91 273,120 244,91" fill="url(#goldv2)"/></svg></div>';
+    const vb = 'viewBox="62 52 420 400" aria-hidden="true"';
+    const g = (paint, d) => '<g fill="none" stroke="' + paint + '" stroke-width="17" stroke-linejoin="miter" stroke-miterlimit="12">' + d + "</g>";
+    const L = '<path pathLength="1" d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path pathLength="1" d="M172 404 L273 289 L300 320" clip-path="url(#emclipCL)"/>';
+    const R = '<path pathLength="1" d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/><path pathLength="1" d="M374 404 L273 289 L246 320" clip-path="url(#emclipCR)"/>';
+    const D = (paint) => '<polygon class="dia" points="273,62 302,91 273,120 244,91" fill="' + paint + '"/>';
+    const solid = (cls, layer) => '<div class="ia ' + cls + '">' +
+      Array.from({ length: DEPTH }, (_, k) => '<svg class="ia-slice" style="--z:' + (DEPTH - k) + '" ' + vb + ">" + layer(k === 0 ? "url(#goldback)" : "url(#goldside)") + "</svg>").join("") +
+      '<svg class="ia-face" ' + vb + ">" + layer("url(#goldv2)") + "</svg></div>";
+    return '<div class="intro-mark">' + solid("ia-l", (p) => g(p, L)) + solid("ia-r", (p) => g(p, R)) + solid("ia-d", D) + "</div>";
   }
 
   function home(user) {
@@ -96,7 +103,7 @@
       '<section class="intro" id="ascent"><div class="intro-stage"><div class="intro-sky" aria-hidden="true"></div>' + introMark() +
       '<div class="intro-word" aria-hidden="true"><p class="iw-name">AEGIS <span>ASCEND</span></p><p class="iw-sub">Financial Advisors</p><span class="intro-cue">Scroll</span></div>' +
       '<div class="intro-copy">' +
-      "<h1>Smarter Decisions.<br><em>Stronger Futures.</em></h1>" +
+      "<h1>Smarter Decisions.<br><em>Stronger <span class=\"ink-word\">Futures.<svg class=\"ink-under\" viewBox=\"0 0 300 16\" preserveAspectRatio=\"none\" aria-hidden=\"true\"><path pathLength=\"1\" d=\"M4 11 C 60 4, 120 13, 180 7 S 270 5, 296 9\"/></svg></span></em></h1>" +
       '<p class="lede">Independent advice on debt, equity or the right mix for growing Indian businesses. Every number traced, checked and signed off before it reaches you, then we deliver the deal.</p>' +
       '<div class="ctas"><a class="btn primary lg" href="#contact">Book an engagement</a><a class="btn ghost lg" href="#login">Try the live model</a></div>' +
       "</div></div></section>" +
@@ -117,7 +124,7 @@
       "</div></div></section>" +
       '<section class="sec tone"><div class="container"><div class="sec-head"><h2>What we stand for</h2></div><div class="ledger">' +
       PILLARS.map(([t, d]) => '<div><span class="dia-mark" aria-hidden="true"></span><div><h3>' + t + "</h3><p>" + d + "</p></div></div>").join("") + "</div></div></section>" +
-      '<section class="sec"><div class="container"><div class="sec-head"><h2>How every report is made</h2><p>Eight steps, in this order, for every analysis. Nothing skips the checks.</p></div>' +
+      '<section class="sec" id="method"><div class="container"><div class="sec-head"><h2>How every report is made</h2><p>Eight steps, in this order, for every analysis. Nothing skips the checks.</p></div>' +
       '<ol class="method">' + METHOD.map(([t, d]) => "<li><b>" + t + "</b><span>" + d + "</span></li>").join("") + "</ol>" +
       '<div class="golden"><h3>The golden rule</h3><p>The AI never does the maths. Calculation code produces every number. The AI reads documents, suggests assumptions and explains results in plain words, and every number it writes is checked against the code\'s output before a report is released.</p></div></div></section>' +
       '<section class="sec tone"><div class="container"><div class="sec-head"><h2>Tools behind the advice</h2><p>Founders and advisors work in the same tools, so every recommendation can be reproduced.</p></div><div class="index">' +
@@ -145,7 +152,7 @@
     const dTop = mr.top + mr.height * (39 / 400), dy = cr.top - 30 - dTop;
     const sky = sec.querySelector(".intro-sky"), tpl = document.getElementById("tpl-skyline");
     if (sky && tpl && !sky.firstChild) sky.appendChild(tpl.content.cloneNode(true));
-    M = { st, sky, sec, mark, l: sec.querySelector(".ia-l"), r: sec.querySelector(".ia-r"), d, copy, kids: [...copy.children], word: sec.querySelector(".intro-word"), dx, dy, s1, narrow };
+    M = { st, sky, sec, mark, l: sec.querySelector(".ia-l"), r: sec.querySelector(".ia-r"), d, copy, kids: [...copy.children], word: sec.querySelector(".intro-word"), h1: copy.querySelector("h1"), dx, dy, s1, narrow };
   }
   function update(force) {
     if (!M || !M.sec.isConnected) return;
@@ -153,9 +160,12 @@
     const p = force != null ? force : clamp(-r.top / (run * 0.8 || 1));
     const a = ease(clamp(p / 0.6)), w = clamp(p / 0.22);
     const op = M.narrow ? 1 - 0.78 * a : 1;
-    M.l.style.transform = "translate3d(" + (-M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
-    M.r.style.transform = "translate3d(" + (M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
-    M.l.style.opacity = M.r.style.opacity = op.toFixed(3);
+    // the A's swing open like a pair of doors as they part, then settle facing the reader
+    const door = 24 * Math.sin(Math.PI * a);
+    M.l.style.transform = "translate3d(" + (-M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) rotateY(" + door.toFixed(2) + "deg) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
+    M.r.style.transform = "translate3d(" + (M.dx * a).toFixed(1) + "px," + (-12 * a).toFixed(1) + "px,0) rotateY(" + (-door).toFixed(2) + "deg) scale(" + (1 + (M.s1 - 1) * a).toFixed(3) + ")";
+    // opacity goes on the slices, not the piece: opacity on a 3D group would flatten it
+    M.l.style.setProperty("--op", op.toFixed(3)); M.r.style.setProperty("--op", op.toFixed(3));
     M.d.style.transform = "translate3d(0," + (M.dy * a).toFixed(1) + "px,0) scale(" + (1 - 0.55 * a).toFixed(3) + ")";
     M.word.style.opacity = (1 - w).toFixed(3);
     M.word.style.transform = "translateY(" + (-28 * w).toFixed(1) + "px)";
@@ -166,10 +176,29 @@
       k.style.filter = c < 1 ? "blur(" + (6 * (1 - c)).toFixed(2) + "px)" : "";
     });
     M.copy.classList.toggle("live", p > 0.55);
+    M.h1.classList.toggle("inked", p > 0.62);
     M.st.style.setProperty("--lit", (0.25 + 0.75 * a).toFixed(3));
     M.st.style.setProperty("--sky-y", (22 * (1 - a)).toFixed(2) + "%");
     M.copy.style.setProperty("--plate", ease(clamp((p - 0.2) / 0.3)).toFixed(3));
   }
+  // The solid mark turns gently on its own and leans toward the pointer. Small angles only,
+  // so it never reads upside down; the loop idles while the hero is off screen.
+  let spin = 0;
+  const ptr = { x: 0, y: 0 }, lean = { x: 0, y: 0 };
+  function turn(now) {
+    spin = 0;
+    if (!M || !M.sec.isConnected || M.sec.classList.contains("still")) return;
+    const r = M.sec.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < innerHeight) {
+      lean.x += (ptr.x - lean.x) * 0.06; lean.y += (ptr.y - lean.y) * 0.06;
+      const t = now / 1000, ry = Math.sin(t * 0.55) * 14 + lean.x * 12, rx = 4 + Math.sin(t * 0.4 + 1) * 4 - lean.y * 7;
+      M.mark.style.setProperty("--ry", ry.toFixed(2) + "deg");
+      M.mark.style.setProperty("--rx", rx.toFixed(2) + "deg");
+      M.mark.style.setProperty("--shine", (1 + ry / 70).toFixed(3));
+    }
+    spin = requestAnimationFrame(turn);
+  }
+  window.addEventListener("pointermove", (e) => { ptr.x = (e.clientX / innerWidth - 0.5) * 2; ptr.y = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
   function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); } }
   function mountHome() {
     const sec = document.getElementById("ascent"); if (!sec) return;
@@ -178,7 +207,10 @@
     if (!played && !reduce) sec.classList.add("play");
     played = true;
     measure(); update(reduce ? 1 : null);
+    if (reduce) { M.mark.style.setProperty("--ry", "-16deg"); M.mark.style.setProperty("--rx", "6deg"); }
+    else if (!spin) spin = requestAnimationFrame(turn);
     reveal(reduce);
+    if (root.BOARD) root.BOARD.mount(!!reduce);
   }
   window.addEventListener("scroll", () => { if (M && !M.sec.classList.contains("still")) onScroll(); }, { passive: true });
   // Below the hero, sections arrive as they scroll in: a short staggered rise, the

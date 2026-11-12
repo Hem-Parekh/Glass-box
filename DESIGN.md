@@ -360,7 +360,7 @@ Quiet and certain: square-cornered, firm weight, no gradients.
 - **Don't** put a gold diamond on any chart point other than the one "Best" mark, and don't use gold as a series colour beyond Equity Gold.
 - **Don't** set Emblem Gold (#C9A04F) as text on white; use Deep Gold Ink (#7B5C1F).
 - **Don't** add drop shadows to panels or cards at rest, or round corners beyond 6px; glass panels (12px, below) are the one exception.
-- **Don't** add a second ceremonial animation; the Ascent is the only one. Scroll reveals stay short (≤0.8s per item) and never loop.
+- **Don't** add ceremonial animation beyond the Ascent (the 3D emblem intro) and the home page's whiteboard annotations. Scroll reveals stay short (≤0.8s per item) and never loop.
 
 ## Workspace dashboards (added with the investor, lender, advisor and founder dashboards)
 
@@ -412,3 +412,19 @@ The public site, the sign-in pages and the CMA lock page sit in front of a New Y
   - The rail shows the skyline at its foot behind a dark veil; the signed-in card there is a glass plate.
   - Page headers are dark mastheads with the skyline at the right and ivory text.
   - Data tables, KPI tiles and working panels stay solid white. Glass never touches data.
+
+## Home page motion: the 3D emblem and the whiteboard
+
+- **3D emblem (hero):**
+  - Each piece of the mark (left A, right A, diamond) is a gold face over 16 darker slices set back 1.7px apart, so it reads as solid gold.
+  - The mark always stays upright: it sways at most about 14° side to side and 8° up and down, and leans toward the pointer.
+  - As the page scrolls, the two A's swing open like doors (up to 24°) while they part.
+  - With reduced motion it holds still at a slight angle.
+- **Whiteboard annotations (`site/motion.js`):**
+  - Two collaboration cursors, Advisor (gold) and Founder (ivory), visit the live example and the eight method steps.
+  - They leave hand-drawn ink in light gold #E8C77B (2.4px round strokes): loops, underlines and curved arrows.
+  - Sticky notes are gold #E8C77B with dark #1B160C text in Caveat 21px, slightly tilted, with a tape strip.
+  - Notes say only what the page already says in text, and appear only where there is room beside the content (none on phones).
+  - The overlay never moves the layout and ignores the pointer. Cursors fade out when their walk ends.
+  - With reduced motion, the finished annotations show without cursors.
+- **Headline:** a hand-drawn gold underline draws under "Futures." once the headline settles.

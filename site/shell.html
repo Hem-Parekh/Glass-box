@@ -1,7 +1,7 @@
 <title>Aegis Ascend Financial Advisors</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@400;500;600;700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <style>
 /* Two scenes. Public pages: the logo's world, obsidian ground, gold geometry, Cinzel capitals.
    Workspace: obsidian rail with the mark, a light stone work area for daytime desk work (dark at night). */
@@ -92,7 +92,16 @@ p{margin:0}
 .intro-stage::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .intro-mark{position:absolute;left:50%;top:calc(50% + 6px);width:min(48vh,72vw,470px);aspect-ratio:420/400;transform:translate(-50%,-58%);pointer-events:none;z-index:0}
-.ia{position:absolute;inset:0;width:100%;height:100%;overflow:visible;will-change:transform,opacity;transform-origin:50% 60%}
+.intro-stage{perspective:1300px;perspective-origin:50% 40%}
+.intro-mark{transform-style:preserve-3d;transform:translate(-50%,-58%) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.ia{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;transform-origin:50% 60%}
+.ia>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:var(--op,1)}
+.ia-slice{transform:translateZ(calc(var(--z) * -1.7px))}
+.ia-face{filter:brightness(var(--shine,1))}
+.intro h1 .ink-word{position:relative;display:inline-block}
+.ink-under{position:absolute;left:-2%;width:104%;bottom:-.2em;height:.3em;overflow:visible;pointer-events:none}
+.ink-under path{fill:none;stroke:var(--gold);stroke-width:2.6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s var(--ease-out)}
+.intro h1.inked .ink-under path,.intro.still .ink-under path{stroke-dashoffset:0}
 .ia-d{transform-origin:50% 9.75%}
 .intro-word{position:absolute;left:0;right:0;top:calc(50% + 6px + min(48vh,72vw,470px)*.46);text-align:center;display:grid;gap:8px;justify-items:center;z-index:1}
 .iw-name{font-family:var(--f-display);font-weight:500;font-size:clamp(26px,3.4vw,44px);letter-spacing:.16em;color:var(--ivory);line-height:1}
@@ -749,6 +758,24 @@ dialog.modal[open]{animation:mdlIn .22s var(--ease-out)}
 .ws .masthead .btn.primary:hover{background:var(--gold-1);color:var(--obsidian)}
 .ws .masthead .fld>span:first-child{color:var(--ivory-2)}
 @media (max-width:640px){.ws .masthead{background:linear-gradient(180deg,rgba(13,14,16,.94),rgba(13,14,16,.72)),url("assets/skyline.svg") center bottom/auto 120% no-repeat,var(--obsidian)}.ws .masthead>:last-child:not(:first-child){background:none;border:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* ---------- whiteboard motion on the home page (site/motion.js): cursors, ink, sticky notes ---------- */
+.wb{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:visible}
+.wb-ink{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.wb-ink path{fill:none;stroke:var(--gold-1);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1}
+.wb.go .wb-ink path,.wb.done .wb-ink path{stroke-dashoffset:0}
+.wb-note{position:absolute;width:196px;padding:13px 15px 15px;background:#E8C77B;color:#1B160C;font:600 21px/1.12 Caveat,"Segoe Print","Bradley Hand",cursive;border-radius:2px;
+  box-shadow:0 16px 28px -14px rgba(0,0,0,.9),inset 0 -14px 22px -18px rgba(110,72,18,.55);opacity:0;transform:translateY(-12px) rotate(var(--rot,0deg)) scale(.7);transform-origin:50% 0}
+.wb-note::before{content:"";position:absolute;left:50%;top:-9px;width:58px;height:17px;transform:translateX(-50%) rotate(-2deg);background:rgba(244,239,230,.3);border:1px solid rgba(244,239,230,.16)}
+.wb.go .wb-note,.wb.done .wb-note{opacity:1;transform:rotate(var(--rot,0deg))}
+.wb.done .wb-note,.wb.done .wb-ink path{transition:none!important}
+.wb-cur{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity}
+.wb-cur svg{display:block;width:20px;height:22px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.65))}
+.wb-cur.gold path{fill:var(--gold-1)}.wb-cur.ivory path{fill:var(--ivory)}
+.wb-cur span{position:absolute;left:15px;top:19px;padding:3px 9px;border-radius:3px 10px 10px 10px;font:600 12px/1.35 var(--f-sans);white-space:nowrap;color:var(--obsidian);box-shadow:0 6px 14px -6px rgba(0,0,0,.7)}
+.wb-cur.gold span{background:var(--gold)}.wb-cur.ivory span{background:var(--ivory)}
+.wb-ring{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border:2px solid var(--gold-1);border-radius:50%;opacity:0}
+.wb-ring.ivory{border-color:var(--ivory)}
 </style>
 
 <div id="site"><p style="padding:40px;text-align:center;color:#F1ECE2;background:#0D0E10;margin:0">Loading Aegis Ascend…</p></div>
@@ -756,6 +783,8 @@ dialog.modal[open]{animation:mdlIn .22s var(--ease-out)}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
 <linearGradient id="goldv" x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#8E6A2A"/><stop offset=".5" stop-color="#C9A04F"/><stop offset="1" stop-color="#E8C77B"/></linearGradient>
 <linearGradient id="goldv2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8C77B"/><stop offset=".55" stop-color="#C9A04F"/><stop offset="1" stop-color="#9C7330"/></linearGradient>
+<linearGradient id="goldside" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A27935"/><stop offset="1" stop-color="#5E451C"/></linearGradient>
+<linearGradient id="goldback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A3615"/><stop offset="1" stop-color="#241A0A"/></linearGradient>
 <symbol id="emblem" viewBox="62 52 420 400"><g fill="none" stroke="url(#goldv2)" stroke-width="17" stroke-linejoin="miter" stroke-miterlimit="12">
 <path d="M80 412 L246 136 L246 440" clip-path="url(#emclipL)"/><path d="M466 412 L300 136 L300 440" clip-path="url(#emclipR)"/>
 <path d="M172 404 L273 289 L374 404" clip-path="url(#emclipC)"/></g>

@@ -21,7 +21,7 @@ from server.actions import ACTIONS, COLLECTIONS, Denied, can_see_file, now, pub,
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "api-server.js", "public.js", "portal.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "api-server.js", "public.js", "motion.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
