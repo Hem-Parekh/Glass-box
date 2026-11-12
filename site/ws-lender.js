@@ -50,6 +50,8 @@
         filters: [{ k: "band", label: "DSCR", options: [["ok", "Green"], ["warn", "Amber"], ["bad", "Red"]], match: (r, v) => dscr(r.c).band === v }],
         columns: [
           { k: "co", label: "Borrower", val: (r) => r.c.name, html: (r) => '<a href="#app-loan/' + r.l.id + '"><b>' + esc(r.c.name) + "</b></a>" + (r.s.overdue ? ' <span class="chip bad">Overdue</span>' : "") },
+          { k: "sell", label: "Sell", csv: () => "", html: (r) => (openSale(r.l.id) ? '<a class="chip warn" href="#app-ltransfers">Sale in progress</a>'
+            : r.l.lender_id === S.user.id ? '<button class="btn primary sm" data-act="l-sell" data-id="' + r.l.id + '">Sell</button>' : "") },
           { k: "dates", label: "Sanctioned / disbursed", val: (r) => r.l.disbursal_date, html: (r) => dmy(r.l.sanction_date) + '<span class="muted small block">' + dmy(r.l.disbursal_date) + "</span>" },
           { k: "amt", label: "Disbursed", num: true, val: (r) => r.s.disbursed, csv: (r) => r.s.disbursed / 100, html: (r) => rs(r.s.disbursed, true) },
           { k: "rate", label: "Rate", num: true, val: (r) => r.l.rate_bps, html: (r) => rate(r.l) },
@@ -60,7 +62,7 @@
           { k: "mint", label: "Monthly interest", num: true, val: (r) => r.s.monthly_interest, csv: (r) => r.s.monthly_interest / 100, html: (r) => rs(r.s.monthly_interest, true) },
           { k: "next", label: "Next instalment", val: (r) => r.s.next_due, html: (r) => (r.s.next_due ? dmy(r.s.next_due) + '<span class="muted small block">' + rs(r.s.next_amount, true) + "</span>" : "Repaid") },
           { k: "dscr", label: "Latest DSCR", val: (r) => dscr(r.c).v, csv: (r) => dscr(r.c).v, html: (r) => dscr(r.c).html },
-        ] }) + "</section>" +
+        ] }) + '<p class="small muted">To sell all or part of a loan to another regulated bank or NBFC, press Sell on its row. Your Aegis Ascend advisor arranges the rest: <a href="#app-ltransfers">see how a sale works</a>.</p></section>' +
       '<section class="panel"><h2>Interest income by month</h2>' + vbars(e.cats, e.vals, e.colors, { fmt: (v) => "Rs " + UI.n(v, 1) + " L", label: "Interest income by month, last 12 months earned and next 12 projected", height: 230, values: false, xEvery: 3 }) +
       '<p class="small muted"><span class="key solid"></span>Earned (instalments received) <span class="key light"></span>Projected from the schedules. Rs lakh.</p></section>';
   }
@@ -71,6 +73,27 @@
     return S.data.loans.filter((l) => l.lender_id === S.user.id && l.status === "disbursed" && !open.has(l.id));
   }
   const sellButton = () => (sellable().length ? '<button class="btn primary" data-act="l-sell">Sell a loan</button>' : "");
+  const openSale = (loanId) => (S.data.loan_transfers || []).some((t) => t.loan_id === loanId && !["completed", "rejected"].includes(t.status));
+
+  // the seven steps of a loan sale, in order: who acts at each and what happens
+  const SALE_GUIDE = [
+    ["submitted", "You request the sale", "You", "Choose the loan, the amount (all or part) and add a note. The request goes to your Aegis Ascend advisor."],
+    ["eligibility", "Eligibility is checked", "Advisor", "Confirms you are a regulated bank or NBFC and have held the loan for the RBI minimum: 3 months for loans of 2 years or less, otherwise 6."],
+    ["consent", "The borrower consents", "Advisor", "Gets and records the borrowing company's consent to the transfer."],
+    ["buyer_introduced", "A buyer is introduced", "Advisor", "Introduces a regulated bank or NBFC as the buyer. Loans never move to unregulated buyers."],
+    ["deed_signed", "The deed is signed", "You and the buyer", "You and the buyer sign the deed of assignment; your advisor records it."],
+    ["charge_updated", "The charge is updated", "Advisor", "The charge on the borrower's assets is moved to the buyer with the Registrar of Companies (ROC)."],
+    ["completed", "The sale completes", "Advisor", "The loan moves to the buyer's book and a transfer fee of 0.3% to 0.5% is invoiced to you."],
+  ];
+  function saleGuide() {
+    return '<section class="panel"><h2>How a loan sale works</h2><p class="muted small">Seven steps, in order. Each sale below shows where it has reached.</p><ol class="sale-steps">' +
+      SALE_GUIDE.map(([, t, who, text], i) => '<li><span class="ss-n">' + (i + 1) + '</span><b>' + esc(t) + '</b><span class="chip">' + esc(who) + "</span><p>" + esc(text) + "</p></li>").join("") + "</ol></section>";
+  }
+  function saleProgress(t) {
+    if (t.status === "rejected") return '<p class="small"><b>Stopped:</b> ' + esc(t.reason || "rejected by your advisor") + "</p>";
+    const i = SALE_GUIDE.findIndex((g) => g[0] === t.status), next = SALE_GUIDE[i + 1];
+    return '<p class="small"><b>Step ' + (i + 1) + " of 7: " + esc(SALE_GUIDE[i][1]) + ".</b> " + (next ? "Next: " + esc(next[1].toLowerCase()) + " (" + (next[2] === "Advisor" ? "your advisor" : esc(next[2].toLowerCase())) + ")." : "The loan is now in the buyer's book.") + "</p>";
+  }
 
   // ---------- loan detail ----------
   function detail(id) {
@@ -142,7 +165,8 @@
   function transfers() {
     const T = (S.data.loan_transfers || []).slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     return WS.head("Loan transfers", "Sell all or part of a loan to another regulated bank or NBFC. Your request goes to your Aegis Ascend advisor, who checks eligibility, gets the borrower's consent and introduces the buyer.", sellButton()) +
-      (T.length ? T.map((t) => { const l = S.data.loans.find((x) => x.id === t.loan_id); return '<section class="panel"><div class="panel-head"><h2>' + esc(co(l ? l.company_id : "").name) + "</h2>" + chip(t.status === "completed" ? "ok" : t.status === "rejected" ? "bad" : "warn", t.status.replace("_", " ")) + "</div>" + transferTimeline(t) + "</section>"; }).join("")
+      saleGuide() +
+      (T.length ? T.map((t) => { const l = S.data.loans.find((x) => x.id === t.loan_id); return '<section class="panel"><div class="panel-head"><h2>' + esc(co(l ? l.company_id : "").name) + "</h2>" + chip(t.status === "completed" ? "ok" : t.status === "rejected" ? "bad" : "warn", t.status === "completed" ? "Sold" : t.status === "rejected" ? "Stopped" : "In progress") + "</div>" + saleProgress(t) + transferTimeline(t) + "</section>"; }).join("")
         : '<section class="panel">' + KIT.empty("No loan sales yet", "Choose a loan to sell; your advisor arranges the rest.", sellButton()) + "</section>");
   }
   function fees() {

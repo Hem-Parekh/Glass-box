@@ -375,7 +375,9 @@ Menu: Loan book, Lender desk, Applications, Monitoring, Loan transfers, Fees, No
 - Quarterly covenant checks for every disbursed loan.
 
 ### Loan transfers
-- **"Sell a loan" button** (also on the Loan book). Pick one of your disbursed loans, enter the amount (blank for the full outstanding) and a note. The request goes to your Aegis Ascend advisor's Loan transfers queue, with a notification.
+- **How a loan sale works:** the seven steps, in order, with who acts at each: you request; the advisor checks eligibility, gets the borrower's consent and introduces a regulated buyer; you and the buyer sign the deed; the charge is updated with the ROC; the loan moves and the 0.3–0.5% transfer fee is invoiced.
+- **Each sale shows its step**, for example "Step 2 of 7: Eligibility is checked. Next: the borrower consents (your advisor)".
+- **"Sell a loan" button** (also on the Loan book, and as a Sell button on every loan's row, next to the borrower's name; a loan already being sold shows "Sale in progress"). Pick one of your disbursed loans, enter the amount (blank for the full outstanding) and a note. The request goes to your Aegis Ascend advisor's Loan transfers queue, with a notification.
 - **Each transfer request has a timeline:** Requested → Eligibility checked → Borrower consent → Buyer lender introduced → Assignment deed signed → Charge updated with the ROC (Registrar of Companies) → Transfer complete. A rejected transfer shows its reason.
 - **Details shown:** the amount, the buyer and the fee.
 

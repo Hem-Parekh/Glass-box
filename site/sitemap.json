@@ -47,11 +47,11 @@
     "lender": {
       "demo": "lender@demo.in",
       "pages": [
-        {"route": "app", "label": "Loan book", "what": "Total lent, principal outstanding, interest earned, next repayment, and every loan with its DSCR badge.", "keywords": ["loan book", "loans", "book", "portfolio", "home", "dashboard", "overdue"]},
+        {"route": "app", "label": "Loan book", "what": "Total lent, principal outstanding, interest earned, next repayment, and every loan with its DSCR badge and a Sell button.", "keywords": ["loan book", "loans", "book", "portfolio", "home", "dashboard", "overdue"]},
         {"route": "app-desk", "label": "Lender desk", "what": "New applications, loans monitored, book size and covenant alerts.", "keywords": ["lender desk", "desk", "covenant alerts", "overview"]},
         {"route": "app-applications", "label": "Applications", "what": "Loan applications: sanction, decline, then mark disbursed.", "keywords": ["applications", "sanction", "disburse", "new loans", "approve loan"]},
         {"route": "app-monitor", "label": "Monitoring", "what": "Quarterly covenant checks for every disbursed loan.", "keywords": ["monitoring", "covenants", "dscr", "quarterly"]},
-        {"route": "app-ltransfers", "label": "Loan transfers", "what": "Sell all or part of a loan: press Sell a loan, and your advisor arranges the buyer; follow each sale's timeline here.", "keywords": ["loan transfers", "transfer", "sell loan", "sell a loan", "sell my loan", "sell loans", "assignment", "exit a loan"]},
+        {"route": "app-ltransfers", "label": "Loan transfers", "what": "How a loan sale works, in seven steps, and where each of your sales has reached.", "keywords": ["loan transfers", "transfer", "sell loan", "sell a loan", "sell my loan", "sell loans", "assignment", "exit a loan"]},
         {"route": "app-lfees", "label": "Fees", "what": "Your monitoring and transfer fee invoices, and the debt fee calculator.", "keywords": ["fees", "invoices", "fee"]},
         {"route": "app-notifications", "label": "Notifications", "what": "New applications, transfer updates and loans moved into your book.", "keywords": ["notifications", "alerts"]},
         {"route": "app-activity", "label": "Activity log", "what": "Your own actions.", "keywords": ["activity", "log", "history"]}
