@@ -1,7 +1,8 @@
 /* The home page's 3D hero: the gold AA emblem, a rising city of lit buildings, stars, and a camera
    that flies in as the page scrolls. A plain three.js port of the React Three Fiber HeroScene
-   (same geometry, materials, lights, timings, bloom and vignette), with one change: both A's stand
-   upright. The original turned the right-hand A upside down (rotation z = PI).
+   (same geometry, materials, timings, bloom and vignette), with these changes: both A's stand upright
+   (the original turned the right-hand A upside down), they sit further apart so both read clearly, the
+   emblem sways facing the visitor instead of spinning, and a front light shows its face.
 
    Source for site/hero3d.js. Rebuild with: sh site/tools/build-hero3d.sh
    Exposes window.HERO3D.mount(stage, getProgress) -> handle | null (null when WebGL is unavailable). */
@@ -18,6 +19,7 @@ const LIGHT_GOLD = "#E8C77B";
 const OBSIDIAN = "#0D0E10";
 const BUILDING_COUNT = 170;
 const GROUND_Y = -2.1;
+const GAP = 0.5;   // each A sits this far from the centre: the inner legs just overlap, so both A's read clearly
 const { clamp, lerp, smoothstep } = THREE.MathUtils;
 
 function buildAGeometry() {
@@ -65,15 +67,15 @@ function makeWindowTexture() {
 }
 
 function emblem(scene) {
-  const gold = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 1, roughness: 0.24, emissive: "#7a5c1e", emissiveIntensity: 0.5 });
+  const gold = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 1, roughness: 0.24, emissive: "#7a5c1e", emissiveIntensity: 0.6 });
   const aGeo = buildAGeometry();
   const group = new THREE.Group();
   group.position.set(0, 0.35, 0);
   group.scale.setScalar(1.15);
   const leftA = new THREE.Mesh(aGeo, gold);
-  leftA.position.set(-0.16, 0, 0);
+  leftA.position.set(-GAP, 0, 0);
   const rightA = new THREE.Mesh(aGeo, gold);   // upright, like the left A
-  rightA.position.set(0.16, 0, 0);
+  rightA.position.set(GAP, 0, 0);
   const float = new THREE.Group();               // drei <Float speed={2.4} rotationIntensity={0.9} floatIntensity={0.9}>
   const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), gold);
   diamond.position.set(0, 1.35, 0);
@@ -83,11 +85,12 @@ function emblem(scene) {
   const floatOffset = Math.random() * 10000;
   return (p, t, delta, pointer) => {
     const split = smoothstep(p, 0.3, 0.62);
-    group.rotation.y += delta * 0.25 * (1 - split * 0.6);
+    // a gentle sway that keeps the AA facing the visitor (a full spin showed it edge-on half the time)
+    group.rotation.y = lerp(group.rotation.y, (Math.sin(t * 0.5) * 0.32 + pointer.x * 0.18) * (1 - split * 0.6), 0.08);
     group.rotation.x = lerp(group.rotation.x, pointer.y * 0.14 * (1 - split), 0.06);
     group.position.y = 0.35 + Math.sin(t * 0.8) * 0.05;
-    leftA.position.x = -0.16 - split * 7.5;
-    rightA.position.x = 0.16 + split * 7.5;
+    leftA.position.x = -GAP - split * 7.5;
+    rightA.position.x = GAP + split * 7.5;
     leftA.rotation.z = split * 0.4;     // each A leans outward as they part
     rightA.rotation.z = -split * 0.4;
     diamond.position.y = 1.35 + split * 5;
@@ -189,6 +192,8 @@ function mount(stage, getProgress) {
   const key = new THREE.DirectionalLight("#fff1d4", 1.8); key.position.set(5, 7, 6); scene.add(key);
   const rim = new THREE.DirectionalLight(LIGHT_GOLD, 3); rim.position.set(-6, 4, -8); scene.add(rim);
   const fill = new THREE.PointLight("#ffe9bd", 40, 26); fill.position.set(0, 2.5, 5); scene.add(fill);
+  const face = new THREE.SpotLight("#fff1d4", 16, 22, 0.35, 0.8); face.position.set(0, 1.2, 9); face.target.position.set(0, 0.4, 0);   // lights the emblem's face from the front
+  scene.add(face, face.target);
   const updEmblem = emblem(scene), updSky = skyline(scene);
   stars(scene);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), new THREE.MeshStandardMaterial({ color: "#0a0b0f", roughness: 1, metalness: 0 }));
