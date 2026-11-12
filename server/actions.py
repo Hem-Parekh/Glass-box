@@ -198,6 +198,7 @@ def visible_state(st, user, audit_rows, today):
                     companies=[company_brief(st, c, today) for c in st.companies if c["id"] in cids],
                     offers=mine, holdings=hold, valuations=[v for v in st.valuations if v["company_id"] in held or v["company_id"] in cids],
                     sell_requests=[dict(x, buyer_investor_id=None) for x in sells],
+                    invoices=[i for i in st.invoices if i["payer"] == "investor" and i["payer_id"] == user["id"]],
                     transfers=[t for t in st.transfers if user["id"] in (t["from_investor_id"], t["to_investor_id"])],
                     files=[f for f in st.files if f["company_id"] in held and f["purpose"] == "valuation_report"], audit=audit_rows(("user_id", user["id"])))
     # lender
@@ -623,6 +624,8 @@ def a_sell_step(st, u, p, today):
     elif step == "complete":
         need(x["status"] == "spa_signed", "Record the signed SPA first")
         need(h and h["shares"] >= x["shares"], "The seller no longer holds these shares")
+        rate = fnum(p.get("fee_rate"))
+        need(rate is not None and RESALE_FEE_MIN <= rate <= RESALE_FEE_MAX, "The resale fee is 0.3% to 0.5% of the sale value")
         buyer = user_of(st, x["buyer_investor_id"], "investor")
         leaving = x["investor_id"] if x["shares"] == h["shares"] else None
         check_new_holder(st, c["id"], buyer["id"], leaving=leaving)
@@ -635,11 +638,24 @@ def a_sell_step(st, u, p, today):
                                  shares=x["shares"], price_paise=x["price_paise"], spa_date=x["spa_date"], completed_at=now()))
         x["status"] = "completed"
         notify(st, buyer["id"], "sell", "%s shares of %s transferred to you" % (grp(x["shares"]), c["name"]), "app-portfolio")
+        # the selling investor pays the resale fee; buying never carries a fee
+        fee = D.half_up(x["shares"] * x["price_paise"] * rate)
+        x.update(fee_rate=rate, fee_paise=fee)
+        st.invoices.append(dict(id=uid("f"), kind="resale", company_id=c["id"], payer="investor", payer_id=x["investor_id"],
+                                period="Resale of %s %s shares" % (grp(x["shares"]), c["name"]), amount_paise=fee, gst_paise=fee * 18 // 100, issued=today, due=D.add_days(today, 15), paid_on=None))
+        notify(st, x["investor_id"], "fee", "Resale fee for your %s shares: %s + GST (%s of the sale value), due %s" % (c["name"], rs(fee), pctf(rate), ddmmmyyyy(D.add_days(today, 15))), "app-sells")
     else:
         raise Denied("Unknown step")
     x["history"].append(dict(status=x["status"], at=now(), by=u["id"]))
     notify(st, x["investor_id"], "sell", "Your sell request for %s: %s" % (c["name"], x["status"].replace("_", " ")), "app-portfolio")
     return "Resale of %s %s shares by %s: %s" % (grp(x["shares"]), c["name"], label(user_of(st, x["investor_id"])), STATUS_LABEL[x["status"]]), c["id"]
+
+
+RESALE_FEE_MIN, RESALE_FEE_MAX = 0.003, 0.005   # paid by the selling investor when a resale completes
+
+
+def pctf(rate):
+    return ("%.2f" % (rate * 100)).rstrip("0").rstrip(".") + "%"
 
 
 # ---------------- lender ----------------

@@ -173,9 +173,18 @@ def test_partial_resale_that_adds_a_member_over_200_is_blocked(client):
     assert r.status_code == 403 and "members" in r.get_json()["error"]
     # a full-stake sale to a new buyer keeps the count at 200 and goes through
     for step in ({"step": "review"}, {"step": "rofr", "days": 20}, {"step": "buyer", "buyer_investor_id": "u_investor21", "waived": True},
-                 {"step": "spa", "price_paise": 19000}, {"step": "complete"}):
+                 {"step": "spa", "price_paise": 19000}, {"step": "complete", "fee_rate": 0.006}):
+        if step["step"] == "complete":   # the resale fee must be 0.3% to 0.5%
+            act(client, "sell_step", dict(step, request_id="s_1"), 403)
+            step = dict(step, fee_rate=0.004)
         act(client, "sell_step", dict(step, request_id="s_1"))
     st = store()
+    # the selling investor pays 0.4% of the sale value; the buyer pays nothing
+    t0 = st.transfers[0]
+    fee = [f for f in st.invoices if f["kind"] == "resale"]
+    assert len(fee) == 1 and fee[0]["payer"] == "investor" and fee[0]["payer_id"] == t0["from_investor_id"]
+    assert fee[0]["amount_paise"] == D.half_up(t0["shares"] * 19000 * 0.004) and fee[0]["gst_paise"] == fee[0]["amount_paise"] * 18 // 100
+    assert not any(f["payer_id"] == t0["to_investor_id"] for f in st.invoices)
     assert D.members(st, "c_vasai") == 200
     assert next(h for h in st.holdings if h["id"] == "h_v3")["shares"] == 0
     t = st.transfers[0]

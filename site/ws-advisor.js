@@ -286,7 +286,7 @@
   const short = (v) => { const s = v === undefined ? "–" : JSON.stringify(v); return s.length > 90 ? s.slice(0, 87) + "..." : s; };
 
   // ---------- revenue ----------
-  const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["debt_success", "Debt success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"]];
+  const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["debt_success", "Debt success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"], ["resale", "Resale fees (0.3–0.5%)"]];
   function invoiceTable(id, F, compact) {
     return KIT.table(id, { name: "invoices", rows: F, noSearch: compact, pageSize: compact ? 8 : 25, empty: { title: "No invoices", text: "" },
       filters: compact ? [] : [{ k: "kind", label: "Fee", options: KINDS }, { k: "st", label: "Status", options: [["paid", "Paid"], ["due", "Due"], ["overdue", "Overdue"]], match: (f, v) => (f.paid_on ? "paid" : f.due < today() ? "overdue" : "due") === v }],
@@ -298,9 +298,9 @@
   function revenue() {
     const F = D().invoices, sum = (L) => L.reduce((a, f) => a + f.amount_paise, 0);
     const months = []; for (let k = -11; k <= 0; k++) months.push(DOM.addMonths(today().slice(0, 8) + "01", k).slice(0, 7));
-    const ser = KINDS.map(([k, l], i) => ({ name: l, color: ["var(--s-equity)", "var(--s-mix)", "#C9A04F", "var(--gold-ink, #7B5C1F)", "var(--s-debt)", "var(--muted)"][i], values: months.map((m) => sum(F.filter((f) => f.kind === k && (f.paid_on || f.issued).slice(0, 7) === m)) / 1e7) }));
-    return WS.head("Revenue", "Every fee Aegis Ascend earns, with GST at 18%. Debt success fee is 2.5% of a loan we arrange, paid by the company at disbursal; revenue share is 0.4% of revenue for 5 years; monitoring 0.25% to 0.5% a year; transfers 0.3% to 0.5%.", '<button class="btn ghost" data-act="a-invoice">Raise invoice</button>') +
-      '<div class="kpis k6" data-stagger>' + KINDS.map(([k, l]) => { const L = F.filter((f) => f.kind === k), paid = L.filter((f) => f.paid_on), due = L.filter((f) => !f.paid_on);
+    const ser = KINDS.map(([k, l], i) => ({ name: l, color: ["var(--s-equity)", "var(--s-mix)", "#C9A04F", "var(--gold-ink, #7B5C1F)", "var(--s-debt)", "var(--muted)", "#8E6A2A"][i], values: months.map((m) => sum(F.filter((f) => f.kind === k && (f.paid_on || f.issued).slice(0, 7) === m)) / 1e7) }));
+    return WS.head("Revenue", "Every fee Aegis Ascend earns, with GST at 18%. Debt success fee is 2.5% of a loan we arrange, paid by the company at disbursal; revenue share is 0.4% of revenue for 5 years; monitoring 0.25% to 0.5% a year; loan transfers and share resales 0.3% to 0.5%.", '<button class="btn ghost" data-act="a-invoice">Raise invoice</button>') +
+      '<div class="kpis k7" data-stagger>' + KINDS.map(([k, l]) => { const L = F.filter((f) => f.kind === k), paid = L.filter((f) => f.paid_on), due = L.filter((f) => !f.paid_on);
         return '<div class="kpi"><small>' + esc(l) + "</small><b>" + rs(sum(paid), true) + '</b><span>paid · ' + rs(sum(due), true) + " due</span></div>"; }).join("") + "</div>" +
       '<section class="panel"><h2>Fees by month</h2>' + UI.stack(months.map((m) => my(m + "-01")), ser, { fmt: (v) => "Rs " + UI.n(v, 2) + " L", yfmt: (y) => UI.n(y, 0) + " L", label: "Fees invoiced or received by month, Rs lakh", height: 240 }) + "</section>" +
       '<section class="panel"><h2>Invoices</h2>' + invoiceTable("a-rev", F.slice().sort((a, b) => (a.issued < b.issued ? 1 : -1)), false) + "</section>";
@@ -419,7 +419,12 @@
       if (step === "complete") {
         const h = D().holdings.find((y) => y.id === x.holding_id), full = h && h.shares === x.shares, newBuyer = !DOM.platformInvestors(D(), c.id).includes(x.buyer_investor_id);
         const m2 = mem(c.id) + (newBuyer ? 1 : 0) - (full ? 1 : 0), p2 = plat(c.id) + (newBuyer ? 1 : 0) - (full ? 1 : 0);
-        if (await KIT.confirm("Complete the transfer?", "<p>" + DOM.shares(x.shares) + " shares move from " + esc(who(x.investor_id)) + " to " + esc(who(x.buyer_investor_id)) + " at " + rsPrice(x.price_paise) + ". Both portfolios, the cap table and the member count update.</p><p>After the transfer: members <b>" + m2 + " / " + set().member_limit + "</b>, platform investors <b>" + p2 + " / " + set().max_platform_investors + "</b>.</p><p class=\"small muted\">This cannot be undone.</p>", "Complete transfer")) return act("sell_step", { request_id: id, step });
+        const value = x.shares * x.price_paise;
+        const v = await KIT.dialog({ title: "Complete the transfer", confirm: "Complete transfer",
+          text: "<p>" + DOM.shares(x.shares) + " shares move from " + esc(who(x.investor_id)) + " to " + esc(who(x.buyer_investor_id)) + " at " + rsPrice(x.price_paise) + " (sale value " + rs(value) + "). Both portfolios, the cap table and the member count update.</p><p>After the transfer: members <b>" + m2 + " / " + set().member_limit + "</b>, platform investors <b>" + p2 + " / " + set().max_platform_investors + "</b>.</p><p class=\"small muted\">The selling investor pays the resale fee; the buyer pays nothing. This cannot be undone.</p>",
+          fields: [{ name: "rate", label: "Resale fee", type: "number", value: 0.4, min: 0.3, max: 0.5, step: "0.05", unit: "%", hint: "0.3% to 0.5% of the sale value, paid by the selling investor, plus GST" }],
+          validate: (f) => (+f.rate >= 0.3 && +f.rate <= 0.5 ? null : "The resale fee is 0.3% to 0.5%") });
+        if (v) return act("sell_step", { request_id: id, step, fee_rate: +v.rate / 100 });
         return;
       }
       if (step === "reject") { const v = await KIT.dialog({ title: "Reject this request", danger: true, confirm: "Reject", fields: [{ name: "reason", label: "Reason (shared with the investor)", type: "textarea", required: true }], validate: (v) => (v.reason.trim() ? null : "Give a reason") }); if (v) return act("sell_step", { request_id: id, step, reason: v.reason }); }

@@ -136,7 +136,7 @@ Each item below is a section of the Services page.
 - A call to become a partner lender.
 
 ### Pricing
-- A fee schedule: the advisory fee from Rs 1 lakh, a 2.5% equity success fee, a 2.5% debt success fee on loans we arrange (paid by the company at disbursal), a 0.4% revenue share for 5 years, an investor diligence fee, and the lenders' arranging commission, monitoring and transfer fees. All fees are plus 18% GST.
+- A fee schedule: the advisory fee from Rs 1 lakh, a 2.5% equity success fee, a 2.5% debt success fee on loans we arrange (paid by the company at disbursal), a 0.4% revenue share for 5 years, a 0.3–0.5% resale fee paid by an investor who sells (buying is free), and the lenders' arranging commission, monitoring and transfer fees. All fees are plus 18% GST.
 - A **"What one deal is worth" calculator.** You enter the equity raised, revenue, revenue growth and advisory fee. It shows each fee and the 5-year total, with GST and a bar chart.
 - Revenue share terms.
 
@@ -292,7 +292,9 @@ Menu: Portfolio, Opportunities, Curated deals, Deal rooms, Sell requests & exits
 5. **Withdraw** the request while it is still early in the process.
 
 ### Sell requests & exits
-- Every sell request, each with its timeline.
+- **Fees:** buying shares is free. When an investor sells, a resale fee of 0.3–0.5% of the sale value (plus GST) is charged once the transfer completes; the buyer pays nothing.
+- Every sell request, each with its timeline. A completed sale shows the agreed price, the sale value and the resale fee.
+- **Your invoices:** the investor's resale fee invoices, with GST, due date and status.
 - The **exit tax calculator** (the same one as on the public site).
 
 ### Opportunities
@@ -481,7 +483,7 @@ Menu groups: Today; **Deals** (Company pipeline, Companies, Investor directory, 
   2. **Start first-refusal window:** 15 to 30 days.
   3. **Introduce buyer.** The list shows only KYC-verified investors who keep the company within its 20-investor and 200-member limits. This does not count as a legal offer. Proceeding before the window ends needs a written waiver.
   4. **Record SPA signed:** the date and agreed price.
-  5. **Complete transfer.** The confirmation shows the member and investor counts after the transfer. Completing updates both portfolios, the cap table and the member count.
+  5. **Complete transfer.** The advisor enters the resale fee (0.3–0.5% of the sale value, paid by the selling investor). The confirmation shows the sale value and the member and investor counts after the transfer. Completing updates both portfolios, the cap table and the member count.
   6. **Reject** with a reason, available at any step.
 
 ### Revaluation centre
@@ -522,6 +524,7 @@ Menu groups: Today; **Deals** (Company pipeline, Companies, Investor directory, 
   - advisory fees;
   - success fees (2.5%);
   - debt success fees (2.5% of loans arranged);
+  - resale fees (0.3–0.5%, paid by selling investors);
   - revenue share (0.4%);
   - debt monitoring fees;
   - transfer fees.
@@ -611,6 +614,7 @@ These are checked by the server on every action, so the screens cannot get aroun
 - **Recording an allotment** ticks "Shares allotted" on the checklist and starts the PAS-3 15-day countdown.
 - **Completing a resale updates:** both investors' portfolios, the cap table, the member count and the platform investor count. The seller's cost is reduced in proportion to the shares sold.
 - **Completing a loan transfer** moves the loan to the buyer's book and raises the transfer fee invoice.
+- **Completing a resale** raises the selling investor's resale fee invoice (0.3–0.5% of the sale value, plus GST, due in 15 days) and notifies them.
 - **Disbursing a loan** raises the company's 2.5% debt success fee invoice (plus GST, due in 15 days) and notifies the founder.
 - **Worked out each time a page opens:**
   - revaluation due dates (3 months after the last valuation);
@@ -653,7 +657,7 @@ These are checked by the server on every action, so the screens cannot get aroun
   - its access locks, including the CMA tool lock, are for show only.
 - **Public text out of date:** the Services, For investors and Trust pages still say "at most 3 investors per deal". The workspace now enforces "at most 20 platform investors per company". These pages need updating.
 - **Legal confirmations still pending,** as listed on the Trust page and raised during the build:
-  - how SEBI advisory rules treat the Investor Fit Score and the investor diligence fee;
+  - how SEBI advisory rules treat the Investor Fit Score and the resale fee;
   - the wording of the success-fee and revenue-share agreements;
   - DSA agreements and RBI digital lending rules;
   - whether off-platform offers count under Section 42, and whether founder consent can unlock early sales;

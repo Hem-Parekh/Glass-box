@@ -39,7 +39,7 @@
         {"route": "app-opportunities", "label": "Opportunities", "what": "Private offers your advisor shared with you: read the report, express interest or decline.", "keywords": ["opportunities", "offers", "private offer", "new deals", "express interest"]},
         {"route": "app-deals", "label": "Curated deals", "what": "Companies offered to you, ranked by Fit Score; request deal-room access.", "keywords": ["curated deals", "deals", "companies", "request access"]},
         {"route": "app-rooms", "label": "Deal rooms", "what": "Rooms the founder opened for you: sign the NDA online, then read the documents.", "keywords": ["deal rooms", "deal room", "nda", "documents"]},
-        {"route": "app-sells", "label": "Sell requests & exits", "what": "Your sell requests with their timelines, and the exit tax calculator.", "keywords": ["sell", "sell my shares", "exit", "sell request", "resale", "exit tax", "withdraw"]},
+        {"route": "app-sells", "label": "Sell requests & exits", "what": "Your sell requests with their timelines, your resale fee invoices (0.3-0.5% when you sell; buying is free), and the exit tax calculator.", "keywords": ["sell", "sell my shares", "exit", "sell request", "resale", "exit tax", "withdraw"]},
         {"route": "app-notifications", "label": "Notifications", "what": "New offers, revaluations, allotments, updates and lock-in reminders.", "keywords": ["notifications", "alerts", "lock-in", "reminders"]},
         {"route": "app-activity", "label": "Activity log", "what": "Your own actions.", "keywords": ["activity", "log", "history"]}
       ]

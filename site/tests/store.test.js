@@ -142,7 +142,7 @@ test("test_partial_resale_that_adds_a_member_over_200_is_blocked", async () => {
   const r = await act("sell_step", { request_id: rid, step: "buyer", buyer_investor_id: "u_investor21", waived: true }, 403);
   assert.ok(r.error.includes("members"), r.error);
   for (const step of [{ step: "review" }, { step: "rofr", days: 20 }, { step: "buyer", buyer_investor_id: "u_investor21", waived: true },
-    { step: "spa", price_paise: 19000 }, { step: "complete" }]) await act("sell_step", Object.assign({}, step, { request_id: "s_1" }));
+    { step: "spa", price_paise: 19000 }, { step: "complete", fee_rate: 0.004 }]) await act("sell_step", Object.assign({}, step, { request_id: "s_1" }));
   const st = db();
   assert.strictEqual(DOM.members(st, "c_vasai"), 200);
   assert.strictEqual(st.holdings.find((h) => h.id === "h_v3").shares, 0);

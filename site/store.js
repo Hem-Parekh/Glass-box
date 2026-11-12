@@ -183,6 +183,8 @@
     need(u && (role == null || u.role === role), capitalize(role || "User") + " not found");
     return u;
   }
+  const RESALE_FEE_MIN = 0.003, RESALE_FEE_MAX = 0.005; // paid by the selling investor when a resale completes
+  const pctf = (rate) => (rate * 100).toFixed(2).replace(/0+$/, "").replace(/\.$/, "") + "%";
   const DEBT_SUCCESS_PERMILLE = 25; // 2.5% of a loan arranged through Aegis Ascend, paid by the company at disbursal
   const label = (u) => (["investor", "lender"].includes(u.role) && truthy(get(u, "firm")) ? u.firm : u.name);
   function notify(st, userId, kind, text, link) {
@@ -265,6 +267,7 @@
       out = Object.assign(base, { directory: advisors, intros: st.intros.filter((i) => i.investor_id === user.id), companies: st.companies.filter((c) => cids.has(c.id)).map((c) => companyBrief(st, c)),
         offers: mine, holdings: hold, valuations: st.valuations.filter((v) => held.has(v.company_id) || cids.has(v.company_id)),
         sell_requests: st.sell_requests.filter((x) => x.investor_id === user.id).map((x) => Object.assign({}, x, { buyer_investor_id: null })),
+        invoices: st.invoices.filter((i) => i.payer === "investor" && i.payer_id === user.id),
         transfers: st.transfers.filter((t) => t.from_investor_id === user.id || t.to_investor_id === user.id),
         files: st.files.filter((f) => held.has(f.company_id) && f.purpose === "valuation_report"), audit: auditRows(["user_id", user.id]) });
     } else { // lender
@@ -671,6 +674,8 @@
       } else if (step === "complete") {
         need(x.status === "spa_signed", "Record the signed SPA first");
         need(h && h.shares >= x.shares, "The seller no longer holds these shares");
+        const rate = fnum(get(p, "fee_rate"));
+        need(rate !== null && rate >= RESALE_FEE_MIN && rate <= RESALE_FEE_MAX, "The resale fee is 0.3% to 0.5% of the sale value");
         const buyer = userOf(st, x.buyer_investor_id, "investor");
         checkNewHolder(st, c.id, buyer.id, x.shares === h.shares ? x.investor_id : null);
         const costMoved = floorDiv(BigInt(h.cost_paise) * BigInt(x.shares), h.shares);
@@ -682,6 +687,12 @@
           shares: x.shares, price_paise: x.price_paise, spa_date: x.spa_date, completed_at: now() });
         x.status = "completed";
         notify(st, buyer.id, "sell", commas(x.shares) + " shares of " + c.name + " transferred to you", "app-portfolio");
+        // the selling investor pays the resale fee; buying never carries a fee
+        const fee = DOM.halfUp(x.shares * x.price_paise * rate);
+        Object.assign(x, { fee_rate: rate, fee_paise: fee });
+        st.invoices.push({ id: uid("f"), kind: "resale", company_id: c.id, payer: "investor", payer_id: x.investor_id,
+          period: "Resale of " + commas(x.shares) + " " + c.name + " shares", amount_paise: fee, gst_paise: floorDiv(fee * 18, 100), issued: day, due: DOM.addDays(day, 15), paid_on: null });
+        notify(st, x.investor_id, "fee", "Resale fee for your " + c.name + " shares: " + rs(fee) + " + GST (" + pctf(rate) + " of the sale value), due " + ddmmmyyyy(DOM.addDays(day, 15)), "app-sells");
       } else {
         throw new Denied("Unknown step");
       }

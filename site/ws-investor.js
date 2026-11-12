@@ -109,14 +109,22 @@
     const cur = stop ? (x.history.slice().reverse().find((h) => !["withdrawn", "rejected"].includes(h.status)) || { status: "submitted" }).status : x.status;
     return KIT.timeline(SELL_STEPS, cur, at, stop) +
       '<p class="small muted">' + (x.full ? "Full stake" : "Part sale") + ": " + DOM.shares(x.shares) + " shares" + (x.indicative_price_paise ? " · your indicative price " + rsPrice(x.indicative_price_paise) + " (seen only by the advisor)" : "") +
-      (x.status === "rofr" ? " · first-refusal window until " + dmy(x.rofr_until) : "") + (x.price_paise ? " · agreed price " + rsPrice(x.price_paise) : "") + "</p>" +
+      (x.status === "rofr" ? " · first-refusal window until " + dmy(x.rofr_until) : "") + (x.price_paise ? " · agreed price " + rsPrice(x.price_paise) + " (sale value " + rs(x.shares * x.price_paise) + ")" : "") +
+      (x.fee_paise ? " · resale fee " + rs(x.fee_paise) + " + GST (" + pct(x.fee_rate, 2) + ")" : "") + "</p>" +
       (["submitted", "under_review", "rofr"].includes(x.status) ? '<button class="btn ghost sm" data-act="inv-withdraw" data-id="' + x.id + '">Withdraw request</button>' : "");
   }
   function sells() {
     const L = S.data.sell_requests.slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-    return WS.head("Sell requests & exits", "Exit after the 6-month minimum holding, or earlier with the founder's written consent. Resales are private: your advisor introduces buyers one to one.") +
+    const F = (S.data.invoices || []).slice().sort((a, b) => (a.issued < b.issued ? 1 : -1));
+    return WS.head("Sell requests & exits", "Exit after the 6-month minimum holding, or earlier with the founder's written consent. Resales are private: your advisor introduces buyers one to one. Buying shares through Aegis Ascend is free; when you sell, a resale fee of 0.3% to 0.5% of the sale value (plus GST) is charged once the transfer completes.") +
       (L.length ? L.map((x) => '<section class="panel"><div class="panel-head"><h2>' + esc(co(x.company_id).name) + "</h2>" + chip(x.status === "completed" ? "ok" : x.status === "rejected" || x.status === "withdrawn" ? "bad" : "warn", x.status.replace("_", " ")) + "</div>" + sellTimeline(x) + "</section>").join("")
         : '<section class="panel">' + KIT.empty("No sell requests", "Holdings become eligible 6 months after allotment. Request a sale from the portfolio.", '<a class="btn primary" href="#app">Go to the portfolio</a>') + "</section>") +
+      (F.length ? '<section class="panel"><h2>Your invoices</h2>' + KIT.table("i-inv", { name: "invoices", rows: F, noSearch: true, empty: { title: "No invoices", text: "" },
+        columns: [{ k: "period", label: "Fee", html: (f) => "Resale fee" + '<span class="muted small block">' + esc(f.period || "") + "</span>" },
+          { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
+          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
+          { k: "due", label: "Due", html: (f) => dmy(f.due) },
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>" : "") +
       '<section class="panel"><h2>Exit tax view</h2><p class="small muted">Try a sale price before you ask to sell. An estimate, not tax advice.</p><form class="calc" data-calc="exit"><div class="fields f5">' + root.PUB.field("cost", "Amount invested", 1, "Rs cr") + root.PUB.field("sale", "Sale price", 1.4, "Rs cr") + root.PUB.field("months", "Months held", 14, "months") + root.PUB.field("slab", "Your slab rate", 30, "%") + root.PUB.field("fmv", "Fair market value", 1.4, "Rs cr") + '</div></form><div id="calc-exit">' + root.PUB.exitCalc({}) + "</div></section>";
   }
 
@@ -170,7 +178,7 @@
     "inv-sell": async (b, id) => {
       const v = views().find((x) => x.id === id);
       const vals = await KIT.dialog({ title: "Request to sell: " + v.c.name, confirm: "Send request",
-        text: "<p>You hold <b>" + DOM.shares(v.shares) + "</b> shares. Selling the full stake is simplest: a part sale to a new buyer adds a shareholder, which the company's 200-member limit may not allow.</p><p class=\"small muted\">Your advisor runs the first-refusal window and introduces buyers one to one. Nothing is listed publicly.</p>",
+        text: "<p>You hold <b>" + DOM.shares(v.shares) + "</b> shares. Selling the full stake is simplest: a part sale to a new buyer adds a shareholder, which the company's 200-member limit may not allow.</p><p class=\"small muted\">Your advisor runs the first-refusal window and introduces buyers one to one. Nothing is listed publicly. When the sale completes, a resale fee of 0.3% to 0.5% of the sale value (plus GST) is charged to you; the buyer pays nothing.</p>",
         fields: [{ name: "kind", label: "What to sell", type: "select", value: "full", options: [["full", "Full stake (" + DOM.shares(v.shares) + " shares)"], ["part", "Part of my shares"]] },
           { name: "shares", label: "Shares to sell (part sale only)", type: "number", min: 1, max: v.shares, step: 1 },
           { name: "price", label: "Indicative price per share (optional, seen only by your advisor)", type: "number", min: 0, step: "0.01", unit: "Rs" },

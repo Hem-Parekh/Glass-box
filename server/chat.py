@@ -32,7 +32,7 @@ FEES (all plus 18% GST)
 - Advisory engagement: from Rs 1 lakh, scaled by company size and complexity, paid by the company.
 - Equity success fee: 2.5% of the amount raised, paid by the company at deal close.
 - Revenue share: 0.4% of net revenue for 5 years, paid quarterly by the company.
-- Investor diligence fee: optional, flat, paid by the investor.
+- Investors pay nothing to buy (invest). Resale fee: 0.3-0.5% of the sale value, paid by the selling investor when the share transfer completes.
 - Debt success fee: 2.5% of the loan amount on a loan arranged through Aegis Ascend, paid by the company when the loan is disbursed.
 - Debt arranging: commission agreed with each lender, paid by the lender at disbursal.
 - Debt monitoring: 0.25-0.5% a year on the outstanding loan, paid by the lender.
