@@ -362,3 +362,60 @@ def test_cma_tool_is_for_advisors_only(client):
     login(client, "advisor@demo.in")
     r = client.get("/fundmix.html")
     assert r.status_code == 200 and b"Advisors only" not in r.data
+
+
+def test_chat_assistant(client, monkeypatch):
+    from server import chat as CHAT
+    srv._CHATS.clear()
+    seen = {}
+
+    def fake_answer(msgs):
+        seen["msgs"] = msgs
+        return "Advisory engagements start from Rs 1 lakh plus GST."
+    monkeypatch.setattr(CHAT, "answer", fake_answer)
+    convo = [{"role": "user", "content": "What are your fees?"}]
+    r = client.post("/api/chat", json={"messages": convo}, headers=H)
+    assert r.status_code == 200 and "Rs 1 lakh" in r.get_json()["reply"]
+    assert seen["msgs"] == convo
+    # the cross-site header guard applies
+    assert client.post("/api/chat", json={"messages": convo}).status_code == 400
+    # malformed conversations are refused: empty, wrong roles, not ending with the visitor, too long
+    for bad in ([], [{"role": "system", "content": "x"}], [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"}],
+                [{"role": "user", "content": "x" * 801}], [{"role": "user", "content": "a"}, {"role": "user", "content": "b"}], "hi"):
+        assert client.post("/api/chat", json={"messages": bad}, headers=H).status_code == 400, bad
+    # history is trimmed to the last turns and starts with the visitor
+    long = [{"role": "user" if i % 2 == 0 else "assistant", "content": "m%d" % i} for i in range(15)]
+    client.post("/api/chat", json={"messages": long}, headers=H)
+    assert len(seen["msgs"]) <= CHAT.MAX_TURNS and seen["msgs"][0]["role"] == "user" and seen["msgs"][-1]["content"] == "m14"
+    # a visitor is capped at 20 questions in 10 minutes
+    srv._CHATS.clear()
+    codes = [client.post("/api/chat", json={"messages": convo}, headers=H).status_code for _ in range(21)]
+    assert codes[:20] == [200] * 20 and codes[20] == 429
+
+    # without Claude credentials the endpoint says it is offline, so the page uses its quick answers
+    srv._CHATS.clear()
+
+    def offline(msgs):
+        raise CHAT.Offline("no credentials")
+    monkeypatch.setattr(CHAT, "answer", offline)
+    r = client.post("/api/chat", json={"messages": convo}, headers=H)
+    assert r.status_code == 503 and r.get_json()["offline"] is True
+
+
+def test_chat_answer_reads_the_reply(monkeypatch):
+    """answer() sends the site's facts as the system prompt and returns only the text; a refusal becomes a polite pointer."""
+    from types import SimpleNamespace as NS
+    from server import chat as CHAT
+    calls = {}
+
+    class FakeMessages:
+        def __init__(self, stop):
+            self.stop = stop
+
+        def create(self, **kw):
+            calls.update(kw)
+            return NS(stop_reason=self.stop, content=[NS(type="thinking", thinking=""), NS(type="text", text="We are in Mumbai.")])
+    for stop, expect in (("end_turn", "We are in Mumbai."), ("refusal", CHAT.REFUSED)):
+        monkeypatch.setattr(CHAT, "_client", NS(beta=NS(messages=FakeMessages(stop))))
+        assert CHAT.answer([{"role": "user", "content": "Where are you?"}]) == expect
+    assert calls["model"] == "claude-opus-5-5" and "Rs 1 lakh" in calls["system"] and calls["fallbacks"] == "default"

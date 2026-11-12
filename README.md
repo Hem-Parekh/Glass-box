@@ -24,6 +24,8 @@ python -m server.app            # http://127.0.0.1:8000, loads demo accounts on 
 Settings (environment variables): `GB_DATABASE` (SQLite file), `GB_UPLOADS` (folder for uploaded reports and data-room files), `GB_SECRET_KEY` (required in production),
 `GB_SECURE_COOKIES=1` (behind HTTPS), `GB_SEED_DEMO=0` (start with no demo accounts), `GB_HOST`, `GB_PORT`.
 
+The website assistant (the "Ask Aegis" chat on every page) answers with Claude when the server has Anthropic credentials: set `ANTHROPIC_API_KEY`. Without them it answers from built-in quick answers, which is also what the standalone demo does.
+
 Admin commands: `flask --app server.app init-db`, `flask --app server.app seed-demo`,
 `flask --app server.app create-advisor` (advisors cannot sign themselves up).
 

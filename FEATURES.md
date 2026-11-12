@@ -77,6 +77,13 @@ These apply across the whole product, not to one login.
 
 ---
 
+- **Website assistant ("Ask Aegis").** A chat button at the bottom right of every page, public and workspace, opens a chat panel.
+  - It answers questions about services, fees, raises, exits, loans, compliance and how numbers are checked, with links to the relevant page. It suggests five starter questions.
+  - It gives general information only: no personal advice, no calculations (it points to the calculators or an advisor), and nothing beyond what the website says.
+  - On the server it answers with Claude, using the website's own facts. Each visitor can ask at most 20 questions in 10 minutes.
+  - Without Claude credentials, and on the demo, it answers from built-in quick answers and says so.
+  - The conversation is kept for the browser tab session. It works with the keyboard (Enter to send, Esc to close) and becomes full screen on phones.
+
 ## 2. Public website (no login needed)
 
 The look is black and gold, matching the Aegis Ascend logo.
@@ -608,7 +615,7 @@ These are checked by the server on every action, so the screens cannot get aroun
 
 ## 9. In progress, partly built, or not yet built
 
-- **AI document reading and AI-written narratives:** in progress. The public site describes an AI layer that reads documents and writes explanations. Today, summaries are written by fixed rules and checked against the engine. No AI is connected.
+- **AI document reading and AI-written narratives:** in progress. The public site describes an AI layer that reads documents and writes explanations. Today, summaries are written by fixed rules and checked against the engine. The only AI connected is the website assistant (section 1).
 - **Real KYC checks:** in progress. KYC status is set by hand by the advisor; there is no connection to a KYC provider.
 - **Sending emails, WhatsApp messages and notifications automatically:** in progress.
   - Notifications appear only inside the app.
@@ -667,6 +674,7 @@ These are checked by the server on every action, so the screens cannot get aroun
   - `GB_UPLOADS` sets the folder for uploaded files;
   - `GB_SECURE_COOKIES=1` is for running behind HTTPS;
   - `GB_SEED_DEMO=0` starts the server without the sample accounts;
+  - `ANTHROPIC_API_KEY` turns on Claude answers in the website assistant;
   - `GB_HOST` and `GB_PORT` set the address and port.
 - **In-app setting:** the platform-investor limit per company (advisor → Settings).
 - **Demo:** "Reset demo data" on the sign-in page and in the workspace menu.

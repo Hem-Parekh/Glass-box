@@ -776,6 +776,48 @@ dialog.modal[open]{animation:mdlIn .22s var(--ease-out)}
 .wb-cur.gold span{background:var(--gold)}.wb-cur.ivory span{background:var(--ivory)}
 .wb-ring{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border:2px solid var(--gold-1);border-radius:50%;opacity:0}
 .wb-ring.ivory{border-color:var(--ivory)}
+
+/* ---------- website assistant (site/chat.js) ---------- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.cb{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--f-sans)}
+.cb-open{display:inline-flex;align-items:center;gap:9px;height:48px;padding:0 18px 0 14px;border-radius:4px;border:1px solid rgba(232,199,123,.45);
+  background:rgba(13,14,16,.88);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);color:var(--ivory);font:600 15px/1 var(--f-sans);cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,241,214,.07),0 18px 36px -16px rgba(0,0,0,.85);transition:border-color .2s,transform .2s var(--ease-out)}
+.cb-open:hover{border-color:var(--gold);transform:translateY(-2px)}
+.cb-open svg{width:22px;height:22px;fill:none;stroke:var(--gold-1);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.cb.on .cb-open{display:none}
+.cb-panel{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));width:min(390px,calc(100vw - 32px));height:min(580px,calc(100svh - 110px));
+  display:flex;flex-direction:column;border-radius:var(--r-glass,12px);border:1px solid var(--glass-edge,rgba(232,199,123,.22));background:rgba(15,15,13,.94);
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25);box-shadow:inset 0 1px 0 rgba(255,241,214,.07),0 30px 70px -28px rgba(0,0,0,.9);color:var(--ivory);overflow:hidden}
+.cb-panel[hidden]{display:none}
+.cb-panel header{display:flex;align-items:center;gap:12px;padding:14px 12px 14px 16px;border-bottom:1px solid var(--gold-line)}
+.cb-panel header>div{flex:1;min-width:0}
+.cb-panel h2{font-family:var(--f-display);font-weight:500;font-size:16px;letter-spacing:.06em;color:var(--ivory);margin:0}
+.cb-panel header p{font-size:12px;color:var(--ivory-3);margin:2px 0 0}
+.cb-close{width:36px;height:36px;border-radius:4px;border:1px solid transparent;background:none;color:var(--ivory-2);font-size:24px;line-height:1;cursor:pointer}
+.cb-close:hover{border-color:var(--gold-line);color:var(--gold-1)}
+.cb-log{flex:1;overflow-y:auto;padding:16px;display:grid;gap:10px;align-content:start;overscroll-behavior:contain}
+.cb-msg{max-width:88%;margin:0;padding:10px 12px;border-radius:4px;font-size:14.5px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}
+.cb-msg.bot{justify-self:start;background:var(--obsidian-3,#1D1C18);border:1px solid rgba(201,160,79,.18);color:var(--ivory)}
+.cb-msg.me{justify-self:end;background:var(--gold);color:var(--obsidian)}
+.cb-msg.note{background:none;border:0;padding:0 2px;font-size:12.5px;color:var(--ivory-3)}
+.cb-msg a{color:var(--gold-1);text-decoration:underline;text-underline-offset:2px}
+.cb-msg.typing{display:flex;gap:5px;padding:14px 14px}
+.cb-msg.typing i{width:6px;height:6px;background:var(--gold);transform:rotate(45deg);opacity:.4}
+@media (prefers-reduced-motion:no-preference){.cb-msg.typing i{animation:cbdot 1.1s ease-in-out infinite}.cb-msg.typing i:nth-child(2){animation-delay:.15s}.cb-msg.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes cbdot{0%,100%{opacity:.3}50%{opacity:1}}.cb-panel:not([hidden]){animation:cbin .25s var(--ease-out)}@keyframes cbin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}}
+.cb-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px}
+.cb-chips:empty{display:none}
+.cb-chips button{padding:7px 10px;border-radius:3px;border:1px solid var(--gold-line);background:rgba(13,14,16,.5);color:var(--ivory-2);font:500 13px/1.2 var(--f-sans);cursor:pointer}
+.cb-chips button:hover{border-color:var(--gold);color:var(--gold-1)}
+.cb-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 16px 16px;border-top:1px solid var(--gold-line);align-items:end}
+.cb-form textarea{resize:none;min-height:44px;max-height:120px;padding:11px 12px;border-radius:4px;border:1px solid var(--obsidian-4,#29271F);background:var(--obsidian);color:var(--ivory);font:15px/1.4 var(--f-sans)}
+.cb-form textarea::placeholder{color:var(--ivory-3)}
+.cb-form textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,160,79,.2)}
+.cb-form .btn{height:44px}
+.cb :focus-visible{outline:2px solid var(--gold-1);outline-offset:2px}
+@media (max-width:640px){.cb-open span{display:none}.cb-open{width:52px;height:52px;padding:0;justify-content:center}
+  .cb-panel{inset:0;width:100%;height:100%;height:100svh;border-radius:0;border:0}}
 </style>
 
 <div id="site"><p style="padding:40px;text-align:center;color:#F1ECE2;background:#0D0E10;margin:0">Loading Aegis Ascend…</p></div>

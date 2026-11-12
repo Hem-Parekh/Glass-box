@@ -15,13 +15,14 @@ from functools import wraps
 from flask import Flask, Response, abort, g, jsonify, request, send_file, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from server import chat as CHAT
 from server import seed as SEED
 from server.actions import ACTIONS, COLLECTIONS, Denied, can_see_file, now, pub, uid, visible_state
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "api-server.js", "public.js", "motion.js", "portal.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "api-server.js", "public.js", "motion.js", "chat.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
@@ -409,13 +410,36 @@ def enquiry():
     return jsonify(ok=True)
 
 
+_CHATS = {}  # visitor key -> recent message times, to cap how fast one visitor can spend on the model
+
+
+@app.post("/api/chat")
+@api
+def chat_reply():
+    """The website assistant. Reports offline:true when Claude isn't configured, so the page uses its quick answers."""
+    msgs = CHAT.clean_history(body().get("messages"))
+    if msgs is None:
+        return jsonify(error="Ask a question of up to %d characters." % CHAT.MAX_CHARS), 400
+    key = session.get("uid") or request.remote_addr or "anon"
+    recent = [t for t in _CHATS.get(key, []) if time.time() - t < 600]
+    if len(recent) >= 20:
+        return jsonify(error="That's a lot of questions in a short time. Please wait a few minutes, or use the Contact page."), 429
+    if len(_CHATS) > 5000:
+        _CHATS.clear()
+    _CHATS[key] = recent + [time.time()]
+    try:
+        return jsonify(reply=CHAT.answer(msgs))
+    except CHAT.Offline:
+        return jsonify(error="The assistant is offline.", offline=True), 503
+
+
 # ---------------- pages ----------------
 @app.get("/")
 def index():
     shell = open(os.path.join(SITE, "shell.html"), encoding="utf-8").read()
     pre, post = SCRIPTS[:SCRIPTS.index("api-server.js") + 1], SCRIPTS[SCRIPTS.index("api-server.js") + 1:]
     tags = "".join('<script src="/static/%s"></script>' % f for f in pre)
-    tags += '<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/";</script>'
+    tags += '<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/"; window.GB_CHAT_URL = "/api/chat";</script>'
     tags += "".join('<script src="/static/%s"></script>' % f for f in post)
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
