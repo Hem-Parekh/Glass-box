@@ -1,8 +1,8 @@
 /* The home page's 3D hero: the gold AA emblem, a rising city of lit buildings, stars, and a camera
    that flies in as the page scrolls. A plain three.js port of the React Three Fiber HeroScene
-   (same geometry, materials, timings, bloom and vignette), with these changes: both A's stand upright
-   (the original turned the right-hand A upside down), they sit further apart so both read clearly, the
-   emblem sways facing the visitor instead of spinning, and a front light shows its face.
+   (same materials, timings, bloom and vignette), with these changes: the emblem is built from the
+   logo's own outlines (two upright A's sharing a chevron, the diamond on top) instead of block letters,
+   it sways facing the visitor instead of spinning, and a front light shows its face.
 
    Source for site/hero3d.js. Rebuild with: sh site/tools/build-hero3d.sh
    Exposes window.HERO3D.mount(stage, getProgress) -> handle | null (null when WebGL is unavailable). */
@@ -19,28 +19,21 @@ const LIGHT_GOLD = "#E8C77B";
 const OBSIDIAN = "#0D0E10";
 const BUILDING_COUNT = 170;
 const GROUND_Y = -2.1;
-const GAP = 0.5;   // each A sits this far from the centre: the inner legs just overlap, so both A's read clearly
 const { clamp, lerp, smoothstep } = THREE.MathUtils;
 
-function buildAGeometry() {
-  const s = new THREE.Shape();
-  s.moveTo(-0.62, -0.78);
-  s.lineTo(-0.3, -0.78);
-  s.lineTo(-0.17, -0.38);
-  s.lineTo(0.17, -0.38);
-  s.lineTo(0.3, -0.78);
-  s.lineTo(0.62, -0.78);
-  s.lineTo(0.08, 0.86);
-  s.lineTo(-0.08, 0.86);
-  s.closePath();
-  const hole = new THREE.Path();
-  hole.moveTo(-0.1, -0.14);
-  hole.lineTo(0.1, -0.14);
-  hole.lineTo(0, 0.26);
-  hole.closePath();
-  s.holes.push(hole);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.22, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.03, bevelSegments: 3 });
-  geo.center();
+// The emblem's own outlines (site/shell.html #emblem: 17-unit strokes with mitred joins, clipped as in
+// the logo), converted to scene units: x = (svgX - 273) / 170, y = (251 - svgY) / 170.
+// The left A is a slanted leg and an upright meeting in a sharp apex; the bar is the left half of the
+// shared chevron. The right side is the mirror image.
+const A_LEFT = [[-1.1157, -0.9588], [-1.1781, -0.9213], [-0.1088, 0.8566], [-0.1088, -1.1118], [-0.2088, -1.1118], [-0.2088, 0.4963], [-1.0848, -0.9602]];
+const BAR_LEFT = [[-0.6142, -0.8471], [0, -0.1478], [0, -0.2993], [-0.4811, -0.8471]];
+const DIAMOND_Y = 0.9412, DIAMOND_R = 0.1706;
+const mirror = (pts) => pts.map(([x, y]) => [-x, y]).reverse();
+
+function piece(points) {
+  const s = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.012, bevelSegments: 2 });
+  geo.translate(0, 0, -0.08);
   return geo;
 }
 
@@ -68,36 +61,34 @@ function makeWindowTexture() {
 
 function emblem(scene) {
   const gold = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 1, roughness: 0.24, emissive: "#7a5c1e", emissiveIntensity: 0.6 });
-  const aGeo = buildAGeometry();
   const group = new THREE.Group();
   group.position.set(0, 0.35, 0);
   group.scale.setScalar(1.15);
-  const leftA = new THREE.Mesh(aGeo, gold);
-  leftA.position.set(-GAP, 0, 0);
-  const rightA = new THREE.Mesh(aGeo, gold);   // upright, like the left A
-  rightA.position.set(GAP, 0, 0);
-  const float = new THREE.Group();               // drei <Float speed={2.4} rotationIntensity={0.9} floatIntensity={0.9}>
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), gold);
-  diamond.position.set(0, 1.35, 0);
+  const half = (a, bar) => { const g = new THREE.Group(); g.add(new THREE.Mesh(piece(a), gold), new THREE.Mesh(piece(bar), gold)); return g; };
+  const leftA = half(A_LEFT, BAR_LEFT);                  // left A with its half of the chevron
+  const rightA = half(mirror(A_LEFT), mirror(BAR_LEFT)); // the mirror image: upright, like the logo
+  const float = new THREE.Group();                       // drei <Float speed={2.4} rotationIntensity={0.9} floatIntensity={0.9}>
+  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(DIAMOND_R, 0), gold);
+  diamond.position.set(0, DIAMOND_Y, 0);
   float.add(diamond);
   group.add(leftA, rightA, float);
   scene.add(group);
   const floatOffset = Math.random() * 10000;
   return (p, t, delta, pointer) => {
     const split = smoothstep(p, 0.3, 0.62);
-    // a gentle sway that keeps the AA facing the visitor (a full spin showed it edge-on half the time)
+    // a gentle sway that keeps the emblem facing the visitor
     group.rotation.y = lerp(group.rotation.y, (Math.sin(t * 0.5) * 0.32 + pointer.x * 0.18) * (1 - split * 0.6), 0.08);
     group.rotation.x = lerp(group.rotation.x, pointer.y * 0.14 * (1 - split), 0.06);
     group.position.y = 0.35 + Math.sin(t * 0.8) * 0.05;
-    leftA.position.x = -GAP - split * 7.5;
-    rightA.position.x = GAP + split * 7.5;
+    leftA.position.x = -split * 7.5;
+    rightA.position.x = split * 7.5;
     leftA.rotation.z = split * 0.4;     // each A leans outward as they part
     rightA.rotation.z = -split * 0.4;
-    diamond.position.y = 1.35 + split * 5;
+    diamond.position.y = DIAMOND_Y + split * 5;
     diamond.scale.setScalar(Math.max(1 - split * 0.5, 0.001));
     const ft = (floatOffset + t) / 4 * 2.4;
     float.rotation.set((Math.cos(ft) / 8) * 0.9, (Math.sin(ft) / 8) * 0.9, (Math.sin(ft) / 20) * 0.9);
-    float.position.y = (Math.sin(ft) / 10) * 0.9;
+    float.position.y = (Math.sin(ft) / 10) * 0.5;   // a smaller drift than drei's default, so the diamond stays on its apex
   };
 }
 
@@ -192,7 +183,7 @@ function mount(stage, getProgress) {
   const key = new THREE.DirectionalLight("#fff1d4", 1.8); key.position.set(5, 7, 6); scene.add(key);
   const rim = new THREE.DirectionalLight(LIGHT_GOLD, 3); rim.position.set(-6, 4, -8); scene.add(rim);
   const fill = new THREE.PointLight("#ffe9bd", 40, 26); fill.position.set(0, 2.5, 5); scene.add(fill);
-  const face = new THREE.SpotLight("#fff1d4", 16, 22, 0.35, 0.8); face.position.set(0, 1.2, 9); face.target.position.set(0, 0.4, 0);   // lights the emblem's face from the front
+  const face = new THREE.SpotLight("#fff1d4", 9, 22, 0.35, 0.8); face.position.set(0, 1.2, 9); face.target.position.set(0, 0.4, 0);   // lights the emblem's face from the front
   scene.add(face, face.target);
   const updEmblem = emblem(scene), updSky = skyline(scene);
   stars(scene);
