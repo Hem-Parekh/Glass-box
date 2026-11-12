@@ -68,8 +68,12 @@ function emblem(scene) {
   const leftA = half(A_LEFT, BAR_LEFT);                  // left A with its half of the chevron
   const rightA = half(mirror(A_LEFT), mirror(BAR_LEFT)); // the mirror image: upright, like the logo
   const float = new THREE.Group();                       // drei <Float speed={2.4} rotationIntensity={0.9} floatIntensity={0.9}>
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(DIAMOND_R, 0), gold);
+  // the diamond glows: a bright light-gold material the bloom picks up, and a small light inside it
+  const glow = new THREE.MeshStandardMaterial({ color: LIGHT_GOLD, metalness: 0.6, roughness: 0.18, emissive: "#D9A445", emissiveIntensity: 1.2 });
+  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(DIAMOND_R, 0), glow);
   diamond.position.set(0, DIAMOND_Y, 0);
+  const halo = new THREE.PointLight(LIGHT_GOLD, 2.5, 2.2, 2);
+  diamond.add(halo);
   float.add(diamond);
   group.add(leftA, rightA, float);
   scene.add(group);
@@ -86,6 +90,9 @@ function emblem(scene) {
     rightA.rotation.z = -split * 0.4;
     diamond.position.y = DIAMOND_Y + split * 5;
     diamond.scale.setScalar(Math.max(1 - split * 0.5, 0.001));
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);   // a slow breathing glow
+    glow.emissiveIntensity = 0.9 + 0.7 * pulse;
+    halo.intensity = 2 + 1.5 * pulse;
     const ft = (floatOffset + t) / 4 * 2.4;
     float.rotation.set((Math.cos(ft) / 8) * 0.9, (Math.sin(ft) / 8) * 0.9, (Math.sin(ft) / 20) * 0.9);
     float.position.y = (Math.sin(ft) / 10) * 0.5;   // a smaller drift than drei's default, so the diamond stays on its apex

@@ -416,7 +416,7 @@ The public site, the sign-in pages and the CMA lock page sit in front of a New Y
 ## Home page motion: the 3D emblem and the whiteboard
 
 - **3D emblem (hero), WebGL:** `site/hero3d.js`, built from `site/src/hero3d.js` with `sh site/tools/build-hero3d.sh` (three.js r160).
-  - The logo itself in solid gold: the emblem's own outlines (two upright A's, each a slanted leg and an upright meeting in a sharp apex, sharing the chevron), extruded and bevelled (metalness 1, roughness .24), with a floating octahedron diamond on top. A soft front light shows its face. It sways gently, always facing the visitor, and leans toward the pointer. The wordmark sits at 71.5% of the stage height, below it.
+  - The logo itself in solid gold: the emblem's own outlines (two upright A's, each a slanted leg and an upright meeting in a sharp apex, sharing the chevron), extruded and bevelled (metalness 1, roughness .24), with a floating octahedron diamond on top that glows warm gold (#D9A445), breathes slowly and lights the A tips. A soft front light shows its face. It sways gently, always facing the visitor, and leans toward the pointer. The wordmark sits at 71.5% of the stage height, below it.
   - On scroll, the camera flies in; the A's part to the screen edges, each leaning outward; and a city of 170 buildings rises, its windows lighting up. Bloom and a vignette finish it, over obsidian with fog and gold stars.
   - **Both A's always stand upright.** Never rotate either A by 180°.
 - **3D emblem fallback:**
