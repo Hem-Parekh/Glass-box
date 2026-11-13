@@ -2,18 +2,18 @@
 
 Generated 2026-11-13. Every file below is reproduced in full, in the order the page loads it.
 
-Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.
+Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.min.js`, `site/gsap.min.js`, `site/ScrollTrigger.min.js`), the home page media in `site/assets/media/`, the unused older home scene (`site/src/hero3d.js`, `site/motion.js`), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.
 
 ## How the pieces fit
 
-1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.
+1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, GSAP, ScrollTrigger, three.js, the seed data and site map, store, public, landing, chat, portal, then the four role files.
 2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.
 3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.
 
 ## Contents
 
 - **1. Page skeleton and styles**
-  - `site/shell.html` (855 lines): Page skeleton and all CSS: brand tokens, public pages, workspaces, glass and skyline, whiteboard motion, the assistant panel.
+  - `site/shell.html` (856 lines): Page skeleton and all CSS: brand tokens, public pages, workspaces, glass and skyline, whiteboard motion, the assistant panel.
 - **2. Shared engine and helpers**
   - `site/calc.js` (312 lines): Calculation engine: best mix, stress tests, seeded simulation, readiness, term sheets, fee calculators.
   - `site/optimizer.js` (249 lines): Equity vs Debt Optimizer (browser port of the Python model).
@@ -21,30 +21,29 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/domain.js` (127 lines): Business arithmetic in integer paise; mirrors server/domain.py.
   - `site/kit.js` (263 lines): Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
   - `site/pdf.js` (263 lines): Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF.
-- **3. Home page 3D emblem**
-  - `site/src/hero3d.js` (266 lines): The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette.
-  - `site/tools/build-hero3d.sh` (13 lines): Bundles the scene with three.js r160 into site/hero3d.js.
+- **3. Home page**
+  - `site/landing.js` (642 lines): The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene.
+  - `site/landing.css` (361 lines): The home page styles, all scoped under .lp.
 - **4. Data layer**
   - `site/store.js` (1042 lines): Demo store: every action and rule of the server, kept in the browser.
   - `site/api-server.js` (57 lines): Adapter that sends the same calls to the Flask API.
-- **5. Public website, motion and the assistant**
-  - `site/public.js` (354 lines): Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact.
-  - `site/motion.js` (190 lines): Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page.
+- **5. Public website and the assistant**
+  - `site/public.js` (356 lines): Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact.
   - `site/chat.js` (200 lines): The "Ask Aegis" assistant panel, its quick answers and site guide.
   - `site/sitemap.json` (88 lines): The assistant's map of every page and workspace screen.
 - **6. Sign-in and role workspaces**
-  - `site/portal.js` (769 lines): Sign-in and sign-up, the role-based workspace frame, page router.
+  - `site/portal.js` (770 lines): Sign-in and sign-up, the role-based workspace frame, page router.
   - `site/ws-founder.js` (168 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
   - `site/ws-investor.js` (225 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
   - `site/ws-lender.js` (207 lines): Lender: loan book with Sell buttons, schedules, applications, monitoring, loan sales, fees.
   - `site/ws-advisor.js` (539 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
 - **7. Standalone pages and build tools**
   - `site/cma-lock.html` (38 lines): The 'Advisors only' page shown instead of the CMA tool to anyone else.
-  - `site/build.py` (46 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
+  - `site/build.py` (45 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
   - `site/tools/skyline.py` (155 lines): Draws the New York skyline (site/assets/skyline.svg) and its inline copy.
-  - `site/tools/bundle-code.py` (122 lines): Writes this file.
+  - `site/tools/bundle-code.py` (121 lines): Writes this file.
 - **8. Server prototype (Flask)**
-  - `server/app.py` (514 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
+  - `server/app.py` (525 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
   - `server/actions.py` (806 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
   - `server/domain.py` (180 lines): Money, DSCR, repayment schedules, XIRR and limits.
   - `server/seed.py` (263 lines): The fictional sample companies, people, loans and invoices.
@@ -57,7 +56,7 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `backend/auth.py` (159 lines): Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens.
   - `backend/notify.py` (47 lines): Outbox for email, SMS and WhatsApp, and the sender stand-in.
   - `backend/storage.py` (56 lines): File storage: local folder or S3-compatible.
-  - `backend/app.py` (583 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+  - `backend/app.py` (594 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
   - `backend/integrations/providers.py` (91 lines): Provider adapters for KYC, e-signing and payments, and the stand-in provider.
   - `backend/integrations/service.py` (270 lines): Starting checks, signings and payments; applying the providers' signed results once.
   - `backend/integrations/documents.py` (107 lines): The NDA and engagement letter text, and the signed copy with its certificate.
@@ -76,7 +75,7 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `backend/tests/test_integrations.py` (195 lines): KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts.
   - `backend/tests/test_security.py` (199 lines): Sessions, two-step sign-in, password change and reset, outbox, import, action lock.
 
-Total: 12134 lines in 53 files.
+Total: 12692 lines in 52 files.
 
 
 ---
@@ -93,7 +92,7 @@ Page skeleton and all CSS: brand tokens, public pages, workspaces, glass and sky
 <title>Aegis Ascend Financial Advisors</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Cinzel:wght@400;500;600;700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Caveat:wght@600&family=Cinzel:wght@400;500;600;700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 <style>
 /* Two scenes. Public pages: the logo's world, obsidian ground, gold geometry, Cinzel capitals.
    Workspace: obsidian rail with the mark, a light stone work area for daytime desk work (dark at night). */
@@ -925,6 +924,7 @@ dialog.modal[open]{animation:mdlIn .22s var(--ease-out)}
 @media (max-width:1250px){.sale-steps{grid-template-columns:repeat(4,minmax(0,1fr))}.sale-steps li:nth-child(4n)::after{display:none}}
 @media (max-width:700px){.sale-steps{grid-template-columns:minmax(0,1fr)}.sale-steps li::after{display:none}}
 </style>
+<!--LANDING_CSS-->
 
 <div id="site"><p style="padding:40px;text-align:center;color:#F1ECE2;background:#0D0E10;margin:0">Loading Aegis Ascend…</p></div>
 <div id="explain" hidden><div class="xp" role="dialog" aria-modal="true" aria-labelledby="xp-title"><div class="xp-head"><h2 id="xp-title">How this number is made</h2><button class="btn ghost sm xp-close" type="button">Close</button></div><div class="xp-body"></div></div></div>
@@ -2375,301 +2375,1025 @@ Branded PDF reports: lays out the tools' results and signed reports on A4 pages 
 
 ---
 
-## 3. Home page 3D emblem
+## 3. Home page
 
-The WebGL hero scene. site/hero3d.js is built from this source with three.js by site/tools/build-hero3d.sh.
+The landing page: a scroll-driven 3D market scene (three.js r159 and GSAP 3.12.5, vendored as site/three.min.js, site/gsap.min.js and site/ScrollTrigger.min.js), the live example, tools, method and founders.
 
-### `site/src/hero3d.js`
+### `site/landing.js`
 
-The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette.
+The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene.
 
 ```javascript
-/* The home page's 3D hero: the gold AA emblem, a rising city of lit buildings, stars, and a camera
-   that flies in as the page scrolls. A plain three.js port of the React Three Fiber HeroScene
-   (same materials, timings, bloom and vignette), with these changes: the emblem is built from the
-   logo's own outlines (two upright A's sharing a chevron, the diamond on top) instead of block letters,
-   it sways facing the visitor instead of spinning, and a front light shows its face.
+/* Home page (landing): a scroll-driven 3D market scene (three.js + GSAP ScrollTrigger), the worked example in four
+   panels, the Expertise explorer, the Approach timeline and the closing call to action. Styles: site/landing.css.
+   Three ways to run, chosen before first paint: "3d" (WebGL scene), "lite" (phones and no WebGL: the footage as video)
+   and "static" (reduced motion: everything visible, nothing moves).
+   The worked-example figures come from the site's calculation engine (calc.js) when the page renders. */
+(function (root) {
+  "use strict";
+  const ASSETS = root.GB_ASSETS || "assets/";
+  const M = ASSETS + "media/";
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const span = (x, a, b) => Math.min(1, Math.max(0, (x - a) / (b - a)));
 
-   Source for site/hero3d.js. Rebuild with: sh site/tools/build-hero3d.sh
-   Exposes window.HERO3D.mount(stage, getProgress) -> handle | null (null when WebGL is unavailable). */
-import * as THREE from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
+  /* ---------------------------------------------------------------- content (the firm's own) */
+  // Tools behind the advice: [name, highlighted word, description, tag, accent, image (null = engine trace), what it shows, workspace page]
+  const TOOLS = [
+    ["Funding", "Twin", "A live copy of the company's finances. Change an assumption and every chart updates.", "Live model", "#38e07b", null,
+      ["Change an assumption, every chart updates", "Every input tagged: founder, benchmark or advisor", "Best mix tested in 5% steps"], "#app-twin"],
+    ["Net Effect", "Bridge", "What the founder's share is worth with debt, with equity and with a mix, in rupees.", "Founder value", "#a78bfa", "strategic-advisory",
+      ["All equity, all debt and the best mix", "In rupees, in today's money", "Click any figure for its working"], "#app-twin"],
+    ["Break-even", "Value", "Above this company value, debt wins. Below it, equity wins.", "Where debt starts to win", "#7fb2ff", "growth-strategy",
+      ["The company value where debt overtakes equity", "The growth needed to get there", "Best, expected and worst cases"], "#app-twin"],
+    ["Stress", "Slider", "Drag sales down or interest up and watch repayment safety change.", "Repayment safety", "#38bdf8", "business-intelligence",
+      ["Sales down, interest up", "DSCR redrawn year by year", "Your minimum DSCR marked on the chart"], "#app-twin"],
+    ["Equity vs Debt", "Optimizer", "Every mix from 0% to 100% equity, year by year, and the one that leaves the founder richest.", "0% to 100% equity", "#ffb23f", "market-intelligence",
+      ["Every mix in 1% steps, year by year", "Ranked by founder wealth or cash", "Monthly take-home and DSCR for each mix"], "#app-optimizer"],
+    ["CMA funding", "report", "A one-page, DSCR-sized funding recommendation from the bank's CMA workbook.", "For lenders", "#2ee6cf", "financial-research",
+      ["The bank's CMA workbook, read in the browser", "Debt sized on DSCR", "A one-page PDF for lenders"], "#app-cma"],
+    ["Investor Fit", "Score", "Each suggested investor scored on sector, stage, ticket size and past deals, with reasons.", "Curated deals", "#ff8a92", "strategic-advisory",
+      ["Scored on sector, stage and ticket size", "Past deals taken into account", "The reasons behind every score"], "#app-investors"],
+  ];
+  // How every report is made: [title, text, icon]
+  const METHOD = [
+    ["Upload", "Accounts, GST returns and CMA data.", "upload"], ["Read", "Figures extracted into a strict format.", "file"], ["Confirm", "The founder checks every extracted figure.", "check"],
+    ["Validate", "Balances, totals and sudden jumps checked.", "shield"], ["Calculate", "Code computes every number. No AI does maths.", "calc"], ["Stress", "Best, expected, worst; sales -20%, rates +2 points.", "pulse"],
+    ["Verify", "Every number in the summary matched to the engine.", "search"], ["Sign off", "A named advisor reviews and stamps the report.", "pen"],
+  ];
+  const ACCENTS = ["#2ee6cf", "#7fb2ff", "#38bdf8", "#a78bfa", "#38e07b", "#ffb23f", "#ff8a92", "#2ee6cf"];
+  const PROMISES = [
+    ["For founders", "A clear, evidence-backed answer on debt versus equity, with the risks shown honestly, before you give away a single share or sign a single loan.", "#2ee6cf"],
+    ["For investors", "We only bring you the best deals. Every company has passed our validation checks, our calculation engine and an advisor's sign-off.", "#ffb23f"],
+    ["Our role", "We are the advisor, independent of any lender, fund or exchange. The recommendation is driven only by what is right for the company and the investor.", "#7fb2ff"],
+  ];
+  const PILLARS = [
+    ["Debt vs equity specialists", "The capital-structure decision is our core product, not a side feature."],
+    ["Every number explained", "Click any figure to see its formula, its inputs, where each came from and the engine version."],
+    ["Curated deals", "Investors see only companies that pass our engine and an advisor's review."],
+    ["Advisor accountability", "Every report carries a visible \"Reviewed by\" stamp from a named advisor."],
+    ["Independence", "We sell no loan and run no fund, so our advice has no product to push."],
+    ["Founder-owned data", "Nothing reaches an investor without the founder's permission, and every share is logged."],
+  ];
+  const FOUNDERS = [["Hem Parekh", "hem"], ["Yash Sharma", "yash"], ["Vivan Shah", "vivan"]];
+  const ICONS = {
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    check: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    calc: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M16 14v4M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/>',
+    pulse: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  };
+  const XICONS = [
+    '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>',
+    '<path d="M3 3v18h18"/><path d="M7 16V9M12 16V5M17 16v-4"/>',
+    '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+    '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+    '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>',
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/>',
+    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  ];
+  const svg = (paths, cls) => '<svg class="' + (cls || "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
+  const ARROW = svg('<path d="M5 12h14M12 5l7 7-7 7"/>');
+  const RIGHT = '<svg class="right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+  const BRAND = '<svg class="mark" viewBox="62 52 420 400" aria-hidden="true"><use href="#emblem"/></svg>Aegis Ascend <span>Financial Advisors</span>';
+  const gets = (list, cls) => '<ul class="' + cls + '">' + list.map((g) => "<li>" + g + "</li>").join("") + "</ul>";
 
-const GOLD = "#C9A04F";
-const LIGHT_GOLD = "#E8C77B";
-const OBSIDIAN = "#0D0E10";
-const BUILDING_COUNT = 170;
-const GROUND_Y = -2.1;
-const { clamp, lerp, smoothstep } = THREE.MathUtils;
+  // The live example on the sample company (Kalyan Polymers, Rs 12 crore), straight from the engine, as on the old home page.
+  function example() {
+    const GB = root.GB, U = root.UI, t = GB.twin({}), b = t.best, q = t.q;
+    const diff = (b.value - t.equity.value) / Math.pow(1 + q.discount_rate, q.horizon);
+    const path = GB.dscrPath(q, b.loan);
+    const maxD = Math.max(...path.map((r) => r.dscr), q.dscr_min * 1.4);
+    const bars = path.map((r, i) => { const h = Math.max(2, (r.dscr / maxD) * 56), w = 120 / path.length; return [4 + i * (w + 2), 60 - h, w - 1, h, r.dscr < q.dscr_min ? "#ff4b55" : "#38e07b"]; });
+    const vals = t.mixes.map((m) => m.value), lo = Math.min(...vals), hi = Math.max(...vals);
+    const pt = (m, i) => [4 + (132 * i) / (t.mixes.length - 1), 56 - ((m.value - lo) / ((hi - lo) || 1)) * 50];
+    const curve = t.mixes.map((m, i) => (i ? "L" : "M") + pt(m, i).map((v) => v.toFixed(1)).join(" ")).join(" ");
+    const bi = Math.round(b.share * (t.mixes.length - 1)), best = pt(t.mixes[bi], bi);
+    return { t, b, q, diff, bars, curve, best, version: t.version, minLine: 60 - (q.dscr_min / maxD) * 56,
+      debt: U.pct(b.share), equity: U.pct(1 - b.share), eqFrac: (1 - b.share).toFixed(3), net: U.cr(diff), dscr: U.xx(b.dscr), stress: U.xx(b.dscr_stress),
+      raise: U.cr(q.raise, 0), loan: U.cr(b.loan), eq: U.cr(b.equity), ebitda: U.cr(q.ebitda0) };
+  }
+  function term(x) {
+    return '<div class="x-term" role="img" aria-label="Engine trace for the sample company: best mix, net effect and repayment safety">' +
+      '<div class="x-term-bar"><i></i><i></i><i></i>' + esc(x.version) + " · Funding Twin</div><pre>" +
+      '<span class="c"># sample company: Kalyan Polymers, ' + x.raise + ' raise</span>\n' +
+      '<span class="k">best_mix</span>   = <span class="n">' + x.debt + '</span> debt · <span class="n">' + x.equity + '</span> equity\n' +
+      '  loan <span class="n">' + x.loan + '</span>  equity <span class="n">' + x.eq + '</span>\n' +
+      '<span class="k">net_effect</span> → <span class="n">' + x.net + '</span> vs all-equity  <span class="ok">✓</span>\n' +
+      '<span class="k">dscr_min</span>   → <span class="n">' + x.dscr + '</span>  stress <span class="n">' + x.stress + '</span>  <span class="ok">✓</span>\n' +
+      '<span class="k">summary</span>    every number matched to the engine <span class="ok">✓</span>\n' +
+      '<span class="c">$</span> <span class="cur"></span></pre></div>';
+  }
 
-// The emblem's own outlines (site/shell.html #emblem: 17-unit strokes with mitred joins, clipped as in
-// the logo), converted to scene units: x = (svgX - 273) / 170, y = (251 - svgY) / 170.
-// The left A is a slanted leg and an upright meeting in a sharp apex; the bar is the left half of the
-// shared chevron. The right side is the mirror image.
-const A_LEFT = [[-1.1157, -0.9588], [-1.1781, -0.9213], [-0.1088, 0.8566], [-0.1088, -1.1118], [-0.2088, -1.1118], [-0.2088, 0.4963], [-1.0848, -0.9602]];
-const BAR_LEFT = [[-0.6142, -0.8471], [0, -0.1478], [0, -0.2993], [-0.4811, -0.8471]];
-const DIAMOND_Y = 0.9412, DIAMOND_R = 0.1706;
-const mirror = (pts) => pts.map(([x, y]) => [-x, y]).reverse();
+  /* ---------------------------------------------------------------- markup */
+  function html(user) {
+    const x = example(), NAV = [["services", "Services"], ["investors", "For investors"], ["lenders", "For lenders"], ["pricing", "Pricing"], ["trust", "Trust & compliance"], ["about", "About"]];
+    const cta = user ? '<a class="pill ghost" href="#app">Open your workspace</a>' : '<a class="signin" href="#login">Sign in</a><a class="pill ghost" href="#contact">Book an engagement</a>';
+    const anatomy = root.PUB && root.PUB.anatomy ? root.PUB.anatomy() : "";
+    return '<div class="lp" data-mode="static">' +
+      '<header class="top" id="lp-top"><div class="wrap">' +
+        '<a class="brand" href="#hero" aria-label="Aegis Ascend Financial Advisors, back to top">' + BRAND + "</a>" +
+        '<nav class="nav" aria-label="Main">' + NAV.map(([k, l]) => '<a href="#' + k + '">' + esc(l) + "</a>").join("") + "</nav>" +
+        '<div class="top-cta">' + cta + "</div></div></header>" +
+      "<main>" +
+      '<section class="stage" id="hero" aria-label="Introduction"><span class="anchor" id="example" aria-hidden="true"></span><div class="sticky">' +
+        '<img class="poster" src="' + M + 'markets-poster.webp" alt="" fetchpriority="high">' +
+        '<div class="layer" id="lp-scene" aria-hidden="true"></div>' +
+        '<div class="layer lite" aria-hidden="true"><video id="lp-video" muted loop playsinline preload="none" poster="' + M + 'markets-poster-960.webp">' +
+          '<source src="' + M + 'markets-960.webm" type=\'video/webm; codecs="vp9"\'><source src="' + M + 'markets-960.mp4" type="video/mp4"></video></div>' +
+        '<div class="layer shade"></div><div class="shade-top"></div><div class="layer vignette"></div>' +
+        '<div class="hero" data-hero><div class="wrap">' +
+          '<p class="kick rise"><i aria-hidden="true"></i>Aegis Ascend · Financial Advisors</p>' +
+          '<h1 class="h1 rise">Smarter Decisions. <span class="hl">Stronger Futures.</span></h1>' +
+          '<p class="sub rise">Independent advice on debt, equity or the right mix for growing Indian businesses. Every number traced, checked and signed off before it reaches you, then we deliver the deal.</p>' +
+          '<div class="ctas rise"><a class="pill solid" href="#contact">Book an engagement ' + RIGHT + '</a><a class="pill ghost" href="#login">Try the live model ' + RIGHT + "</a></div>" +
+        "</div></div>" +
+        '<div class="intel"><div class="wrap"><div data-intel-head>' +
+          '<p class="kicker">Live example · sample company</p><h2>Debt, equity <span class="hl">or a mix?</span></h2>' +
+          '<p class="body">Kalyan Polymers needs ' + x.raise + ". Our engine tests every mix and recommends " + x.debt + " debt and " + x.equity + " equity.</p>" +
+          '<p class="caption" data-intel-caption>Sample company · live model · calculated by our engine (' + esc(x.version) + "), not by AI. In the workspace, click any underlined number to see its formula and inputs.</p></div>" +
+          '<div class="panels">' +
+            '<div class="panel p1" data-panel style="--accent:var(--up)"><p class="lbl">Recommended mix · debt</p><p class="val">' + x.debt + "</p>" +
+              '<div class="chart" aria-hidden="true"><svg viewBox="0 0 140 60">' + x.bars.map((r) => '<rect data-grow x="' + r[0].toFixed(1) + '" y="' + r[1].toFixed(1) + '" width="' + r[2].toFixed(1) + '" height="' + r[3].toFixed(1) + '" rx="1.5" fill="' + r[4] + '" opacity=".6"/>').join("") +
+                '<line x1="2" x2="138" y1="' + x.minLine.toFixed(1) + '" y2="' + x.minLine.toFixed(1) + '" stroke="rgba(255,255,255,0.35)" stroke-dasharray="2 3"/></svg></div>' +
+              '<p class="note">' + x.loan + " loan · repayment safety (DSCR) each year, dashed line at the minimum " + x.q.dscr_min.toFixed(2) + "x</p></div>" +
+            '<div class="panel p2" data-panel style="--accent:var(--amber)"><p class="lbl">Recommended mix · equity</p><p class="val">' + x.equity + "</p>" +
+              '<div class="chart" aria-hidden="true"><svg viewBox="0 0 60 60" style="width:auto"><circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>' +
+              '<circle data-ring data-to="' + x.eqFrac + '" cx="30" cy="30" r="24" fill="none" stroke="#ffb23f" stroke-width="6" stroke-linecap="round" pathLength="1" stroke-dasharray="' + x.eqFrac + ' 1" transform="rotate(-90 30 30)"/></svg></div>' +
+              '<p class="note">' + x.eq + " raised as equity</p></div>" +
+            '<div class="panel p3" data-panel style="--accent:var(--sky)"><p class="lbl">Founder better off than all-equity</p><p class="val">' + x.net + "</p>" +
+              '<div class="chart" aria-hidden="true"><svg viewBox="0 0 140 60" fill="none"><path data-draw d="' + x.curve + '" stroke="#7fb2ff" stroke-width="2" pathLength="1" stroke-dasharray="1 1"/>' +
+              '<line x1="' + x.best[0].toFixed(1) + '" y1="4" x2="' + x.best[0].toFixed(1) + '" y2="58" stroke="rgba(255,255,255,0.25)" stroke-dasharray="2 3"/><circle cx="' + x.best[0].toFixed(1) + '" cy="' + x.best[1].toFixed(1) + '" r="3" fill="#fff"/></svg></div>' +
+              '<p class="note">in today\'s money · founder value for every debt share, best mix marked</p></div>' +
+            '<div class="panel p4" data-panel style="--accent:var(--down)"><p class="lbl">Lowest repayment safety (DSCR)</p><p class="val small">' + x.dscr + " · stress " + x.stress + "</p>" +
+              '<div class="chart"><dl class="inputs"><dt>E</dt><dd>' + x.ebitda + '</dd><dd class="d">EBITDA today</dd><dt>L</dt><dd>' + x.loan + '</dd><dd class="d">loan at the best mix</dd><dt>S</dt><dd>−20% · +2 pts</dd><dd class="d">stress: sales, rates</dd></dl></div>' +
+              '<p class="note">Signed off before it is shared: every report carries a named advisor\'s "Reviewed" stamp</p></div>' +
+          "</div></div></div>" +
+        '<div class="cue" data-cue aria-hidden="true">Scroll to move through the market <i></i></div><div class="layer veil" data-veil></div>' +
+      "</div></section>" +
+      // promises, the brand, what we stand for
+      '<section class="band grid-bg glow-top xsec" id="promise"><div class="wrap"><div class="sec-head"><div class="head" data-reveal><p class="kicker">Who we serve</p>' +
+        '<h2>One clear answer, <span class="hl">for everyone at the table.</span></h2></div>' +
+        '<ul class="sec-badges" data-reveal><li>Independent</li><li>Every number traced</li><li>Advisor signed</li></ul></div>' +
+        '<div class="lp-cards c3">' + PROMISES.map(([t, d, c]) => '<article class="lp-card" data-reveal style="--accent:' + c + '"><p class="kicker">' + t + "</p><p>" + d + "</p></article>").join("") + "</div>" +
+        '<div class="lp-meaning" data-reveal><div class="lp-anatomy">' + anatomy + '</div><div><p class="kicker">Our identity</p><h2>Protection, <span class="hl-warm">then ascent.</span></h2>' +
+          "<p class=\"lede\">Our identity says what we do: protect a business's interests while creating pathways to sustainable growth.</p>" +
+          '<dl class="lp-dl"><div><dt>Aegis</dt><dd>Protection and trusted guidance.</dd></div><div><dt>Ascend</dt><dd>Progress and the pursuit of greater potential.</dd></div>' +
+          "<div><dt>The emblem</dt><dd>Structure, strategic thinking and upward ambition. The diamond at its peak stands for clarity of vision and sound financial judgment.</dd></div></dl>" +
+          "<p class=\"fine\">Our philosophy is simple: Smarter Decisions. Stronger Futures. Guided by it, we help businesses navigate financial choices, evaluate capital-raising options, and build a stronger foundation for the future.</p></div></div>" +
+        '<div class="head" data-reveal style="margin-top:96px"><p class="kicker">What we stand for</p><h2>Six commitments, <span class="hl">kept on every deal.</span></h2></div>' +
+        '<div class="lp-cards c3 pillars">' + PILLARS.map(([t, d]) => '<article class="lp-card" data-reveal><h3>' + t + "</h3><p>" + d + "</p></article>").join("") + "</div>" +
+      "</div></section>" +
+      // how every report is made
+      '<section class="band apx" id="method"><div class="wrap"><div class="head" data-reveal><p class="kicker">How every report is made</p>' +
+        '<h2>Eight steps, in this order, <span class="hl-warm">for every analysis.</span></h2><p>Nothing skips the checks.</p></div>' +
+        '<div class="ap"><aside class="ap-sticky" aria-hidden="true"><div class="ap-visual" id="lp-apVisual"><div class="ap-ico" id="lp-apIco"></div>' +
+          '<div class="ap-ring"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="16" pathLength="8"/><circle class="fg" id="lp-apArc" cx="18" cy="18" r="16" pathLength="8" stroke-dasharray="1 8"/></svg>' +
+          '<div><b id="lp-apStep">1</b><small id="lp-apNum">of 8</small></div></div>' +
+          '<h3 id="lp-apTitle">Upload</h3><p id="lp-apText"></p><div class="ap-out"><small>The golden rule</small><span>The AI never does the maths.</span></div></div></aside>' +
+          '<ol class="ap-steps" id="lp-apSteps"></ol></div>' +
+        '<div class="lp-golden" data-reveal><p class="kicker">The golden rule</p><p>The AI never does the maths. Calculation code produces every number. The AI reads documents, suggests assumptions and explains results in plain words, and every number it writes is checked against the code\'s output before a report is released.</p></div>' +
+      "</div></section>" +
+      // tools behind the advice
+      '<section class="band grid-bg glow-top" id="tools"><div class="wrap"><div class="sec-head"><div class="head" data-reveal><p class="kicker">Tools behind the advice</p>' +
+        '<h2>Founders and advisors work <span class="hl">in the same tools.</span></h2><p>So every recommendation can be reproduced.</p></div>' +
+        '<ul class="sec-badges" data-reveal><li>One engine</li><li>Every figure explained</li><li>No AI arithmetic</li></ul></div>' +
+        '<div class="xp" id="lp-xp"><div class="xp-tabs" role="tablist" aria-label="Tools" id="lp-xpTabs"></div><div class="xp-stage" id="lp-xpStage"></div></div>' +
+        '<div class="xm" id="lp-xm" aria-label="Tools"></div><div class="xm-dots" id="lp-xmDots" aria-hidden="true"></div></div></section>' +
+      // founders
+      '<section class="band apx" id="founders"><div class="wrap"><div class="head" data-reveal><p class="kicker">The founders</p>' +
+        '<h2>Three partners who <span class="hl">sign their names to the advice.</span></h2><p>Aegis Ascend was founded by three partners who sign their names to the advice.</p></div>' +
+        '<div class="lp-founders">' + FOUNDERS.map(([nm, f]) => '<figure class="lp-founder" data-reveal><img src="' + ASSETS + "founder-" + f + '.jpg" alt="Portrait of ' + nm + '" width="480" height="600" loading="lazy" decoding="async"><figcaption><b>' + nm + "</b><small>Co-founder</small></figcaption></figure>").join("") + "</div>" +
+      "</div></section>" +
+      '<section class="band final" id="start"><div class="wrap"><h2 data-reveal>Should you raise debt, equity <span class="hl">or a mix?</span></h2>' +
+        "<p data-reveal>Advisory engagements start from Rs 1 lakh plus GST, scaled by company size and complexity.</p>" +
+        '<a class="pill solid" href="#contact">Talk to an advisor ' + RIGHT + "</a></div></section>" +
+      "</main>" +
+      '<footer><div class="wrap lp-foot"><div><a class="brand" href="#hero">' + BRAND + "</a><p>Smarter Decisions. Stronger Futures. Independent funding advice for growing Indian businesses, from Mumbai.</p></div>" +
+        '<nav aria-label="Services"><b>Services</b><a href="#services">Debt vs equity advisory</a><a href="#services-equity">Equity raise and early exit</a><a href="#services-debt">Debt arranging</a></nav>' +
+        '<nav aria-label="Firm"><b>Firm</b><a href="#about">About and founders</a><a href="#trust">Trust &amp; compliance</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a></nav>' +
+        '<nav aria-label="Workspace"><b>Workspace</b><a href="#login">Sign in</a><a href="#signup">Create an account</a></nav>' +
+        '<p class="fine">This website describes planned services and structures. Figures are illustrative estimates, not guarantees. Structures, fees and agreements are subject to review by qualified legal and tax advisers before launch. Ticker numbers in the background footage are decorative. © 2026 Aegis Ascend Financial Advisors.</p>' +
+      "</div></footer></div>";
+  }
 
-function piece(points) {
-  const s = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.012, bevelSegments: 2 });
-  geo.translate(0, 0, -0.08);
-  return geo;
-}
+  /* ---------------------------------------------------------------- behaviour */
+  let live = null;   // everything the mounted page started, so unmount can stop it
 
-function makeWindowTexture() {
-  const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 128;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, 64, 128);
-  for (let y = 0; y < 14; y += 1) {
-    for (let x = 0; x < 5; x += 1) {
-      if (Math.random() < 0.45) {
-        const r = Math.random();
-        ctx.fillStyle = r > 0.85 ? "#3F6EA6" : r > 0.4 ? "#E8C77B" : "#C9A04F";
-        ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-        ctx.fillRect(6 + x * 11, 6 + y * 8.6, 6, 4.4);
+  function mount() {
+    unmount();
+    const el = document.querySelector(".lp"); if (!el) return;
+    const $ = (id) => el.querySelector("#lp-" + id);
+    const L = live = { el, off: [], io: [], timers: [], ctx: null, renderer: null, video: null };
+    const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); L.off.push(() => t.removeEventListener(ev, fn, o)); };
+    const observe = (cb, opts, targets) => { const io = new IntersectionObserver(cb, opts); [].concat(targets).forEach((t) => io.observe(t)); L.io.push(io); return io; };
+
+    // the way to run, before anything moves: 3d | lite | static
+    let MODE = "3d";
+    try {
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) MODE = "static";
+      else {
+        const c = document.createElement("canvas"), gl = c.getContext("webgl2") || c.getContext("webgl");
+        if (!gl || innerWidth < 768 || typeof root.THREE === "undefined") MODE = "lite";
       }
-    }
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
+    } catch (e) { MODE = "lite"; }
+    if (typeof root.gsap === "undefined") MODE = "static";
+    el.dataset.mode = MODE;
+    // hold the entrance until the fonts are in, so the headline never swaps typeface while it moves
+    el.classList.add("fonts-wait");
+    const ready = () => el.classList.remove("fonts-wait");
+    L.timers.push(setTimeout(ready, 1500));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(ready);
 
-function emblem(scene) {
-  const gold = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 1, roughness: 0.24, emissive: "#7a5c1e", emissiveIntensity: 0.6 });
-  const group = new THREE.Group();
-  group.position.set(0, 0.35, 0);
-  group.scale.setScalar(1.15);
-  const half = (a, bar) => { const g = new THREE.Group(); g.add(new THREE.Mesh(piece(a), gold), new THREE.Mesh(piece(bar), gold)); return g; };
-  const leftA = half(A_LEFT, BAR_LEFT);                  // left A with its half of the chevron
-  const rightA = half(mirror(A_LEFT), mirror(BAR_LEFT)); // the mirror image: upright, like the logo
-  const float = new THREE.Group();                       // drei <Float speed={2.4} rotationIntensity={0.9} floatIntensity={0.9}>
-  // the diamond glows: a bright light-gold material the bloom picks up, and a small light inside it
-  const glow = new THREE.MeshStandardMaterial({ color: LIGHT_GOLD, metalness: 0.6, roughness: 0.18, emissive: "#D9A445", emissiveIntensity: 1.2 });
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(DIAMOND_R, 0), glow);
-  diamond.position.set(0, DIAMOND_Y, 0);
-  const halo = new THREE.PointLight(LIGHT_GOLD, 2.5, 2.2, 2);
-  diamond.add(halo);
-  float.add(diamond);
-  group.add(leftA, rightA, float);
-  scene.add(group);
-  const floatOffset = Math.random() * 10000;
-  return (p, t, delta, pointer) => {
-    const split = smoothstep(p, 0.3, 0.62);
-    // a gentle sway that keeps the emblem facing the visitor
-    group.rotation.y = lerp(group.rotation.y, (Math.sin(t * 0.5) * 0.32 + pointer.x * 0.18) * (1 - split * 0.6), 0.08);
-    group.rotation.x = lerp(group.rotation.x, pointer.y * 0.14 * (1 - split), 0.06);
-    group.position.y = 0.35 + Math.sin(t * 0.8) * 0.05;
-    leftA.position.x = -split * 7.5;
-    rightA.position.x = split * 7.5;
-    leftA.rotation.z = split * 0.4;     // each A leans outward as they part
-    rightA.rotation.z = -split * 0.4;
-    diamond.position.y = DIAMOND_Y + split * 5;
-    diamond.scale.setScalar(Math.max(1 - split * 0.5, 0.001));
-    const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);   // a slow breathing glow
-    glow.emissiveIntensity = 0.9 + 0.7 * pulse;
-    halo.intensity = 2 + 1.5 * pulse;
-    const ft = (floatOffset + t) / 4 * 2.4;
-    float.rotation.set((Math.cos(ft) / 8) * 0.9, (Math.sin(ft) / 8) * 0.9, (Math.sin(ft) / 20) * 0.9);
-    float.position.y = (Math.sin(ft) / 10) * 0.5;   // a smaller drift than drei's default, so the diamond stays on its apex
-  };
-}
-
-function skyline(scene) {
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  geo.translate(0, 0.5, 0);
-  const rng = (a, b) => a + Math.random() * (b - a);
-  const list = [];
-  for (let i = 0; i < BUILDING_COUNT; i += 1) {
-    const z = -3 - Math.random() * 13;
-    let x = rng(-16, 16);
-    if (Math.abs(x) < 2.2) x = Math.sign(x || 1) * rng(2.2, 4.5);
-    const h = rng(1.2, 7) * (1 - Math.abs(x) / 26);
-    list.push({ x, z, h, w: rng(0.7, 1.7), d: rng(0.7, 1.7), jitter: Math.random() * 0.12 });
-  }
-  list.sort((a, b) => a.z - b.z);
-  list.forEach((b, i) => { b.t = (i / list.length) * 0.5 + b.jitter; });
-  const mat = new THREE.MeshStandardMaterial({ color: "#0f1218", roughness: 0.85, metalness: 0.2, emissive: "#f5d9a0", emissiveMap: makeWindowTexture(), emissiveIntensity: 0 });
-  const mesh = new THREE.InstancedMesh(geo, mat, BUILDING_COUNT);
-  mesh.frustumCulled = false;
-  scene.add(mesh);
-  const dummy = new THREE.Object3D();
-  return (p) => {
-    const rise = clamp((p - 0.42) / 0.42, 0, 1);
-    for (let i = 0; i < list.length; i += 1) {
-      const b = list[i];
-      const local = clamp((rise - b.t) / 0.5, 0, 1);
-      const e = 1 - (1 - local) ** 3;
-      dummy.position.set(b.x, GROUND_Y, b.z);
-      // a building that hasn't started rising is hidden, not left as a flat tile on the ground
-      if (e > 0) dummy.scale.set(b.w, b.h * e, b.d); else dummy.scale.set(0, 0, 0);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    mat.emissiveIntensity = 1.7 * smoothstep(p, 0.55, 0.95);
-  };
-}
-
-function stars(scene) {
-  const arr = new Float32Array(260 * 3);
-  for (let i = 0; i < 260; i += 1) {
-    arr[i * 3] = (Math.random() - 0.5) * 60;
-    arr[i * 3 + 1] = Math.random() * 22 - 2;
-    arr[i * 3 + 2] = -6 - Math.random() * 30;
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: LIGHT_GOLD, size: 0.045, transparent: true, opacity: 0.7, sizeAttenuation: true, depthWrite: false })));
-}
-
-function cameraRig(camera) {
-  return (p, pointer) => {
-    const fly = smoothstep(p, 0, 0.45);
-    const settle = smoothstep(p, 0.6, 1);
-    camera.position.z = lerp(9.5, 4.6, fly) + settle * 1.4;
-    camera.position.y = lerp(0.5, 0.1, fly) + settle * 1.15;
-    camera.position.x = lerp(camera.position.x, pointer.x * 0.5 * (1 - settle * 0.5), 0.05);
-    camera.lookAt(0, lerp(0.4, 0.2, fly) + settle * 0.3, -settle * 5);
-  };
-}
-
-function webglOK() {
-  try {
-    const c = document.createElement("canvas");
-    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
-  } catch (e) {
-    return false;
-  }
-}
-
-function mount(stage, getProgress) {
-  if (!stage || !webglOK()) return null;
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-  } catch (e) {
-    return null;
-  }
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;   // React Three Fiber's defaults
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  const canvas = renderer.domElement;
-  canvas.className = "hero3d";
-  canvas.setAttribute("aria-hidden", "true");
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(OBSIDIAN);
-  scene.fog = new THREE.Fog(OBSIDIAN, 9, 30);
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 70);
-  camera.position.set(0, 0.5, 9.5);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-  const key = new THREE.DirectionalLight("#fff1d4", 1.8); key.position.set(5, 7, 6); scene.add(key);
-  const rim = new THREE.DirectionalLight(LIGHT_GOLD, 3); rim.position.set(-6, 4, -8); scene.add(rim);
-  const fill = new THREE.PointLight("#ffe9bd", 40, 26); fill.position.set(0, 2.5, 5); scene.add(fill);
-  const face = new THREE.SpotLight("#fff1d4", 9, 22, 0.35, 0.8); face.position.set(0, 1.2, 9); face.target.position.set(0, 0.4, 0);   // lights the emblem's face from the front
-  scene.add(face, face.target);
-  const updEmblem = emblem(scene), updSky = skyline(scene);
-  stars(scene);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 60), new THREE.MeshStandardMaterial({ color: "#0a0b0f", roughness: 1, metalness: 0 }));
-  ground.position.set(0, GROUND_Y - 0.01, -6);
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-  const rig = cameraRig(camera);
-
-  // <EffectComposer><Bloom mipmapBlur intensity={0.5} luminanceThreshold={0.22} luminanceSmoothing={0.65}/><Vignette offset={0.22} darkness={0.6}/>
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.65, 0.22);
-  composer.addPass(bloom);
-  const vignette = new ShaderPass(VignetteShader);
-  vignette.uniforms.offset.value = 0.22 * 4;   // the shader's offset runs on a wider scale than postprocessing's
-  vignette.uniforms.darkness.value = 0.6 * 1.6;
-  composer.addPass(vignette);
-  composer.addPass(new OutputPass());
-
-  const pointer = { x: 0, y: 0 };
-  const onPointer = (e) => { pointer.x = (e.clientX / innerWidth) * 2 - 1; pointer.y = -((e.clientY / innerHeight) * 2 - 1); };
-  window.addEventListener("pointermove", onPointer, { passive: true });
-
-  function size() {
-    const w = stage.clientWidth || innerWidth, h = stage.clientHeight || innerHeight;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, w < 760 ? 1.5 : 2));
-    renderer.setSize(w, h, false);
-    composer.setPixelRatio(renderer.getPixelRatio());
-    composer.setSize(w, h);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-  window.addEventListener("resize", size);
-  stage.prepend(canvas);
-  size();
-
-  const clock = new THREE.Clock();
-  let raf = 0, alive = true;
-  function frame() {
-    raf = 0;
-    if (!alive) return;
-    if (!canvas.isConnected) return dispose();     // the page re-rendered: free the GPU context
-    const delta = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
-    const r = stage.getBoundingClientRect();
-    if (r.bottom > 0 && r.top < innerHeight) {     // draw only while the hero is on screen
-      const p = getProgress();
-      updEmblem(p, t, delta, pointer);
-      updSky(p);
-      rig(p, pointer);
-      composer.render(delta);
-    }
-    raf = requestAnimationFrame(frame);
-  }
-  function dispose() {
-    alive = false;
-    if (raf) cancelAnimationFrame(raf);
-    window.removeEventListener("pointermove", onPointer);
-    window.removeEventListener("resize", size);
-    scene.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) { if (o.material.emissiveMap) o.material.emissiveMap.dispose(); o.material.dispose(); }
+    const x = example();
+    // expertise: desktop explorer
+    const xpTabs = $("xpTabs"), xpStage = $("xpStage");
+    TOOLS.forEach((e, i) => {
+      const tab = document.createElement("button");
+      tab.className = "xp-tab"; tab.type = "button"; tab.setAttribute("role", "tab"); tab.id = "lp-xpt" + i; tab.setAttribute("aria-controls", "lp-xpp" + i);
+      tab.style.setProperty("--accent", e[4]);
+      tab.innerHTML = '<span class="n">' + svg(XICONS[i]) + "</span><b>" + e[0] + " " + e[1] + "</b><small>" + e[3] + "</small>";
+      xpTabs.appendChild(tab);
+      const panel = document.createElement("article");
+      panel.className = "xp-panel" + (e[5] ? "" : " tech"); panel.id = "lp-xpp" + i; panel.setAttribute("role", "tabpanel"); panel.setAttribute("aria-labelledby", "lp-xpt" + i);
+      panel.style.setProperty("--accent", e[4]);
+      panel.innerHTML = (e[5] ? '<div class="xp-media"><img src="' + M + "expertise/" + e[5] + '.webp" alt="" loading="lazy" decoding="async"></div>' : term(x)) +
+        '<div class="xp-body"><span class="xp-chip">' + e[3] + "</span><h3>" + e[0] + " <span>" + e[1] + "</span></h3><p>" + e[2] + "</p>" + gets(e[6], "xp-gets") +
+        '<a class="xp-cta" href="' + e[7] + '">Open in the workspace ' + ARROW + "</a></div>";
+      xpStage.appendChild(panel);
     });
-    composer.dispose();
-    renderer.dispose();
-    renderer.forceContextLoss();
-    canvas.remove();
-  }
-  raf = requestAnimationFrame(frame);
-  return { dispose, canvas };
-}
+    // expertise: phone carousel
+    const xm = $("xm"), xmDots = $("xmDots");
+    TOOLS.forEach((e) => {
+      const card = document.createElement("article");
+      card.className = "xm-card"; card.style.setProperty("--accent", e[4]);
+      card.innerHTML = (e[5] ? '<div class="xm-media"><span class="xp-chip">' + e[3] + '</span><img src="' + M + "expertise/" + e[5] + '.webp" alt="" loading="lazy" decoding="async"></div>'
+        : '<div class="xm-media tech">' + term(x) + "</div>") +
+        '<div class="xm-body"><h3>' + e[0] + " <span>" + e[1] + "</span></h3><p>" + e[2] + "</p>" + gets(e[6], "xm-gets") + '<a class="x-link" href="' + e[7] + '">Open in the workspace ' + ARROW + "</a></div>";
+      xm.appendChild(card);
+      const dot = document.createElement("button");
+      dot.type = "button"; dot.setAttribute("aria-label", e[0] + " " + e[1]); dot.tabIndex = -1;
+      dot.addEventListener("click", () => card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" }));
+      xmDots.appendChild(dot);
+    });
+    // approach steps
+    const apSteps = $("apSteps");
+    METHOD.forEach((st, i) => {
+      const li = document.createElement("li");
+      li.className = "ap-step"; li.dataset.i = i; li.style.setProperty("--accent", ACCENTS[i]);
+      li.innerHTML = '<span class="ap-node" aria-hidden="true"></span><div class="ap-top"><span class="ico">' + svg(ICONS[st[2]]) + '</span><span class="num">Step ' + (i + 1) + "</span></div>" +
+        "<h3>" + st[0] + "</h3><p>" + st[1] + "</p>";
+      apSteps.appendChild(li);
+    });
 
-window.HERO3D = { mount };
+    // header turns solid once the page moves
+    const top = $("top");
+    const onScroll = () => top.classList.toggle("solid", scrollY > 24);
+    on(window, "scroll", onScroll, { passive: true });
+    onScroll();
+    // in-page links scroll; the site's router owns the URL hash
+    on(el, "click", (ev) => {
+      const a = ev.target.closest('a[href^="#"]'); if (!a) return;
+      const id = a.getAttribute("href").slice(1);
+      const target = id === "hero" ? el.querySelector("#hero") : null;
+      if (!target) return;
+      ev.preventDefault();
+      const y = 0;
+      window.scrollTo({ top: y, behavior: MODE === "static" ? "auto" : "smooth" });
+    });
+
+    // expertise explorer: tabs, keyboard, gentle autoplay
+    (function () {
+      const tabs = [].slice.call(el.querySelectorAll(".xp-tab")), panels = [].slice.call(el.querySelectorAll(".xp-panel"));
+      let cur = -1, timer = null, user = false;
+      const reduce = MODE === "static", DUR = 6500;
+      function show(i) {
+        cur = (i + tabs.length) % tabs.length;
+        tabs.forEach((t, k) => { const yes = k === cur; t.setAttribute("aria-selected", yes); t.tabIndex = yes ? 0 : -1; t.classList.remove("run"); });
+        panels.forEach((p, k) => p.classList.toggle("on", k === cur));
+        if (!user && !reduce) { void tabs[cur].offsetWidth; tabs[cur].classList.add("run"); }
+      }
+      function schedule() { clearInterval(timer); if (!user && !reduce) timer = setInterval(() => show(cur + 1), DUR); }
+      L.off.push(() => clearInterval(timer));
+      tabs.forEach((t, k) => {
+        t.style.setProperty("--dur", DUR + "ms");
+        t.addEventListener("click", () => { user = true; clearInterval(timer); show(k); });
+        t.addEventListener("keydown", (ev) => {
+          if (ev.key === "ArrowDown" || ev.key === "ArrowRight") { ev.preventDefault(); user = true; show(cur + 1); tabs[cur].focus(); }
+          if (ev.key === "ArrowUp" || ev.key === "ArrowLeft") { ev.preventDefault(); user = true; show(cur - 1); tabs[cur].focus(); }
+        });
+      });
+      const xp = $("xp");
+      xp.addEventListener("pointerenter", () => { clearInterval(timer); tabs.forEach((t) => t.classList.remove("run")); });
+      xp.addEventListener("pointerleave", () => { if (!user) { show(cur); schedule(); } });
+      show(0);
+      observe((es) => { if (es[0].isIntersecting) { show(cur); schedule(); } else clearInterval(timer); }, { threshold: 0.3 }, xp);
+      const cards = [].slice.call(el.querySelectorAll(".xm-card")), dots = [].slice.call(el.querySelectorAll(".xm-dots button"));
+      observe((es) => es.forEach((e) => { if (e.isIntersecting) { const k = cards.indexOf(e.target); dots.forEach((d, j) => d.classList.toggle("on", j === k)); } }), { root: $("xm"), threshold: 0.6 }, cards);
+      if (dots[0]) dots[0].classList.add("on");
+    })();
+
+    // approach: the step crossing the middle of the screen is the active one
+    (function () {
+      const items = [].slice.call(el.querySelectorAll(".ap-step")), vis = $("apVisual");
+      function activate(i) {
+        const st = METHOD[i];
+        items.forEach((li, k) => li.classList.toggle("on", k === i));
+        vis.style.setProperty("--accent", ACCENTS[i]);
+        $("apStep").textContent = i + 1; $("apTitle").textContent = st[0]; $("apText").textContent = st[1];
+        $("apIco").innerHTML = svg(ICONS[st[2]]);
+        $("apArc").setAttribute("stroke-dasharray", (i + 1) + " 8");   // step count
+      }
+      activate(0);
+      observe((es) => es.forEach((e) => { if (e.isIntersecting) activate(Number(e.target.dataset.i)); }), { rootMargin: "-45% 0px -45% 0px" }, items);
+    })();
+
+    if (MODE === "static") return;
+    const gsap = root.gsap, ScrollTrigger = root.ScrollTrigger;
+    gsap.registerPlugin(ScrollTrigger);
+    const stage = { p: 0, intro: 0, mx: 0, my: 0 };
+    const stageEl = el.querySelector("#hero");
+    let visible = true, running = true, loop = null;
+    function syncLoop() {
+      if (!L.renderer) return;
+      const want = visible && stage.p < 0.999;
+      if (want !== running) { running = want; L.renderer.setAnimationLoop(want ? loop : null); }
+    }
+
+    L.ctx = gsap.context(() => {
+      observe((es) => { visible = es[0].isIntersecting; syncLoop(); }, {}, stageEl);
+      const q = gsap.utils.selector(stageEl);
+      const tl = gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: { trigger: stageEl, start: "top top", end: "bottom bottom", scrub: 0.5, onUpdate: syncLoop } });
+      tl.to(stage, { p: 1, duration: 1 }, 0);
+      tl.to(q("[data-cue]"), { autoAlpha: 0, duration: 0.04 }, 0.01);
+      tl.to(q("[data-hero]"), { autoAlpha: 0, duration: 0.1, ease: "power1.in" }, 0.07);
+      tl.fromTo(q("[data-intel-head]"), { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.1, ease: "power2.out" }, 0.25);
+      tl.fromTo(q("[data-intel-caption]"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.06 }, 0.42);
+      q("[data-panel]").forEach((panel, i) => {
+        const at = 0.28 + i * 0.035;
+        tl.fromTo(panel, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.1, ease: "power2.out" }, at);
+        const draw = panel.querySelectorAll("[data-draw]"), ring = panel.querySelectorAll("[data-ring]"), grow = panel.querySelectorAll("[data-grow]");
+        if (draw.length) tl.fromTo(draw, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.16, ease: "power1.out" }, at + 0.05);
+        if (ring.length) tl.fromTo(ring, { attr: { "stroke-dasharray": "0 1" } }, { attr: { "stroke-dasharray": ring[0].getAttribute("data-to") + " 1" }, duration: 0.14, ease: "power2.out" }, at + 0.05);
+        if (grow.length) tl.fromTo(grow, { scaleY: 0, transformOrigin: "50% 100%" }, { scaleY: 1, duration: 0.12, stagger: 0.012, ease: "power2.out" }, at + 0.05);
+        tl.to(panel, { autoAlpha: 0, duration: 0.06 }, 0.8 + i * 0.01);
+      });
+      tl.to(q("[data-intel-head]"), { autoAlpha: 0, duration: 0.08 }, 0.8);
+      if (MODE === "lite") {
+        const lv = el.querySelector("#lp-video");
+        L.video = lv; lv.preload = "auto"; lv.play().catch(() => {});
+        tl.fromTo(lv, { scale: 1.08, rotateX: 0, yPercent: 0 }, { scale: 1.55, rotateX: 10, yPercent: -6, duration: 1 }, 0);
+      }
+      gsap.utils.toArray(el.querySelectorAll("[data-reveal]")).forEach((r) => {
+        gsap.from(r, { autoAlpha: 0, y: 30, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: r, start: "top 85%", once: true } });
+      });
+    }, el);
+    on(window, "pointermove", (e) => { stage.mx = (e.clientX / innerWidth) * 2 - 1; stage.my = -((e.clientY / innerHeight) * 2 - 1); }, { passive: true });
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+
+    if (MODE !== "3d") return;
+    const THREE = root.THREE;
+
+    /* ---------------------------------------------------------------- 3D scene */
+    const mountEl = $("scene");
+    const renderer = L.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance", stencil: false });
+    let DPR = Math.min(devicePixelRatio || 1, 1.25);
+    renderer.setPixelRatio(DPR);
+    mountEl.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#02060f");
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
+    function resize() {
+      const w = mountEl.clientWidth || innerWidth, h = mountEl.clientHeight || innerHeight;
+      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    on(window, "resize", resize);
+    resize();
+
+    const KEYS = [
+      { p: 0.0, pos: [0, 0.1, 11.2], look: [0, 0, 0], rot: [-0.07, 0.07] },
+      { p: 0.24, pos: [-0.9, -0.25, 8.4], look: [0.45, -0.15, -1], rot: [-0.13, 0.15] },
+      { p: 0.56, pos: [1.1, 0.4, 6.2], look: [-0.25, 0.05, -3], rot: [-0.2, -0.08] },
+      { p: 0.82, pos: [0.3, 0.1, 4.0], look: [0, -0.05, -6], rot: [-0.24, -0.15] },
+      { p: 1.0, pos: [0, -0.05, -5], look: [0, -0.35, -18], rot: [-0.28, -0.2] },
+    ];
+    const v3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+    const posCurve = new THREE.CatmullRomCurve3(KEYS.map((k) => v3(k.pos)), false, "centripetal");
+    const lookCurve = new THREE.CatmullRomCurve3(KEYS.map((k) => v3(k.look)), false, "centripetal");
+    function curveU(p) {
+      for (let i = 0; i < KEYS.length - 1; i++) if (p <= KEYS[i + 1].p) return (i + span(p, KEYS[i].p, KEYS[i + 1].p)) / (KEYS.length - 1);
+      return 1;
+    }
+    function rotAt(p) {
+      for (let i = 0; i < KEYS.length - 1; i++) {
+        const a = KEYS[i], b = KEYS[i + 1];
+        if (p <= b.p) { const t = span(p, a.p, b.p); return [a.rot[0] + (b.rot[0] - a.rot[0]) * t, a.rot[1] + (b.rot[1] - a.rot[1]) * t]; }
+      }
+      return KEYS[KEYS.length - 1].rot;
+    }
+
+    // the footage on a plane; scroll scrubs through it
+    const video = L.video = document.createElement("video");
+    video.muted = true; video.playsInline = true; video.preload = "auto"; video.crossOrigin = "anonymous";
+    const SOURCES = [[M + "markets-1280.webm", 'video/webm; codecs="vp9"'], [M + "markets-1280.mp4", "video/mp4"]];
+    const src = SOURCES.find((s) => video.canPlayType(s[1]) !== "");
+    const vtex = new THREE.VideoTexture(video);
+    vtex.colorSpace = THREE.SRGBColorSpace; vtex.minFilter = THREE.LinearFilter; vtex.magFilter = THREE.LinearFilter; vtex.generateMipmaps = false;
+    const posterTex = new THREE.TextureLoader().load(M + "markets-poster.webp");
+    posterTex.colorSpace = THREE.SRGBColorSpace;
+    const DURATION = 15.03;
+    let hasVideo = false, shown = false, primed = false;
+    function show() {
+      if (shown || live !== L) return;
+      shown = true; mountEl.classList.add("ready");
+      gsap.to(stage, { intro: 1, duration: 2.8, ease: "power2.out", delay: 0.15 });
+    }
+    function prime() { if (primed || video.readyState < 1) return; primed = true; video.currentTime = 0.04; }
+    video.addEventListener("loadeddata", prime);
+    video.addEventListener("canplay", prime);
+    video.addEventListener("seeked", () => { vtex.needsUpdate = true; if (!hasVideo && video.readyState >= 2) { hasVideo = true; show(); } });
+    video.addEventListener("error", show);
+    if (src) { video.src = src[0]; video.load(); L.timers.push(setTimeout(show, 2500)); } else show();
+
+    const videoMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: true,
+      uniforms: { uVideo: { value: vtex }, uPoster: { value: posterTex }, uUseVideo: { value: 0 }, uFade: { value: 1 }, uDeep: { value: 0 } },
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+      fragmentShader: [
+        "uniform sampler2D uVideo; uniform sampler2D uPoster; uniform float uUseVideo; uniform float uFade; uniform float uDeep; varying vec2 vUv;",
+        "void main(){",
+        "  vec3 c = mix(texture2D(uPoster, vUv).rgb, texture2D(uVideo, vUv).rgb, uUseVideo);",
+        "  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));",
+        "  vec3 navy = vec3(0.0015, 0.004, 0.018);",
+        "  c = mix(navy, c, 0.2 + 0.8 * smoothstep(0.0, 0.05, l));",
+        "  float blueish = smoothstep(0.0, 0.04, c.b - max(c.r, c.g));",
+        "  c += vec3(0.0, 0.012, 0.06) * blueish;",
+        "  c *= 1.0 + uDeep * 0.25;",
+        "  float ex = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x);",
+        "  float ey = smoothstep(0.0, 0.2, vUv.y) * smoothstep(1.0, 0.8, vUv.y);",
+        "  gl_FragColor = vec4(c, ex * ey * uFade);",
+        "  #include <colorspace_fragment>",
+        "}"].join("\n"),
+    });
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(16, 9), videoMat);
+    plane.renderOrder = 0;
+    scene.add(plane);
+
+    // floating ticker tiles from a drawn atlas, with a shader depth of field
+    const COLS = 4, ROWS = 12, CW = 512, CH = 128;
+    const seeded = (seed) => { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
+    function drawAtlas(blur) {
+      const c = document.createElement("canvas"); c.width = CW * COLS; c.height = CH * ROWS;
+      const ctx = c.getContext("2d"); if (blur) ctx.filter = "blur(" + blur + "px)";
+      const r = seeded(20261112), KINDS = ["figure", "up", "down", "boxUp", "figure", "down", "up", "small", "boxDown", "figure", "up", "small"];
+      const fig = () => Math.floor(10000 + r() * 890000).toLocaleString("en-US");
+      const chg = () => (r() * 900 + 10).toFixed(2);
+      for (let i = 0; i < COLS * ROWS; i++) {
+        const kind = KINDS[i % KINDS.length], x0 = (i % COLS) * CW, y0 = Math.floor(i / COLS) * CH, mid = CH / 2 + 4;
+        ctx.save(); ctx.translate(x0, y0); ctx.textBaseline = "middle";
+        ctx.font = "500 " + (kind === "small" ? 46 : 70) + 'px "IBM Plex Mono", ui-monospace, monospace';
+        if (kind === "figure") { ctx.fillStyle = "#f2f6ff"; ctx.fillText(fig(), 24, mid); }
+        else if (kind === "small") { ctx.fillStyle = r() > 0.5 ? "#7fb2ff" : "#f2f6ff"; ctx.globalAlpha = 0.85; ctx.fillText(fig() + "  " + chg(), 24, mid); }
+        else if (kind === "up" || kind === "down") {
+          const up = kind === "up"; ctx.fillStyle = up ? "#38e07b" : "#ff4b55"; ctx.beginPath();
+          if (up) { ctx.moveTo(24, mid + 18); ctx.lineTo(64, mid + 18); ctx.lineTo(44, mid - 18); } else { ctx.moveTo(24, mid - 18); ctx.lineTo(64, mid - 18); ctx.lineTo(44, mid + 18); }
+          ctx.fill(); ctx.fillStyle = r() > 0.35 ? "#f2f6ff" : up ? "#38e07b" : "#ff4b55"; ctx.fillText(fig(), 84, mid);
+        } else {
+          const u = kind === "boxUp";
+          ctx.fillStyle = u ? "rgba(32,168,84,0.55)" : "rgba(196,40,52,0.5)"; ctx.fillRect(16, 18, 330, CH - 36);
+          ctx.strokeStyle = u ? "rgba(90,255,150,0.75)" : "rgba(255,110,120,0.7)"; ctx.lineWidth = 3; ctx.strokeRect(16, 18, 330, CH - 36);
+          ctx.fillStyle = "#eafff1"; ctx.font = '500 54px "IBM Plex Mono", ui-monospace, monospace'; ctx.fillText((u ? "+" : "−") + chg(), 36, mid);
+        }
+        ctx.restore();
+      }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+    }
+    const COUNT = 110;
+    const tickGeo = new THREE.PlaneGeometry(1, 0.25);
+    const cells = new Float32Array(COUNT), seeds = new Float32Array(COUNT);
+    const tickMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uSharp: { value: null }, uBlur: { value: null }, uFocus: { value: 8 }, uRange: { value: 6 }, uTime: { value: 0 }, uOpacity: { value: 0 } },
+      vertexShader: [
+        "attribute float aCell; attribute float aSeed; uniform float uTime; varying vec2 vUv; varying float vDepth; varying float vSeed;",
+        "void main(){",
+        "  vec2 cell = vec2(mod(aCell, " + COLS + ".0), floor(aCell / " + COLS + ".0));",
+        "  vUv = vec2((cell.x + uv.x) / " + COLS + ".0, 1.0 - (cell.y + 1.0 - uv.y) / " + ROWS + ".0);",
+        "  vec4 world = modelMatrix * instanceMatrix * vec4(position, 1.0);",
+        "  world.y += sin(uTime * 0.35 + aSeed * 6.2831) * 0.07; world.x += cos(uTime * 0.21 + aSeed * 12.0) * 0.05;",
+        "  vec4 mv = viewMatrix * world; vDepth = -mv.z; vSeed = aSeed; gl_Position = projectionMatrix * mv;",
+        "}"].join("\n"),
+      fragmentShader: [
+        "uniform sampler2D uSharp; uniform sampler2D uBlur; uniform float uFocus; uniform float uRange; uniform float uTime; uniform float uOpacity;",
+        "varying vec2 vUv; varying float vDepth; varying float vSeed;",
+        "void main(){",
+        "  float blur = clamp(abs(vDepth - uFocus) / uRange, 0.0, 1.0);",
+        "  vec4 c = mix(texture2D(uSharp, vUv), texture2D(uBlur, vUv), smoothstep(0.12, 0.8, blur));",
+        "  float a = c.a * smoothstep(0.7, 3.2, vDepth) * (1.0 - smoothstep(24.0, 40.0, vDepth));",
+        "  a *= (1.0 - blur * 0.5) * (0.8 + 0.2 * sin(uTime * 1.2 + vSeed * 40.0)) * uOpacity;",
+        "  if (a < 0.004) discard;",
+        "  gl_FragColor = vec4(c.rgb * 1.1, a);",
+        "  #include <colorspace_fragment>",
+        "}"].join("\n"),
+    });
+    const ticks = new THREE.InstancedMesh(tickGeo, tickMat, COUNT);
+    (function () {
+      let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+      const m = new THREE.Matrix4(), qt = new THREE.Quaternion(), eu = new THREE.Euler();
+      for (let i = 0; i < COUNT; i++) {
+        const z = 10 - (i / COUNT) * 38 + (rnd() - 0.5) * 1.5, ang = rnd() * Math.PI * 2, rad = 2.6 + rnd() * 6.5;
+        const px = Math.cos(ang) * rad * 1.35, py = Math.sin(ang) * rad * 0.62, w = 0.9 + rnd() * 1.5;
+        eu.set((rnd() - 0.5) * 0.25, (rnd() - 0.5) * 0.7 - px * 0.03, 0); qt.setFromEuler(eu);
+        m.compose(new THREE.Vector3(px, py, z), qt, new THREE.Vector3(w, w, 1)); ticks.setMatrixAt(i, m);
+        cells[i] = Math.floor(rnd() * COLS * ROWS); seeds[i] = rnd();
+      }
+    })();
+    tickGeo.setAttribute("aCell", new THREE.InstancedBufferAttribute(cells, 1));
+    tickGeo.setAttribute("aSeed", new THREE.InstancedBufferAttribute(seeds, 1));
+    ticks.renderOrder = 2; ticks.frustumCulled = false;
+    let atlasReady = false;
+    (document.fonts && document.fonts.load ? document.fonts.load('500 70px "IBM Plex Mono"') : Promise.resolve()).catch(() => {}).then(() => {
+      if (live !== L) return;
+      tickMat.uniforms.uSharp.value = drawAtlas(0); tickMat.uniforms.uBlur.value = drawAtlas(9); atlasReady = true;
+    });
+
+    // chart ribbons drawn in as you scroll
+    const ribbons = [];
+    function ribbon(from, to, y, z, color, seed, reveal) {
+      const n = 90; let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+      const pos = new Float32Array(n * 6), ts = new Float32Array(n * 2), idx = [], w = 0.028; let v = 0;
+      for (let i = 0; i < n; i++) {
+        v += (rnd() - 0.48) * 0.22; v *= 0.97;
+        const px = from + ((to - from) * i) / (n - 1), yy = y + v;
+        pos.set([px, yy + w, z, px, yy - w, z], i * 6); ts[i * 2] = ts[i * 2 + 1] = i / (n - 1);
+        if (i < n - 1) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("aT", new THREE.BufferAttribute(ts, 1)); g.setIndex(idx);
+      const mat = new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        uniforms: { uColor: { value: new THREE.Color(color) }, uReveal: { value: 0 }, uOpacity: { value: 0.9 } },
+        vertexShader: "attribute float aT; varying float vT; void main(){ vT = aT; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+        fragmentShader: "uniform vec3 uColor; uniform float uReveal; uniform float uOpacity; varying float vT;\nvoid main(){ if (vT > uReveal) discard; float head = smoothstep(uReveal - 0.08, uReveal, vT); float a = (0.5 + 1.0 * head) * uOpacity * smoothstep(0.0, 0.05, vT); gl_FragColor = vec4(uColor * (1.2 + head * 2.0), a);\n#include <colorspace_fragment>\n}",
+      });
+      const mesh = new THREE.Mesh(g, mat); mesh.renderOrder = 3; mesh.frustumCulled = false; scene.add(mesh);
+      ribbons.push({ mat, reveal });
+    }
+    ribbon(-9.5, -1.6, 2.5, 1.4, "#38e07b", 11, [0.3, 0.62]);
+    ribbon(1.4, 9.5, -2.3, 0.8, "#ff4b55", 29, [0.42, 0.74]);
+    ribbon(-7, 7, -3.2, -7, "#4d8dff", 53, [0.86, 1]);
+
+    // grid floor with a travelling scan line
+    const gridMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uColor: { value: new THREE.Color("#2f7bff") }, uCam: { value: new THREE.Vector3() }, uScan: { value: 0 }, uOpacity: { value: 1 } },
+      vertexShader: "varying vec3 vWorld; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }",
+      fragmentShader: [
+        "uniform vec3 uColor; uniform vec3 uCam; uniform float uScan; uniform float uOpacity; varying vec3 vWorld;",
+        "void main(){",
+        "  vec2 g = abs(fract(vWorld.xz * 0.5 - 0.5) - 0.5) / fwidth(vWorld.xz * 0.5);",
+        "  float line = 1.0 - min(min(g.x, g.y), 1.0);",
+        "  float d = distance(vWorld.xz, uCam.xz);",
+        "  float fade = smoothstep(46.0, 6.0, d) * smoothstep(0.0, 4.0, d);",
+        "  float scan = exp(-pow(vWorld.z - uScan, 2.0) * 0.08);",
+        "  gl_FragColor = vec4(uColor * (1.0 + scan), line * fade * (0.22 + scan * 0.7) * uOpacity);",
+        "  #include <colorspace_fragment>",
+        "}"].join("\n"),
+    });
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), gridMat);
+    grid.rotation.x = -Math.PI / 2; grid.position.set(0, -4.3, -18); grid.renderOrder = 1;
+    scene.add(grid);
+
+    // frame loop
+    const P = new THREE.Vector3(), LK = new THREE.Vector3(), mouse = { x: 0, y: 0 };
+    let vt = 0.04, last = performance.now(), slow = 0, frames = 0;
+    const t0 = last;
+    loop = function () {
+      const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000), t = (now - t0) / 1000;
+      last = now;
+      if (frames < 120) { frames++; if (dt > 0.034) slow++; if (frames === 120 && slow > 60 && DPR > 1) { DPR = 1; renderer.setPixelRatio(1); resize(); } }
+      const p = stage.p, k = 1 - Math.exp(-dt * 3);
+      mouse.x += (stage.mx - mouse.x) * k; mouse.y += (stage.my - mouse.y) * k;
+      const u = curveU(p);
+      posCurve.getPoint(u, P); lookCurve.getPoint(u, LK);
+      P.z += (1 - stage.intro) * 2.4; P.x += mouse.x * 0.25; P.y += mouse.y * 0.15;
+      camera.position.copy(P); camera.lookAt(LK);
+      const fade = 1 - span(p, 0.74, 0.86);
+      videoMat.uniforms.uFade.value = fade;
+      videoMat.uniforms.uDeep.value = span(p, 0.2, 0.8);
+      videoMat.uniforms.uUseVideo.value = hasVideo ? 1 : 0;
+      plane.visible = fade > 0.001;
+      const r = rotAt(p); plane.rotation.set(r[0], r[1], 0);
+      const sc = 1 + span(p, 0, 0.85) * 0.15; plane.scale.set(sc, sc, 1);
+      if (hasVideo) {
+        const target = 0.04 + stage.intro * 1.1 + p * (DURATION - 1.35);
+        vt += (target - vt) * Math.min(1, dt * 7);
+        const tt = Math.min(DURATION - 0.06, Math.max(0.04, vt));
+        if (video.readyState >= 2 && !video.seeking && Math.abs(video.currentTime - tt) > 1 / 20) video.currentTime = tt;
+      }
+      const tu = tickMat.uniforms;
+      tu.uTime.value = t;
+      tu.uFocus.value = P.z > 1 ? Math.max(3.2, P.z - 0.6) : 7;
+      const op = atlasReady ? (0.35 + 0.65 * stage.intro) * (1 + 0.7 * span(p, 0.74, 0.88)) : 0;
+      tu.uOpacity.value += (op - tu.uOpacity.value) * Math.min(1, dt * 3);
+      ribbons.forEach((rb) => { rb.mat.uniforms.uReveal.value = span(p, rb.reveal[0], rb.reveal[1]); rb.mat.uniforms.uOpacity.value = 0.9; });
+      gridMat.uniforms.uCam.value.copy(P);
+      gridMat.uniforms.uScan.value = 8 - ((t * 3.5) % 50);
+      renderer.render(scene, camera);
+    };
+    L.scene = scene;
+    renderer.setAnimationLoop(loop);
+    syncLoop();
+  }
+
+  // Stop everything the page started: called before the site draws another page.
+  function unmount() {
+    const L = live; if (!L) return;
+    live = null;
+    L.off.forEach((f) => f());
+    L.io.forEach((io) => io.disconnect());
+    L.timers.forEach((t) => clearTimeout(t));
+    if (L.ctx) L.ctx.revert();
+    if (L.video) { L.video.pause(); L.video.removeAttribute("src"); L.video.load(); }
+    if (L.renderer) {
+      L.renderer.setAnimationLoop(null);
+      if (L.scene) L.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { Object.values(o.material.uniforms || {}).forEach((u) => u.value && u.value.dispose && u.value.dispose()); o.material.dispose(); } });
+      L.renderer.dispose(); L.renderer.forceContextLoss();
+    }
+  }
+
+  root.LANDING = { html, mount, unmount };
+})(typeof globalThis !== "undefined" ? globalThis : this);
 ```
 
-### `site/tools/build-hero3d.sh`
+### `site/landing.css`
 
-Bundles the scene with three.js r160 into site/hero3d.js.
+The home page styles, all scoped under .lp.
 
-```sh
-#!/bin/sh
-# Bundles site/src/hero3d.js with three.js into site/hero3d.js (one minified script, no imports),
-# which site/build.py inlines into the demo and the Flask server serves at /static/hero3d.js.
-# Needs Node.js. Versions are pinned so a rebuild gives the same file.
-set -e
-cd "$(dirname "$0")/../.."
-TMP="$(mktemp -d)"
-( cd "$TMP" && npm init -y >/dev/null && npm install --no-audit --no-fund three@0.160.0 esbuild@0.20.2 >/dev/null )
-NODE_PATH="$TMP/node_modules" "$TMP/node_modules/.bin/esbuild" site/src/hero3d.js --bundle --minify --format=iife \
-  --target=es2019 --legal-comments=none --banner:js="/* three.js r160 (MIT, three.js authors) + Aegis Ascend hero scene. Built from site/src/hero3d.js. */" \
-  --outfile=site/hero3d.js
-rm -rf "$TMP"
-echo "wrote site/hero3d.js"
+```text
+/* Home page (landing) design: dark navy stage, Newsreader / Inter / IBM Plex Mono, aqua and amber accents.
+   Every rule is scoped under .lp so it cannot leak into the rest of the site. Used by site/landing.js. */
+.lp { color-scheme: dark; --ink: #02060f; --deep: #03081a; --panel: #050d1f; --line: rgba(255, 255, 255, 0.1); --fg: #f2f6ff; --fg-2: rgba(242, 246, 255, 0.72); --fg-3: rgba(242, 246, 255, 0.5); --electric: #4f8dff; --sky: #7fb2ff; --up: #38e07b; --down: #ff4b55; --amber: #ffb23f; --aqua: #2ee6cf; --font-display: "Newsreader", "Iowan Old Style", Georgia, serif; --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px)); }
+.lp * { box-sizing: border-box; }
+.lp { scroll-behavior: smooth; }
+.lp { background: var(--ink); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+.lp::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+.lp a { color: inherit; }
+.lp :focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; border-radius: 6px; }
+.lp .wrap { width: 100%; max-width: 1240px; margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+@media (min-width: 640px) {
+.lp .wrap { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); }
+}
+.lp .mono { font-family: var(--font-mono); }
+.lp .kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); margin: 0; }
+.lp h1, .lp h2, .lp h3 { text-wrap: balance; margin: 0; }
+.lp .top { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 50; transition: background .5s, border-color .5s; border-bottom: 1px solid transparent; }
+.lp .top.solid { background: rgba(3, 8, 26, 0.92); border-color: var(--line); backdrop-filter: blur(14px); }
+.lp .top .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 16px; }
+.lp .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; }
+.lp .brand span { color: var(--fg-3); }
+.lp .mark { width: 30px; height: 30px; flex: none; }
+.lp .nav { display: none; gap: 28px; font-size: 13.5px; }
+.lp .nav a { text-decoration: none; color: var(--fg-2); transition: color .2s; }
+.lp .nav a:hover { color: var(--fg); }
+@media (min-width: 900px) {
+.lp .nav { display: flex; }
+}
+.lp .pill { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 14px 24px; font-size: 14.5px; font-weight: 600; text-decoration: none; transition: background .2s, border-color .2s, transform .2s; white-space: nowrap; }
+.lp .pill svg { width: 16px; height: 16px; transition: transform .25s; }
+.lp .pill.solid { background: var(--fg); color: #051229; }
+.lp .pill.solid:hover { background: #cfe0ff; }
+.lp .pill.ghost { border: 1px solid rgba(255, 255, 255, 0.3); color: var(--fg); font-weight: 500; }
+.lp .pill.ghost:hover { border-color: rgba(255, 255, 255, 0.7); background: rgba(255, 255, 255, 0.05); }
+.lp .pill:hover svg.down { transform: translateY(2px); }
+.lp .pill:hover svg.right { transform: translateX(3px); }
+.lp .top .pill { padding: 9px 16px; font-size: 13px; }
+.lp .top-cta { display: flex; align-items: center; gap: 14px; }
+.lp .top-cta .signin { font-size: 13.5px; font-weight: 500; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+@media (max-width: 440px) {
+.lp .top .brand span { display: none; }
+.lp .top-cta { gap: 10px; }
+}
+.lp .top-cta .signin:hover { color: var(--fg); }
+.lp .stage { position: relative; background: var(--ink); height: 250svh; }
+.lp[data-mode="lite"] .stage { height: 200svh; }
+.lp .anchor { position: absolute; left: 0; top: 75svh; }
+.lp[data-mode="lite"] .anchor { top: 50svh; }
+.lp .sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.lp .poster, .lp .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lp .poster { object-fit: cover; opacity: .8; max-width: none; }
+.lp #scene { opacity: 0; transition: opacity 1.4s ease; }
+.lp #scene.ready { opacity: 1; }
+.lp #scene canvas { display: block; width: 100% !important; height: 100% !important; }
+.lp .lite { display: none; perspective: 900px; }
+.lp[data-mode="lite"] .lite { display: block; }
+.lp[data-mode="lite"] #scene { display: none; }
+.lp .lite video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 60%; }
+.lp .lite .tick { position: absolute; font-family: var(--font-mono); font-size: 14px; font-weight: 500; opacity: .35; filter: blur(.5px); }
+.lp .shade { pointer-events: none; background: radial-gradient(115% 85% at 15% 80%, rgba(2, 6, 15, 0.9), rgba(2, 6, 15, 0.45) 50%, transparent 78%); }
+.lp .shade-top { pointer-events: none; position: absolute; left: 0; right: 0; top: 0; height: 150px; background: linear-gradient(rgba(2, 6, 15, 0.8), transparent); }
+.lp .vignette { pointer-events: none; background: radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55)); }
+.lp .veil { pointer-events: none; background: var(--deep); opacity: 0; visibility: hidden; }
+.lp .hero { position: absolute; inset: 0; display: flex; align-items: flex-end; background: linear-gradient(90deg, rgba(2, 6, 15, .82) 0%, rgba(2, 6, 15, .55) 38%, rgba(2, 6, 15, 0) 68%); }
+.lp .hero .wrap { padding-block: 112px 12svh; }
+.lp .lockup { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.lp .lockup .mark { width: 54px; height: 54px; }
+.lp .lockup b { display: block; font-size: 14px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; }
+.lp .lockup small { display: block; margin-top: 4px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-3); }
+.lp .h1 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2.7rem, 6.4vw, 6.4rem); line-height: .98; letter-spacing: -0.02em; max-width: 15ch; }
+.lp .sub { margin: 24px 0 0; max-width: 36rem; font-size: clamp(1.02rem, 1.4vw, 1.25rem); line-height: 1.6; color: var(--fg-2); }
+.lp .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
+.lp .rise { animation: lp-rise .8s cubic-bezier(.16, 1, .3, 1) both; }
+.lp .rise:nth-child(2) { animation-delay: .08s; }
+.lp .rise:nth-child(3) { animation-delay: .16s; }
+.lp .rise:nth-child(4) { animation-delay: .24s; }
+.lp .hero .kick { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; font-size: 13.5px; font-weight: 500; letter-spacing: .04em; color: rgba(226, 234, 250, .7); }
+.lp .hero .kick i { width: 6px; height: 6px; border-radius: 50%; background: var(--aqua, #2ee6cf); }
+.lp.fonts-wait .rise { animation-play-state: paused; }
+@keyframes lp-rise {from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; }}
+.lp .cue { position: absolute; right: max(40px, env(safe-area-inset-right, 0px)); bottom: 32px; display: none; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .3em; text-transform: uppercase; color: var(--fg-3); }
+@media (min-width: 640px) {
+.lp .cue { display: flex; }
+}
+.lp .cue i { position: relative; width: 1px; height: 40px; overflow: hidden; background: rgba(255, 255, 255, .15); }
+.lp .cue i::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 16px; background: rgba(255, 255, 255, .8); animation: lp-cue 2.2s ease-in-out infinite; }
+@keyframes lp-cue {0% { transform: translateY(-100%); } 60%, 100% { transform: translateY(260%); }}
+.lp .intel { position: absolute; inset: 0; pointer-events: none; perspective: 1400px; }
+.lp .intel .wrap { height: 100%; display: grid; align-items: center; gap: 40px; padding-block: 80px 24px; }
+@media (min-width: 1024px) {
+.lp .intel .wrap { grid-template-columns: .9fr 1.1fr; }
+}
+.lp .intel h2 { margin-top: 20px; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.4rem, 5vw, 4.6rem); line-height: 1.02; letter-spacing: -0.02em; }
+.lp .intel p.body { margin: 20px 0 0; max-width: 28rem; font-size: 1.05rem; line-height: 1.6; color: var(--fg-2); }
+.lp .caption { margin: 20px 0 0; max-width: 28rem; border-left: 1px solid rgba(255, 255, 255, .2); padding-left: 16px; font-family: var(--font-mono); font-size: 11px; line-height: 1.6; color: var(--fg-3); }
+.lp .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; transform-style: preserve-3d; min-width: 0; }
+@media (min-width: 640px) {
+.lp .panels { gap: 16px; }
+.lp .caption { margin-top: 32px; }
+}
+.lp .panel { position: relative; overflow: hidden; min-width: 0; border-radius: 12px; border: 1px solid var(--line); background: rgba(5, 13, 31, 0.9); padding: 16px; box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .9); }
+@media (min-width: 640px) {
+.lp .panel { padding: 20px; }
+}
+.lp .panel::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.lp .panel .lbl { margin: 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
+.lp .panel .val { margin: 8px 0 0; font-family: var(--font-mono); font-weight: 500; font-size: clamp(1.4rem, 2.6vw, 2.2rem); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.lp .panel .val.small { font-size: clamp(.95rem, 1.5vw, 1.2rem); }
+.lp .panel .chart { margin-top: 12px; height: 60px; }
+.lp .panel .chart svg { height: 100%; width: 100%; display: block; }
+.lp .panel .note { margin: 8px 0 0; font-size: 11.5px; line-height: 1.35; color: var(--fg-3); }
+.lp .panel.p2 { margin-top: 48px; }
+.lp .panel.p3 { margin-top: -16px; }
+.lp .panel.p4 { margin-top: 24px; }
+.lp .panel.p3, .lp .panel.p4 { display: none; }
+@media (min-width: 640px) {
+.lp .panel.p3, .lp .panel.p4 { display: block; }
+}
+.lp .inputs { display: grid; grid-template-columns: 1.2rem auto 1fr; gap: 4px 8px; align-content: center; height: 100%; margin: 0; font-family: var(--font-mono); font-size: 11px; }
+.lp .inputs dt { color: #ff8a92; }
+.lp .inputs dd { margin: 0; color: rgba(242, 246, 255, .85); }
+.lp .inputs dd.d { color: rgba(242, 246, 255, .35); }
+.lp:not([data-mode="static"]) [data-intel-head], .lp:not([data-mode="static"]) [data-intel-caption], .lp:not([data-mode="static"]) [data-panel] { visibility: hidden; opacity: 0; }
+.lp[data-mode="static"] .stage { height: auto; }
+.lp[data-mode="static"] .sticky { position: relative; height: auto; overflow: visible; }
+.lp[data-mode="static"] .hero { position: relative; min-height: 100svh; }
+.lp[data-mode="static"] .poster { height: 100svh; }
+.lp[data-mode="static"] .shade { height: 100svh; }
+.lp[data-mode="static"] #scene, .lp[data-mode="static"] .cue, .lp[data-mode="static"] .veil { display: none; }
+.lp[data-mode="static"] .intel { position: relative; background: var(--deep); }
+.lp[data-mode="static"] .intel .wrap { padding-block: 96px; }
+.lp[data-mode="static"] .anchor { display: none; }
+.lp .band { position: relative; overflow: hidden; }
+.lp .band > .wrap { padding-block: 112px; position: relative; }
+@media (min-width: 640px) {
+.lp .band > .wrap { padding-block: 144px; }
+}
+.lp .grid-bg { background-color: var(--deep); background-image: linear-gradient(rgba(79, 141, 255, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(79, 141, 255, .06) 1px, transparent 1px); background-size: 72px 72px; }
+.lp .glow-top::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(50% 30% at 50% 0%, rgba(29, 78, 216, .18), transparent 70%); }
+.lp .glow-top::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(79, 141, 255, .6), transparent); }
+.lp .head { max-width: 42rem; }
+.lp .head h2 { margin-top: 20px; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 4.4vw, 4rem); line-height: 1.04; letter-spacing: -0.02em; }
+.lp .head p { margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6; color: rgba(226, 234, 250, .78); }
+.lp .xsec > .wrap { padding-top: 88px; }
+.lp .xsec { box-shadow: 0 -60px 80px -20px var(--deep); }
+.lp .hl { color: var(--aqua); }
+.lp .hl-warm { color: var(--amber); }
+.lp .head p { margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6; color: rgba(226, 234, 250, .78); }
+.lp .xsec > .wrap { padding-top: 88px; }
+.lp .xsec { box-shadow: 0 -60px 80px -20px var(--deep); }
+.lp .sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px 40px; }
+.lp .sec-head .head { flex: 1 1 520px; }
+.lp .sec-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lp .sec-badges li { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #fff; padding: 8px 14px; border-radius: 999px; background: rgba(46, 230, 207, .07); border: 1px solid rgba(46, 230, 207, .28); }
+.lp .sec-badges li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--aqua); box-shadow: 0 0 10px var(--aqua); }
+.lp .ap-ring-ico { display: grid; place-items: center; color: var(--accent); }
+.lp .ap-ring-ico svg { width: 42px; height: 42px; }
+.lp .ap-ring small { margin-top: 6px; font-size: 11px !important; color: #fff !important; }
+.lp .sec-meta { display: flex; gap: 28px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(226, 234, 250, .55); }
+@media (max-width: 640px) {
+.lp .sec-meta { gap: 18px; font-size: 10px; }
+.lp .sec-meta b { font-size: 1.5rem !important; }
+.lp .ap-step { padding: 18px 18px 20px; }
+}
+.lp .sec-meta b { display: block; font-family: var(--font-display); font-size: 2rem; font-weight: 300; letter-spacing: 0; text-transform: none; color: #fff; }
+.lp .xp { display: none; margin-top: 48px; gap: 22px; }
+@media (min-width: 960px) {
+.lp .xp { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; }
+.lp .xm, .lp .xm-dots { display: none !important; }
+}
+.lp .xp-tabs { display: grid; gap: 8px; align-content: start; }
+.lp .xp-tab { --accent: var(--sky); position: relative; overflow: hidden; display: grid; grid-template-columns: 40px 1fr; gap: 2px 14px; align-items: center; text-align: left; cursor: pointer; font: inherit; color: rgba(226, 234, 250, .7); background: rgba(255, 255, 255, .02); border: 1px solid rgba(127, 178, 255, .1); border-radius: 14px; padding: 14px 16px; transition: background .3s, border-color .3s, color .3s; }
+.lp .xp-tab:hover { background: rgba(255, 255, 255, .04); color: #fff; }
+.lp .xp-tab .n { grid-row: span 2; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; font-family: var(--font-mono); font-size: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); }
+.lp .xp-tab .n svg { width: 18px; height: 18px; }
+.lp .xp-tab b { font-size: 15.5px; font-weight: 600; color: inherit; }
+.lp .xp-tab small { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: rgba(226, 234, 250, .45); }
+.lp .xp-tab[aria-selected="true"] { color: #fff; border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), rgba(255, 255, 255, .02)); }
+.lp .xp-tab[aria-selected="true"] small { color: var(--accent); }
+.lp .xp-tab::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.lp .xp-tab.run::after { animation: lp-xpbar var(--dur, 6.5s) linear forwards; }
+@keyframes lp-xpbar {to { width: 100%; }}
+.lp .xp-stage { position: relative; min-height: 600px; border-radius: 26px; overflow: hidden; border: 1px solid rgba(127, 178, 255, .16); background: #040b1d; box-shadow: 0 50px 100px -50px rgba(0, 0, 0, .95); }
+.lp .xp-panel { --accent: var(--sky); position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility .6s; }
+.lp .xp-panel.on { opacity: 1; visibility: visible; }
+.lp .xp-media { position: absolute; inset: 0; }
+.lp .xp-media img { width: 100%; height: 100%; object-fit: cover; max-width: none; transform: scale(1.06); transition: transform 7s ease-out; filter: saturate(1.08); }
+.lp .xp-panel.on .xp-media img { transform: scale(1); }
+.lp .xp-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(3, 8, 23, .96) 0%, rgba(3, 8, 23, .82) 42%, rgba(3, 8, 23, .25) 75%, rgba(3, 8, 23, .1)), linear-gradient(0deg, rgba(3, 8, 23, .8), transparent 45%), radial-gradient(60% 80% at 0% 100%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); }
+.lp .xp-body { position: absolute; left: 0; top: 0; bottom: 0; width: min(560px, 62%); padding: 44px; display: flex; flex-direction: column; justify-content: flex-end; }
+.lp .xp-chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #fff; background: color-mix(in srgb, var(--accent) 22%, rgba(2, 6, 15, .5)); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 999px; padding: 5px 12px; }
+.lp .xp-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.lp .xp-body h3 { margin-top: 18px; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 3.4vw, 3.3rem); line-height: 1.02; letter-spacing: -0.02em; color: #fff; }
+.lp .xp-body h3 span { color: var(--accent); }
+.lp .xp-body p { margin: 14px 0 0; font-size: 15.5px; line-height: 1.65; color: rgba(226, 234, 250, .82); }
+.lp .xp-gets { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 10px; }
+.lp .xp-gets li { display: flex; gap: 10px; align-items: center; font-size: 14px; color: #fff; }
+.lp .xp-gets li::before { content: ""; flex: none; width: 18px; height: 18px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 20%, transparent) center / 12px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E"); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+.lp .xp-cta { align-self: flex-start; margin-top: 26px; display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 12px 20px; font-size: 14px; font-weight: 600; text-decoration: none; color: #04101f; background: var(--accent); box-shadow: 0 12px 30px -12px var(--accent); transition: transform .25s, box-shadow .25s; }
+.lp .xp-cta:hover { transform: translateY(-2px); }
+.lp .xp-cta svg { width: 16px; height: 16px; }
+.lp .xp-panel.tech { background: radial-gradient(70% 90% at 100% 50%, rgba(56, 224, 123, .14), transparent 60%), linear-gradient(135deg, #061433, #030817); }
+.lp .xp-panel.tech .x-term { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); width: min(520px, 46%); margin: 0; }
+.lp .xp-panel.tech .xp-body { width: min(520px, 50%); }
+.lp .xm { margin: 40px calc(-1 * var(--gutter-l)) 0; padding: 4px var(--gutter-l) 8px; display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.lp .xm::-webkit-scrollbar { display: none; }
+@media (min-width: 640px) {
+.lp .xm { margin-left: -32px; margin-right: -32px; padding-left: 32px; padding-right: 32px; }
+}
+.lp .xm-card { --accent: var(--sky); flex: 0 0 min(84%, 380px); scroll-snap-align: start; display: flex; flex-direction: column; border-radius: 22px; overflow: hidden; background: linear-gradient(180deg, #081633, #050c20); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.lp .xm-media { position: relative; height: 190px; }
+.lp .xm-media img { width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.lp .xm-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, #081633), linear-gradient(120deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent 60%); }
+.lp .xm-media .xp-chip { position: absolute; left: 14px; top: 14px; z-index: 1; font-size: 10px; }
+.lp .xm-media.tech { display: grid; place-items: center; background: radial-gradient(80% 90% at 50% 100%, rgba(56, 224, 123, .2), transparent 60%), #040b1d; }
+.lp .xm-media.tech .x-term { margin: 0 14px; width: calc(100% - 28px); font-size: 10.5px; line-height: 1.6; }
+.lp .xm-media.tech .x-term pre { padding: 8px 10px; }
+.lp .xm-body { padding: 4px 18px 20px; display: flex; flex-direction: column; flex: 1; }
+.lp .xm-body h3 { font-size: 1.35rem; font-weight: 600; color: #fff; }
+.lp .xm-body h3 span { color: var(--accent); }
+.lp .xm-body p { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: rgba(226, 234, 250, .78); }
+.lp .xm-gets { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+.lp .xm-gets li { font-size: 12px; color: #fff; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 999px; padding: 4px 10px; }
+.lp .xm-body .x-link { margin-top: auto; padding-top: 16px; display: inline-flex; gap: 8px; align-items: center; color: var(--accent); font-weight: 600; font-size: 14px; text-decoration: none; }
+.lp .xm-body .x-link svg { width: 15px; height: 15px; }
+.lp .xm-dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.lp .xm-dots button { width: 8px; height: 8px; padding: 0; border-radius: 999px; border: 0; background: rgba(226, 234, 250, .25); cursor: pointer; transition: width .3s, background .3s; }
+.lp .xm-dots button.on { width: 24px; background: var(--aqua); }
+.lp .x-term { border-radius: 14px; border: 1px solid rgba(127, 178, 255, .2); background: #020711; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.75; color: #cfe0ff; overflow-x: auto; box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .9); }
+.lp .x-term-bar { display: flex; gap: 6px; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(127, 178, 255, .12); color: rgba(207, 224, 255, .5); font-size: 11px; white-space: nowrap; }
+.lp .x-term-bar i { width: 9px; height: 9px; border-radius: 50%; background: #ff5f57; flex: none; }
+.lp .x-term-bar i:nth-child(2) { background: #febc2e; }
+.lp .x-term-bar i:nth-child(3) { background: #28c840; margin-right: 8px; }
+.lp .x-term pre { margin: 0; padding: 14px 16px 16px; white-space: pre; }
+.lp .x-term .c { color: rgba(207, 224, 255, .45); }
+.lp .x-term .k { color: var(--aqua); }
+.lp .x-term .n { color: var(--amber); }
+.lp .x-term .ok { color: var(--up); }
+.lp .x-term .cur { display: inline-block; width: 8px; height: 15px; vertical-align: -2px; background: var(--aqua); animation: lp-blink 1.1s steps(1) infinite; }
+@keyframes lp-blink {50% { opacity: 0; }}
+.lp .apx { background: radial-gradient(60% 40% at 100% 0%, rgba(255, 178, 63, .07), transparent 70%), var(--ink); }
+.lp .ap { margin-top: 48px; display: grid; gap: 28px; }
+@media (min-width: 1000px) {
+.lp .ap { grid-template-columns: minmax(320px, 0.85fr) 1.15fr; gap: 56px; align-items: start; }
+}
+.lp .ap-sticky { display: none; }
+@media (min-width: 1000px) {
+.lp .ap-sticky { display: block; position: sticky; top: 110px; }
+}
+.lp .ap-visual { --accent: var(--aqua); position: relative; border-radius: 26px; padding: 34px; overflow: hidden; border: 1px solid rgba(127, 178, 255, .16); background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%), linear-gradient(160deg, #0a1b42, #040b1d); transition: background .6s; }
+.lp .ap-ring { position: relative; width: 168px; height: 168px; }
+.lp .ap-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.lp .ap-ring > svg circle { fill: none; stroke-width: 3; }
+.lp .ap-ring .bg { stroke: rgba(226, 234, 250, .12); }
+.lp .ap-ring .fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .7s cubic-bezier(.16, 1, .3, 1), stroke .6s; }
+.lp .ap-ring > div { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 4px; }
+.lp .ap-ring b { font-family: var(--font-display); font-weight: 300; font-size: 3.4rem; line-height: 1; color: #fff; }
+.lp .ap-ring small { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(226, 234, 250, .55); }
+.lp .ap-ico { position: absolute; right: 30px; top: 30px; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); transition: color .6s; }
+.lp .ap-ico svg { width: 26px; height: 26px; }
+.lp .ap-visual h3 { margin-top: 28px; font-family: var(--font-display); font-weight: 300; font-size: 2.6rem; color: #fff; }
+.lp .ap-visual p { margin: 10px 0 0; color: rgba(226, 234, 250, .75); line-height: 1.6; }
+.lp .ap-out { margin-top: 22px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); font-size: 14px; color: #fff; }
+.lp .ap-out small { display: block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.lp .ap-steps { list-style: none; margin: 0; padding: 0 0 0 30px; position: relative; display: grid; gap: 18px; }
+.lp .ap-steps::before { content: ""; position: absolute; left: 10px; top: 14px; bottom: 14px; width: 2px; background: linear-gradient(var(--aqua), var(--sky), var(--amber), var(--up)); opacity: .35; }
+@media (min-width: 1000px) {
+.lp .ap-steps { gap: 22px; padding-bottom: 18vh; }
+}
+.lp .band.apx { overflow: visible; }
+.lp .ap-step { --accent: var(--aqua); position: relative; border-radius: 20px; padding: 22px 22px 24px; border: 1px solid rgba(127, 178, 255, .12); background: rgba(255, 255, 255, .02); transition: border-color .4s, background .4s, opacity .4s; }
+@media (min-width: 1000px) {
+.lp .ap-step { opacity: .5; }
+.lp .ap-step.on { opacity: 1; }
+}
+.lp .ap-step.on { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, transparent), rgba(255, 255, 255, .02)); }
+.lp .ap-node { position: absolute; left: -30px; top: 22px; width: 22px; height: 22px; border-radius: 50%; background: #0a1633; border: 2px solid rgba(226, 234, 250, .3); transition: all .4s; }
+.lp .ap-step.on .ap-node { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 18px var(--accent); }
+.lp .ap-top { display: flex; align-items: center; gap: 12px; }
+.lp .ap-top .num { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); letter-spacing: .16em; text-transform: uppercase; }
+.lp .ap-top .ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.lp .ap-top .ico svg { width: 18px; height: 18px; }
+.lp .ap-step h3 { margin-top: 12px; font-family: var(--font-display); font-weight: 400; font-size: clamp(1.6rem, 3vw, 2.1rem); color: #fff; }
+.lp .ap-step p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: rgba(226, 234, 250, .78); }
+.lp .ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+.lp .ap-tags li { font-size: 12px; color: rgba(226, 234, 250, .9); border: 1px solid rgba(226, 234, 250, .16); border-radius: 999px; padding: 4px 10px; }
+.lp .ap-result { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: #fff; }
+.lp .ap-result small { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+.lp .legal { margin: 40px 0 0; font-family: var(--font-mono); font-size: 11px; color: rgba(242, 246, 255, .4); }
+@media (prefers-reduced-motion: reduce) {
+.lp .xp-panel, .lp .xp-media img, .lp .ap-step, .lp .ap-ring .fg { transition: none; }
+.lp .xp-tab.run::after { animation: none; }
+.lp .x-term .cur { animation: none; }
+}
+.lp .final { background: var(--ink); text-align: center; }
+.lp .final::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(55% 45% at 50% 100%, rgba(29, 78, 216, .28), transparent 70%); }
+.lp .final > .wrap { padding-block: 160px; }
+.lp .final h2 { margin: 0 auto; max-width: 18ch; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.4rem, 5.4vw, 5rem); line-height: 1.02; letter-spacing: -0.02em; }
+.lp .final p { margin: 24px auto 0; max-width: 36rem; font-size: 1.05rem; line-height: 1.6; color: rgba(226, 234, 250, .78); }
+.lp .final .pill { margin-top: 48px; padding: 16px 32px; font-size: 15px; box-shadow: 0 0 60px -12px rgba(127, 178, 255, .7); }
+.lp .final .hint { margin-top: 14px; font-family: var(--font-mono); font-size: 11px; color: rgba(242, 246, 255, .4); }
+.lp .drift { position: absolute; inset: 0; pointer-events: none; }
+.lp .drift span { position: absolute; font-family: var(--font-mono); font-weight: 500; opacity: .22; animation: lp-drift 9s ease-in-out infinite; }
+@keyframes lp-drift {0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -18px, 0); }}
+.lp footer { border-top: 1px solid var(--line); background: var(--deep); }
+.lp footer .wrap { padding-block: 40px; display: flex; flex-wrap: wrap; gap: 16px 40px; justify-content: space-between; align-items: center; font-size: 13px; color: var(--fg-3); }
+.lp footer p { margin: 0; max-width: 44rem; }
+/* Neutralise site-wide rules that share a class name with this page (.panel, .note, .sec-head, .wrap, .xp, .xp-body). */
+.lp .panel { display: block; gap: normal; align-content: normal; }
+.lp .note { border-top: 0; padding-top: 0; }
+.lp .sec-head { max-width: none; margin-bottom: 0; }
+.lp .wrap { flex-wrap: nowrap; }
+.lp .sec-head, .lp .xp-tabs, .lp .ctas { flex-wrap: wrap; }
+.lp .xp { width: auto; height: auto; background: none; color: inherit; border-left: 0; padding: 0; overflow: visible; animation: none; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+.lp .xp-body { gap: 0; }
+.lp .mark { display: block; }
+/* our gold emblem as the page's brand mark */
+.lp .brand .mark { width: 30px; height: 29px; }
+/* Sections the reference page has no exact twin for, drawn with its tokens: cards, the brand meaning, the golden rule, founders, footer. */
+.lp .lp-cards { display: grid; gap: 16px; margin-top: 48px; }
+@media (min-width: 900px) { .lp .lp-cards.c3 { grid-template-columns: repeat(3, 1fr); } }
+.lp .lp-card { --accent: var(--aqua); position: relative; overflow: hidden; border-radius: 20px; padding: 26px 24px 28px; border: 1px solid rgba(127, 178, 255, .12);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 7%, transparent), rgba(255, 255, 255, .02)); }
+.lp .lp-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.lp .lp-card .kicker { color: var(--accent); }
+.lp .lp-card p { margin: 14px 0 0; font-size: 15px; line-height: 1.65; color: rgba(226, 234, 250, .82); }
+.lp .lp-card h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; line-height: 1.15; color: #fff; display: flex; gap: 12px; align-items: baseline; }
+.lp .lp-card h3::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--aqua); box-shadow: 0 0 10px var(--aqua); transform: translateY(-4px); }
+.lp .pillars .lp-card p { margin-top: 10px; font-size: 14.5px; }
+.lp .lp-meaning { margin-top: 96px; display: grid; gap: 40px; align-items: center; }
+@media (min-width: 1000px) { .lp .lp-meaning { grid-template-columns: .95fr 1.05fr; gap: 64px; } }
+.lp .lp-anatomy { border-radius: 26px; border: 1px solid rgba(127, 178, 255, .16); padding: 28px; background: radial-gradient(70% 70% at 30% 20%, rgba(255, 178, 63, .1), transparent 70%), linear-gradient(160deg, #0a1b42, #040b1d); }
+.lp .lp-anatomy svg { width: 100%; height: auto; display: block; }
+.lp .lp-meaning h2 { margin-top: 20px; font-family: var(--font-display); font-weight: 300; font-size: clamp(2.2rem, 4.4vw, 4rem); line-height: 1.04; letter-spacing: -0.02em; }
+.lp .lp-meaning .lede { margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6; color: rgba(226, 234, 250, .78); }
+.lp .lp-dl { margin: 28px 0 0; display: grid; gap: 14px; }
+.lp .lp-dl div { display: grid; grid-template-columns: 7.5rem 1fr; gap: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.lp .lp-dl dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--amber); padding-top: 3px; }
+.lp .lp-dl dd { margin: 0; color: rgba(226, 234, 250, .85); line-height: 1.6; }
+.lp .fine { margin: 24px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-3); max-width: 60ch; }
+.lp .lp-golden { margin-top: 48px; border-radius: 20px; padding: 26px 28px; border: 1px solid rgba(255, 178, 63, .3); background: linear-gradient(135deg, rgba(255, 178, 63, .09), rgba(255, 255, 255, .02)); }
+.lp .lp-golden p:last-child { margin: 12px 0 0; font-size: 15.5px; line-height: 1.65; color: rgba(226, 234, 250, .85); max-width: 70ch; }
+.lp .lp-founders { margin-top: 48px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.lp .lp-founder { position: relative; margin: 0; border-radius: 22px; overflow: hidden; border: 1px solid rgba(127, 178, 255, .16); background: #040b1d; aspect-ratio: 4 / 5; }
+.lp .lp-founder img { width: 100%; height: 100%; object-fit: cover; max-width: none; filter: saturate(.92); transition: transform 7s ease-out; }
+.lp .lp-founder:hover img { transform: scale(1.04); }
+.lp .lp-founder::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(3, 8, 23, .92)); }
+.lp .lp-founder figcaption { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 1; }
+.lp .lp-founder b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; color: #fff; }
+.lp .lp-founder small { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--aqua); }
+.lp .lp-foot { display: grid !important; grid-template-columns: 1fr; gap: 28px 40px !important; align-items: start !important; }
+@media (min-width: 900px) { .lp .lp-foot { grid-template-columns: 1.6fr 1fr 1fr 1fr; } }
+.lp .lp-foot p { margin-top: 14px; }
+.lp .lp-foot nav { display: grid; gap: 8px; align-content: start; }
+.lp .lp-foot nav b { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-2); margin-bottom: 4px; }
+.lp .lp-foot nav a { text-decoration: none; color: var(--fg-3); transition: color .2s; }
+.lp .lp-foot nav a:hover { color: var(--fg); }
+.lp .lp-foot .fine { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 20px; border-top: 1px solid var(--line); max-width: none; font-size: 12px; }
+/* the nav has six pages, so it shows from wider screens */
+.lp .nav { gap: 22px; }
+@media (max-width: 1099px) { .lp .nav { display: none; } }
 ```
 
 
@@ -3795,9 +4519,9 @@ Adapter that sends the same calls to the Flask API.
 
 ---
 
-## 5. Public website, motion and the assistant
+## 5. Public website and the assistant
 
-Public pages, the scroll intro, the whiteboard motion, the chat assistant and its site map.
+Public pages, the chat assistant and its site map.
 
 ### `site/public.js`
 
@@ -3905,6 +4629,7 @@ Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust,
   }
 
   function home(user) {
+    if (root.LANDING) return root.LANDING.html(user);   // the home page design lives in landing.js
     return page("home", user,
       '<section class="intro" id="ascent"><div class="intro-stage"><div class="intro-sky" aria-hidden="true"></div>' + introMark() +
       '<div class="intro-word" aria-hidden="true"><p class="iw-name">AEGIS <span>ASCEND</span></p><p class="iw-sub">Financial Advisors</p><span class="intro-cue">Scroll</span></div>' +
@@ -4008,6 +4733,7 @@ Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust,
   window.addEventListener("pointermove", (e) => { ptr.x = (e.clientX / innerWidth - 0.5) * 2; ptr.y = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
   function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); } }
   function mountHome() {
+    if (root.LANDING && document.querySelector(".lp")) return root.LANDING.mount();
     const sec = document.getElementById("ascent"); if (!sec) return;
     const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     sec.classList.toggle("still", !!reduce);
@@ -4156,205 +4882,8 @@ Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust,
       '<div class="form-err" hidden></div><div><button class="btn primary lg" type="submit">Send enquiry</button></div></form></div>');
   }
 
-  root.PUB = { home, mountHome, services, pricing, investors, lenders, trust, about, contact, header, footer, page, wordmark, mark, feeCalc, exitCalc, debtCalc, field, FIRM };
+  root.PUB = { home, mountHome, anatomy, services, pricing, investors, lenders, trust, about, contact, header, footer, page, wordmark, mark, feeCalc, exitCalc, debtCalc, field, FIRM };
 })(typeof globalThis !== "undefined" ? globalThis : this);
-```
-
-### `site/motion.js`
-
-Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page.
-
-```javascript
-/* Whiteboard motion on the home page. Two collaboration cursors (Advisor and Founder) visit the
-   live example and the method steps, leaving hand-drawn circles, underlines, arrows and sticky
-   notes that point out what matters. Decorative only: every fact here is also on the page as
-   text, the overlay ignores the pointer, and nothing in the layout moves. Readers who ask for
-   reduced motion get the finished annotations without cursors. */
-(function (root) {
-  "use strict";
-  const NS = "http://www.w3.org/2000/svg";
-  const f = (v) => v.toFixed(1);
-  const EASE = "cubic-bezier(.45,0,.2,1)";
-
-  // a small seeded generator, so the hand-drawn lines look the same on every visit
-  function rng(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); }
-  // Catmull-Rom through the points, as cubic curves
-  function smooth(pts) {
-    let d = "M" + f(pts[0][0]) + " " + f(pts[0][1]);
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-      d += " C" + [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]].map(f).join(" ");
-    }
-    return d;
-  }
-  // a pen loop: slightly uneven, and it overshoots where it started
-  function loop(cx, cy, rx, ry, seed) {
-    const r = rng(seed), pts = [], a0 = -2.5, a1 = a0 + Math.PI * 2 + 0.6;
-    for (let i = 0; i <= 28; i++) {
-      const a = a0 + ((a1 - a0) * i) / 28, w = 1 + (r() - 0.5) * 0.07 + i * 0.003;
-      pts.push([cx + Math.cos(a) * rx * w, cy + Math.sin(a) * ry * w]);
-    }
-    return smooth(pts);
-  }
-  function underline(x0, x1, y, seed) {
-    const r = rng(seed), pts = [];
-    for (let i = 0; i <= 8; i++) pts.push([x0 + ((x1 - x0) * i) / 8, y + (r() - 0.5) * 2.4 + (i % 2 ? 1 : -1)]);
-    return smooth(pts);
-  }
-  // a curved arrow; bend > 0 bows to the left of the direction of travel
-  function arrow(x0, y0, x1, y1, bend) {
-    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
-    const cx = (x0 + x1) / 2 + (dy / len) * bend, cy = (y0 + y1) / 2 - (dx / len) * bend;
-    const tl = Math.hypot(x1 - cx, y1 - cy) || 1, ux = (x1 - cx) / tl, uy = (y1 - cy) / tl, h = 10;
-    const wing = (s) => [x1 - h * (ux * Math.cos(s) - uy * Math.sin(s)), y1 - h * (uy * Math.cos(s) + ux * Math.sin(s))];
-    const a = wing(0.5), b = wing(-0.5);
-    return ["M" + f(x0) + " " + f(y0) + " Q" + f(cx) + " " + f(cy) + " " + f(x1) + " " + f(y1), "M" + f(a[0]) + " " + f(a[1]) + " L" + f(x1) + " " + f(y1) + " L" + f(b[0]) + " " + f(b[1])];
-  }
-
-  const POINTER = '<svg viewBox="0 0 20 22" aria-hidden="true"><path d="M2 1.5 L2 18 L6.6 13.8 L9.6 20.4 L12.6 19 L9.7 12.6 L16 12.4 Z" stroke="#0D0E10" stroke-width="1.4" stroke-linejoin="round"/></svg>';
-
-  // One overlay on top of a host element. Everything is built in its start state, then
-  // `go` lets the CSS transitions (each with its own delay) and the cursor animations run.
-  function Board(host) {
-    if (getComputedStyle(host).position === "static") host.style.position = "relative";
-    const wb = document.createElement("div");
-    wb.className = "wb"; wb.setAttribute("aria-hidden", "true");
-    const svg = document.createElementNS(NS, "svg"); svg.setAttribute("class", "wb-ink");
-    wb.appendChild(svg); host.appendChild(wb);
-    const hb = host.getBoundingClientRect(), runs = [];
-    // the box of an element's own text, not of its (often full-width) block
-    const box = (el, text) => { let r = el.getBoundingClientRect(); if (text) { const g = document.createRange(); g.selectNodeContents(el); r = g.getBoundingClientRect(); } return { x: r.left - hb.left, y: r.top - hb.top, w: r.width, h: r.height, cx: r.left - hb.left + r.width / 2, cy: r.top - hb.top + r.height / 2 }; };
-    function ink(d, at, ms) {
-      const p = document.createElementNS(NS, "path");
-      p.setAttribute("d", d); p.setAttribute("pathLength", "1");
-      p.style.transition = "stroke-dashoffset " + ms + "ms cubic-bezier(.55,.1,.3,1) " + at + "ms";
-      svg.appendChild(p);
-    }
-    function arrowInk(a, at, ms) { ink(a[0], at, ms); ink(a[1], at + ms - 40, 180); }
-    function note(text, x, y, rot, at) {
-      const n = document.createElement("div");
-      n.className = "wb-note"; n.textContent = text;
-      n.style.left = f(x) + "px"; n.style.top = f(y) + "px"; n.style.setProperty("--rot", rot + "deg");
-      n.style.transition = "opacity .3s ease-out " + at + "ms, transform .7s cubic-bezier(.2,1.5,.4,1) " + at + "ms";
-      wb.appendChild(n);
-      return n;
-    }
-    // stops: [[x, y, ms], ...]; clicks: times (ms) at which the cursor taps where it stands
-    function cursor(name, tone, stops, clicks, endAt) {
-      const c = document.createElement("div");
-      c.className = "wb-cur " + tone; c.innerHTML = POINTER + "<span>" + name + "</span>";
-      wb.appendChild(c);
-      const t0 = stops[0][2], total = endAt - t0;
-      const frames = stops.map(([x, y, t], i) => ({ offset: (t - t0) / total, transform: "translate(" + f(x) + "px," + f(y) + "px)", opacity: i === 0 ? 0 : 1, easing: EASE }));
-      // hold fully visible after the last stop, then fade out over the final 600 ms
-      const lastFrame = frames[frames.length - 1], hold = (total - 600) / total;
-      if (hold > lastFrame.offset) frames.push({ offset: hold, transform: lastFrame.transform, opacity: 1 });
-      frames.push({ offset: 1, transform: lastFrame.transform, opacity: 0 });
-      runs.push(() => c.animate(frames, { duration: total, delay: t0, fill: "both" }));
-      clicks.forEach((t) => {
-        const at = stops.reduce((p, s) => (s[2] <= t ? s : p), stops[0]);
-        const ring = document.createElement("i");
-        ring.className = "wb-ring " + tone; ring.style.left = f(at[0] + 2) + "px"; ring.style.top = f(at[1] + 2) + "px";
-        wb.appendChild(ring);
-        runs.push(() => ring.animate([{ opacity: 0, transform: "scale(.3)" }, { opacity: 0.9, transform: "scale(.4)", offset: 0.08 }, { opacity: 0, transform: "scale(1.5)" }], { duration: 650, delay: t, easing: "ease-out", fill: "both" }));
-      });
-    }
-    return {
-      wb, box, ink, arrowInk, note, cursor,
-      go() { requestAnimationFrame(() => { wb.classList.add("go"); runs.forEach((r) => r()); }); },
-      done() { wb.classList.add("done"); wb.querySelectorAll(".wb-cur,.wb-ring").forEach((el) => el.remove()); },
-    };
-  }
-
-  // The live example: the Advisor circles the debt share and notes how it was found; the
-  // Founder underlines the repayment safety; the Advisor circles the sign-off stamp.
-  function stripBoard(host) {
-    const d = host.querySelector(".decision"); if (!d) return null;
-    const debt = d.querySelector(".split-legend span"), dscr = d.querySelector(".decision-stats div:nth-child(2) .gx"), stamp = d.querySelector(".decision-stats .stamp");
-    if (!debt || !dscr || !stamp) return null;
-    const B = Board(host), D = B.box(d), v = B.box(debt, true), s = B.box(dscr), st = B.box(stamp);
-    const room = D.x >= 250;   // sticky notes only where there is space beside the strip
-    B.cursor("Advisor", "gold",
-      [[D.x - 110, D.y + D.h + 30, 0], [v.x + v.w - 14, v.cy, 900], [v.x + v.w - 14, v.cy, 3600], [st.cx, st.cy - 4, 4500], [st.cx, st.cy - 4, 6800]],
-      [950, 4550], 7400);
-    B.ink(loop(v.cx, v.cy, v.w / 2 + 14, v.h / 2 + 8, 7), 1050, 650);
-    B.cursor("Founder", "ivory",
-      [[D.x + D.w + 90, D.y + D.h + 50, 1700], [s.cx + 6, s.cy - 2, 2700], [s.cx + 6, s.cy - 2, 6800]],
-      [2750], 7400);
-    B.ink(underline(s.x - 4, s.x + s.w + 6, s.y + s.h + 3, 11), 2850, 450);
-    B.ink(loop(st.cx, st.cy, st.w / 2 + 12, st.h / 2 + 5, 3), 4650, 600);
-    if (room) {
-      // placed once rendered, so their own size decides where they go
-      const n1 = B.note("Every mix tested, from 0% to 100% debt", 0, 0, -3, 1900);
-      const n1x = D.x - 40 - n1.offsetWidth, n1y = D.y + 4;
-      n1.style.left = f(n1x) + "px"; n1.style.top = f(n1y) + "px";
-      B.arrowInk(arrow(v.x - 4, v.y - 4, n1x + n1.offsetWidth + 8, n1y + n1.offsetHeight * 0.6, -18), 1600, 420);
-      const n2 = B.note("A named advisor signs every report", 0, 0, 2.5, 5400);
-      const n2x = D.x + D.w + 40, n2y = st.cy - n2.offsetHeight / 2 + 24;
-      n2.style.left = f(n2x) + "px"; n2.style.top = f(n2y) + "px";
-      B.arrowInk(arrow(st.x + st.w + 12, st.cy, n2x - 8, n2y + n2.offsetHeight * 0.5, 18), 5150, 380);
-    }
-    return B;
-  }
-
-  // The eight method steps: the Advisor walks the numbers in order, an arrow drawn from each
-  // step to the next on the same row, and the last step, the sign-off, circled.
-  function methodBoard(host) {
-    const lis = [...host.querySelectorAll(".method li")]; if (lis.length < 2) return null;
-    const B = Board(host), at = (li) => { const b = B.box(li); return [b.x + 9, b.y + 37]; };
-    const stops = [], step = 380, start = 200;
-    const first = at(lis[0]);
-    stops.push([first[0] - 60, first[1] + 70, 0]);
-    lis.forEach((li, i) => {
-      const [x, y] = at(li), t = start + i * step;
-      stops.push([x + 4, y + 2, t + 300]);
-      const next = lis[i + 1];
-      if (next) {
-        const [nx, ny] = at(next);
-        if (Math.abs(ny - y) < 4) B.arrowInk(arrow(x + 24, y, nx - 12, ny, 14), t + 360, 300);
-      }
-    });
-    const lastB = B.box(lis[lis.length - 1].querySelector("b"), true);
-    const tEnd = start + lis.length * step + 300;
-    stops.push([lastB.cx, lastB.cy, tEnd]);
-    B.ink(loop(lastB.cx, lastB.cy, lastB.w / 2 + 14, lastB.h / 2 + 7, 5), tEnd + 60, 600);
-    B.cursor("Advisor", "gold", stops.concat([[lastB.cx, lastB.cy, tEnd + 1500]]), [tEnd + 40], tEnd + 2100);
-    return B;
-  }
-
-  const KINDS = [[".strip-sec", ".decision", stripBoard], ["#method", ".method", methodBoard]];
-  let io = null, live = [];
-  function mount(reduce) {
-    if (io) io.disconnect();
-    live.forEach((b) => b && b.wb.remove());
-    live = [];
-    const items = KINDS.map(([h, t, build]) => ({ host: document.querySelector(h), trigger: document.querySelector(h + " " + t), build, played: false, board: null })).filter((k) => k.host && k.trigger);
-    if (!items.length) return;
-    if (reduce || !("IntersectionObserver" in window) || !Element.prototype.animate) { items.forEach((k) => { k.played = true; finish(k); }); mount.items = items; return; }
-    io = new IntersectionObserver((es) => es.forEach((e) => {
-      if (!e.isIntersecting) return;
-      const k = items.find((it) => it.trigger === e.target); if (!k || k.played) return;
-      k.played = true; io.unobserve(e.target);
-      // wait for the section's own rise-in to settle so positions are final
-      setTimeout(() => { if (!k.host.isConnected) return; k.board = k.build(k.host); if (k.board) { live.push(k.board); k.board.go(); } }, 850);
-    }), { threshold: 0.45 });
-    items.forEach((k) => io.observe(k.trigger));
-    mount.items = items;
-  }
-  // after a resize, redraw what has already played in its finished state
-  let rz;
-  window.addEventListener("resize", () => {
-    clearTimeout(rz);
-    rz = setTimeout(() => (mount.items || []).forEach((k) => {
-      if (!k.played || !k.host.isConnected) return;
-      if (k.board) { k.board.wb.remove(); live = live.filter((b) => b !== k.board); }
-      finish(k);
-    }), 200);
-  });
-  function finish(k) { k.board = k.build(k.host); if (k.board) { k.board.done(); live.push(k.board); } }
-
-  root.BOARD = { mount };
-})(typeof window !== "undefined" ? window : globalThis);
 ```
 
 ### `site/chat.js`
@@ -5130,6 +5659,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     if (html === "") return;
     const first = full !== lastRoute;
     lastRoute = full;
+    if (root.LANDING) root.LANDING.unmount();   // stop the home page's scene before drawing another page
     app().innerHTML = html;
     S.flash = "";
     if (route === "home") PUB.mountHome();
@@ -6683,20 +7213,19 @@ def seed_markers():
 
 
 def scripts_inline():
-    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("jspdf.min.js"), read("pdf.js"), read("hero3d.js"),
+    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("jspdf.min.js"), read("pdf.js"), read("gsap.min.js"), read("ScrollTrigger.min.js"), read("three.min.js"),
              "window.GB_SEED = " + seed_markers() + ";", "window.GB_SITEMAP = " + json.dumps(json.loads(read("sitemap.json")), separators=(",", ":")) + ";", read("store.js"),
              'window.GB_API = window.GBStore; window.GB_CMA_URL = "fundmix.html"; window.GB_ASSETS = "assets/";',
-             read("public.js"), read("motion.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
+             read("public.js"), read("landing.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
     return "\n".join("<script>\n" + p.replace("</script", "<\\/script") + "\n</script>" for p in parts)
 
 def main():
     os.makedirs(os.path.join(HERE, "dist"), exist_ok=True)
-    html = read("shell.html").replace("<!--SCRIPTS-->", scripts_inline())
-    open(os.path.join(HERE, "dist", "index.html"), "w", encoding="utf-8").write(html)
+    html = read("shell.html").replace("<!--LANDING_CSS-->", "<style>\n" + read("landing.css") + "</style>").replace("<!--SCRIPTS-->", scripts_inline())
+    open(os.path.join(HERE, "dist", "index.html"), "w", encoding="utf-8").write('<meta charset="utf-8">\n' + html)
     # founder portraits travel beside the page
     os.makedirs(os.path.join(HERE, "dist", "assets"), exist_ok=True)
-    for f in os.listdir(os.path.join(HERE, "assets")):
-        shutil.copy(os.path.join(HERE, "assets", f), os.path.join(HERE, "dist", "assets", f))
+    shutil.copytree(os.path.join(HERE, "assets"), os.path.join(HERE, "dist", "assets"), dirs_exist_ok=True)   # portraits, skyline, home page media
     # the CMA tool is advisors-only: fundmix.html shows the advisors-only page unless the demo session is an advisor's,
     # and the tool itself (cma-tool.html) sends anyone else back. The demo protects nothing; the server enforces this for real.
     guard = ('<script>(function(){var ok=false;try{var id=localStorage.getItem("gb_demo_session_v2"),db=JSON.parse(localStorage.getItem("gb_demo_db_v2")||"null");'
@@ -6885,7 +7414,7 @@ Writes this file.
 
   python site/tools/bundle-code.py        ->  aegis-ascend-website-code.md (repository root)
 
-Left out: images, the vendored jsPDF library (site/jspdf.min.js), the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
+Left out: images and media, the vendored libraries, the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
 and the standalone optimizer/ and fundmix/ tools.
 """
 import datetime
@@ -6907,17 +7436,16 @@ PARTS = [
         ("site/kit.js", "Workspace components: tables, dialogs, toasts, timelines, kanban, empty states."),
         ("site/pdf.js", "Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF."),
     ]),
-    ("3. Home page 3D emblem", "The WebGL hero scene. site/hero3d.js is built from this source with three.js by site/tools/build-hero3d.sh.", [
-        ("site/src/hero3d.js", "The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette."),
-        ("site/tools/build-hero3d.sh", "Bundles the scene with three.js r160 into site/hero3d.js."),
+    ("3. Home page", "The landing page: a scroll-driven 3D market scene (three.js r159 and GSAP 3.12.5, vendored as site/three.min.js, site/gsap.min.js and site/ScrollTrigger.min.js), the live example, tools, method and founders.", [
+        ("site/landing.js", "The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene."),
+        ("site/landing.css", "The home page styles, all scoped under .lp."),
     ]),
     ("4. Data layer", "The front end calls window.GB_API: the browser store in the demo, the Flask API on the server.", [
         ("site/store.js", "Demo store: every action and rule of the server, kept in the browser."),
         ("site/api-server.js", "Adapter that sends the same calls to the Flask API."),
     ]),
-    ("5. Public website, motion and the assistant", "Public pages, the scroll intro, the whiteboard motion, the chat assistant and its site map.", [
+    ("5. Public website and the assistant", "Public pages, the chat assistant and its site map.", [
         ("site/public.js", "Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact."),
-        ("site/motion.js", "Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page."),
         ("site/chat.js", "The \"Ask Aegis\" assistant panel, its quick answers and site guide."),
         ("site/sitemap.json", "The assistant's map of every page and workspace screen."),
     ]),
@@ -6977,9 +7505,9 @@ def main():
     w = out.append
     w("# Aegis Ascend website: complete source code\n")
     w("Generated %s. Every file below is reproduced in full, in the order the page loads it.\n" % datetime.date.today().isoformat())
-    w("Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
+    w("Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.min.js`, `site/gsap.min.js`, `site/ScrollTrigger.min.js`), the home page media in `site/assets/media/`, the unused older home scene (`site/src/hero3d.js`, `site/motion.js`), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
     w("## How the pieces fit\n")
-    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
+    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, GSAP, ScrollTrigger, three.js, the seed data and site map, store, public, landing, chat, portal, then the four role files.")
     w("2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.")
     w("3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.\n")
     w("## Contents\n")
@@ -7041,9 +7569,13 @@ from server.actions import ACTIONS, COLLECTIONS, Denied, can_see_file, now, pub,
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "hero3d.js", "api-server.js", "public.js", "motion.js", "chat.js", "portal.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "gsap.min.js", "ScrollTrigger.min.js", "three.min.js", "api-server.js", "public.js", "landing.js", "chat.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
+MEDIA_FILES = {"markets-poster.webp": "image/webp", "markets-poster-960.webp": "image/webp", "markets-960.webm": "video/webm", "markets-960.mp4": "video/mp4",
+               "markets-1280.webm": "video/webm", "markets-1280.mp4": "video/mp4", "expertise/business-intelligence.webp": "image/webp",
+               "expertise/financial-research.webp": "image/webp", "expertise/growth-strategy.webp": "image/webp", "expertise/market-intelligence.webp": "image/webp",
+               "expertise/strategic-advisory.webp": "image/webp"}   # home page footage and pictures (site/assets/media)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
 UPLOAD_TYPES = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xls": "application/vnd.ms-excel",
                 ".csv": "text/csv", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
@@ -7465,7 +7997,7 @@ def index():
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
             "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>"
-            + shell.replace("<!--SCRIPTS-->", tags) + "</body></html>")
+            + shell.replace("<!--LANDING_CSS-->", "<style>" + open(os.path.join(SITE, "landing.css"), encoding="utf-8").read() + "</style>").replace("<!--SCRIPTS-->", tags) + "</body></html>")
     return Response(html, mimetype="text/html")
 
 
@@ -7481,6 +8013,13 @@ def asset_file(name):
     if name not in ASSET_FILES:
         abort(404)
     return send_file(os.path.join(SITE, "assets", name), mimetype=ASSET_FILES[name], max_age=86400)
+
+
+@app.get("/assets/media/<path:name>")
+def media_file(name):
+    if name not in MEDIA_FILES:
+        abort(404)
+    return send_file(os.path.join(SITE, "assets", "media", name), mimetype=MEDIA_FILES[name], max_age=86400, conditional=True)
 
 
 @app.get("/fundmix.html")
@@ -9748,7 +10287,7 @@ from datetime import date
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from sqlalchemy import insert, select, update
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -9764,8 +10303,12 @@ from server.actions import ACTIONS, Denied, can_see_file, pub, visible_state
 
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "hero3d.js", "api-server.js", "public.js", "motion.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "gsap.min.js", "ScrollTrigger.min.js", "three.min.js", "api-server.js", "public.js", "landing.js",
            "chat.js", "portal.js", "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
+MEDIA_FILES = {"markets-poster.webp": "image/webp", "markets-poster-960.webp": "image/webp", "markets-960.webm": "video/webm", "markets-960.mp4": "video/mp4",
+               "markets-1280.webm": "video/webm", "markets-1280.mp4": "video/mp4", "expertise/business-intelligence.webp": "image/webp",
+               "expertise/financial-research.webp": "image/webp", "expertise/growth-strategy.webp": "image/webp", "expertise/market-intelligence.webp": "image/webp",
+               "expertise/strategic-advisory.webp": "image/webp"}   # home page footage and pictures (site/assets/media)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
 UPLOAD_TYPES = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xls": "application/vnd.ms-excel",
                 ".csv": "text/csv", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
@@ -10252,7 +10795,7 @@ def index():
     tags += "".join('<script src="/static/%s"></script>' % f for f in post)
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
-            "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>" + shell.replace("<!--SCRIPTS-->", tags) + "</body></html>")
+            "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>" + shell.replace("<!--LANDING_CSS-->", "<style>" + open(os.path.join(SITE, "landing.css"), encoding="utf-8").read() + "</style>").replace("<!--SCRIPTS-->", tags) + "</body></html>")
     return HTMLResponse(html)
 
 
@@ -10273,6 +10816,13 @@ def asset_file(name: str):
     if name not in ASSET_FILES:
         return err("Not found", 404)
     return _file(os.path.join(SITE, "assets", name), ASSET_FILES[name], 86400)
+
+
+@app.get("/assets/media/{name:path}")
+def media_file(name: str):
+    if name not in MEDIA_FILES:
+        return err("Not found", 404)
+    return FileResponse(os.path.join(SITE, "assets", "media", name), media_type=MEDIA_FILES[name], headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/fundmix.html", response_class=HTMLResponse)

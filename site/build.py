@@ -15,20 +15,19 @@ def seed_markers():
 
 
 def scripts_inline():
-    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("jspdf.min.js"), read("pdf.js"), read("hero3d.js"),
+    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("jspdf.min.js"), read("pdf.js"), read("gsap.min.js"), read("ScrollTrigger.min.js"), read("three.min.js"),
              "window.GB_SEED = " + seed_markers() + ";", "window.GB_SITEMAP = " + json.dumps(json.loads(read("sitemap.json")), separators=(",", ":")) + ";", read("store.js"),
              'window.GB_API = window.GBStore; window.GB_CMA_URL = "fundmix.html"; window.GB_ASSETS = "assets/";',
-             read("public.js"), read("motion.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
+             read("public.js"), read("landing.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
     return "\n".join("<script>\n" + p.replace("</script", "<\\/script") + "\n</script>" for p in parts)
 
 def main():
     os.makedirs(os.path.join(HERE, "dist"), exist_ok=True)
-    html = read("shell.html").replace("<!--SCRIPTS-->", scripts_inline())
-    open(os.path.join(HERE, "dist", "index.html"), "w", encoding="utf-8").write(html)
+    html = read("shell.html").replace("<!--LANDING_CSS-->", "<style>\n" + read("landing.css") + "</style>").replace("<!--SCRIPTS-->", scripts_inline())
+    open(os.path.join(HERE, "dist", "index.html"), "w", encoding="utf-8").write('<meta charset="utf-8">\n' + html)
     # founder portraits travel beside the page
     os.makedirs(os.path.join(HERE, "dist", "assets"), exist_ok=True)
-    for f in os.listdir(os.path.join(HERE, "assets")):
-        shutil.copy(os.path.join(HERE, "assets", f), os.path.join(HERE, "dist", "assets", f))
+    shutil.copytree(os.path.join(HERE, "assets"), os.path.join(HERE, "dist", "assets"), dirs_exist_ok=True)   # portraits, skyline, home page media
     # the CMA tool is advisors-only: fundmix.html shows the advisors-only page unless the demo session is an advisor's,
     # and the tool itself (cma-tool.html) sends anyone else back. The demo protects nothing; the server enforces this for real.
     guard = ('<script>(function(){var ok=false;try{var id=localStorage.getItem("gb_demo_session_v2"),db=JSON.parse(localStorage.getItem("gb_demo_db_v2")||"null");'

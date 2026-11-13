@@ -99,6 +99,7 @@
   }
 
   function home(user) {
+    if (root.LANDING) return root.LANDING.html(user);   // the home page design lives in landing.js
     return page("home", user,
       '<section class="intro" id="ascent"><div class="intro-stage"><div class="intro-sky" aria-hidden="true"></div>' + introMark() +
       '<div class="intro-word" aria-hidden="true"><p class="iw-name">AEGIS <span>ASCEND</span></p><p class="iw-sub">Financial Advisors</p><span class="intro-cue">Scroll</span></div>' +
@@ -202,6 +203,7 @@
   window.addEventListener("pointermove", (e) => { ptr.x = (e.clientX / innerWidth - 0.5) * 2; ptr.y = (e.clientY / innerHeight - 0.5) * 2; }, { passive: true });
   function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); } }
   function mountHome() {
+    if (root.LANDING && document.querySelector(".lp")) return root.LANDING.mount();
     const sec = document.getElementById("ascent"); if (!sec) return;
     const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     sec.classList.toggle("still", !!reduce);
@@ -350,5 +352,5 @@
       '<div class="form-err" hidden></div><div><button class="btn primary lg" type="submit">Send enquiry</button></div></form></div>');
   }
 
-  root.PUB = { home, mountHome, services, pricing, investors, lenders, trust, about, contact, header, footer, page, wordmark, mark, feeCalc, exitCalc, debtCalc, field, FIRM };
+  root.PUB = { home, mountHome, anatomy, services, pricing, investors, lenders, trust, about, contact, header, footer, page, wordmark, mark, feeCalc, exitCalc, debtCalc, field, FIRM };
 })(typeof globalThis !== "undefined" ? globalThis : this);

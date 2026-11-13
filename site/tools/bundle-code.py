@@ -2,7 +2,7 @@
 
   python site/tools/bundle-code.py        ->  aegis-ascend-website-code.md (repository root)
 
-Left out: images, the vendored jsPDF library (site/jspdf.min.js), the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
+Left out: images and media, the vendored libraries, the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
 and the standalone optimizer/ and fundmix/ tools.
 """
 import datetime
@@ -24,17 +24,16 @@ PARTS = [
         ("site/kit.js", "Workspace components: tables, dialogs, toasts, timelines, kanban, empty states."),
         ("site/pdf.js", "Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF."),
     ]),
-    ("3. Home page 3D emblem", "The WebGL hero scene. site/hero3d.js is built from this source with three.js by site/tools/build-hero3d.sh.", [
-        ("site/src/hero3d.js", "The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette."),
-        ("site/tools/build-hero3d.sh", "Bundles the scene with three.js r160 into site/hero3d.js."),
+    ("3. Home page", "The landing page: a scroll-driven 3D market scene (three.js r159 and GSAP 3.12.5, vendored as site/three.min.js, site/gsap.min.js and site/ScrollTrigger.min.js), the live example, tools, method and founders.", [
+        ("site/landing.js", "The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene."),
+        ("site/landing.css", "The home page styles, all scoped under .lp."),
     ]),
     ("4. Data layer", "The front end calls window.GB_API: the browser store in the demo, the Flask API on the server.", [
         ("site/store.js", "Demo store: every action and rule of the server, kept in the browser."),
         ("site/api-server.js", "Adapter that sends the same calls to the Flask API."),
     ]),
-    ("5. Public website, motion and the assistant", "Public pages, the scroll intro, the whiteboard motion, the chat assistant and its site map.", [
+    ("5. Public website and the assistant", "Public pages, the chat assistant and its site map.", [
         ("site/public.js", "Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact."),
-        ("site/motion.js", "Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page."),
         ("site/chat.js", "The \"Ask Aegis\" assistant panel, its quick answers and site guide."),
         ("site/sitemap.json", "The assistant's map of every page and workspace screen."),
     ]),
@@ -94,9 +93,9 @@ def main():
     w = out.append
     w("# Aegis Ascend website: complete source code\n")
     w("Generated %s. Every file below is reproduced in full, in the order the page loads it.\n" % datetime.date.today().isoformat())
-    w("Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
+    w("Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.min.js`, `site/gsap.min.js`, `site/ScrollTrigger.min.js`), the home page media in `site/assets/media/`, the unused older home scene (`site/src/hero3d.js`, `site/motion.js`), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
     w("## How the pieces fit\n")
-    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
+    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, GSAP, ScrollTrigger, three.js, the seed data and site map, store, public, landing, chat, portal, then the four role files.")
     w("2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.")
     w("3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.\n")
     w("## Contents\n")

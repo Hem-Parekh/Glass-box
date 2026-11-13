@@ -457,6 +457,7 @@
     if (html === "") return;
     const first = full !== lastRoute;
     lastRoute = full;
+    if (root.LANDING) root.LANDING.unmount();   // stop the home page's scene before drawing another page
     app().innerHTML = html;
     S.flash = "";
     if (route === "home") PUB.mountHome();

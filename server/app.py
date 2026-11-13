@@ -22,9 +22,13 @@ from server.actions import ACTIONS, COLLECTIONS, Denied, can_see_file, now, pub,
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "hero3d.js", "api-server.js", "public.js", "motion.js", "chat.js", "portal.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "gsap.min.js", "ScrollTrigger.min.js", "three.min.js", "api-server.js", "public.js", "landing.js", "chat.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
+MEDIA_FILES = {"markets-poster.webp": "image/webp", "markets-poster-960.webp": "image/webp", "markets-960.webm": "video/webm", "markets-960.mp4": "video/mp4",
+               "markets-1280.webm": "video/webm", "markets-1280.mp4": "video/mp4", "expertise/business-intelligence.webp": "image/webp",
+               "expertise/financial-research.webp": "image/webp", "expertise/growth-strategy.webp": "image/webp", "expertise/market-intelligence.webp": "image/webp",
+               "expertise/strategic-advisory.webp": "image/webp"}   # home page footage and pictures (site/assets/media)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
 UPLOAD_TYPES = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xls": "application/vnd.ms-excel",
                 ".csv": "text/csv", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
@@ -446,7 +450,7 @@ def index():
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
             "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>"
-            + shell.replace("<!--SCRIPTS-->", tags) + "</body></html>")
+            + shell.replace("<!--LANDING_CSS-->", "<style>" + open(os.path.join(SITE, "landing.css"), encoding="utf-8").read() + "</style>").replace("<!--SCRIPTS-->", tags) + "</body></html>")
     return Response(html, mimetype="text/html")
 
 
@@ -462,6 +466,13 @@ def asset_file(name):
     if name not in ASSET_FILES:
         abort(404)
     return send_file(os.path.join(SITE, "assets", name), mimetype=ASSET_FILES[name], max_age=86400)
+
+
+@app.get("/assets/media/<path:name>")
+def media_file(name):
+    if name not in MEDIA_FILES:
+        abort(404)
+    return send_file(os.path.join(SITE, "assets", "media", name), mimetype=MEDIA_FILES[name], max_age=86400, conditional=True)
 
 
 @app.get("/fundmix.html")
