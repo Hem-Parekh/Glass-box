@@ -33,6 +33,9 @@ Leave `GB_DATABASE_URL` unset to use a local SQLite file for a quick trial.
 | `GB_PUBLIC_URL` | The site's address, used in password-reset emails |
 | `GB_STORAGE` | `local` (default, folder `GB_UPLOADS`) or `s3` (S3-compatible store, bucket `GB_S3_BUCKET`, needs `boto3`) |
 | `GB_SENDER` | How queued emails and messages are sent. `console` (default) prints them; add a provider class in `backend/notify.py` |
+| `GB_KYC_PROVIDER`, `GB_ESIGN_PROVIDER`, `GB_PAYMENTS_PROVIDER` | `standin` until real accounts exist (see `backend/integrations/README.md`) |
+| `GB_WEBHOOK_SECRET` | Signs the stand-in providers' callbacks (defaults to the secret key) |
+| `GB_REQUIRE_ESIGN` | `1` (the default in production) means NDAs can only be signed through e-signing |
 | `GB_SEED_DEMO` | `1` loads the fictional demo data into an empty database |
 | `ANTHROPIC_API_KEY` | Turns on Claude answers in the website assistant |
 
@@ -69,13 +72,18 @@ GB_TEST_DATABASE_URL=postgresql+psycopg://USER@HOST/aegis_test pytest backend/te
 ```
 
 - `test_flask_suite_on_backend.py` runs **every test of the prototype's suite** (`server/tests/test_server.py`) against this backend. Rules, numbers, permissions and API responses must match.
+- `test_integrations.py` covers KYC, both e-signing flows and payments through the stand-ins, plus webhook signatures, repeated events, wrong amounts and who may open what.
 - `test_security.py` covers sessions, two-step sign-in, password change and reset, the outbox, the import from the prototype, and the action lock.
 
 Without `GB_TEST_DATABASE_URL` the tests run on SQLite. CI (`.github/workflows/backend.yml`) runs them on PostgreSQL 16 and builds the Docker image.
 
+## KYC, e-signing and payments
+
+Investors verify their identity (PAN and name). NDAs and the engagement letter are signed online, and anyone can pay an invoice online. Each flow goes through a provider adapter. Until provider accounts exist, a clearly labelled stand-in plays the provider's part; stand-ins are switched off in production. See `backend/integrations/README.md` for how the flows work and how to plug in Digio, Leegality, Razorpay or similar.
+
 ## Still to do
 
-- **KYC, e-signing and payments:** the next step, each behind a small adapter with a stand-in provider until accounts exist.
+- **Real providers:** pick and sign up with KYC, e-signing and payment providers, then add their adapters (see `backend/integrations/README.md`).
 - **Real email/SMS sender:** add a provider class in `notify.py`. Emails are queued and printed today.
 - **Notifications by email:** in-app notifications are not yet copied to the outbox.
 - **Normalised columns:** records are JSON inside per-collection tables today. Key fields (amounts, statuses, dates) can move into typed columns, and PostgreSQL row-level security can be added on `company_id`, without changing the API.

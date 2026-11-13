@@ -72,7 +72,9 @@
     lender: [["app", "Loan book"], ["app-desk", "Lender desk"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
-    const u = S.user, nav = API.account ? NAVS[u.role].concat([["app-security", "Sign-in & security"]]) : NAVS[u.role];
+    const u = S.user;
+    const extra = (API.integrations && u.role === "investor" ? [["app-kyc", "Identity check (KYC)"]] : []).concat(API.account ? [["app-security", "Sign-in & security"]] : []);
+    const nav = NAVS[u.role].concat(extra);
     const who = u.firm ? u.firm : companyName() || "";
     const unread = S.data ? (S.data.notifications || []).filter((x) => !x.read).length : 0;
     const base = route.split("/")[0], parent = { "app-holding": "app", "app-loan": "app", "app-companyfile": "app-pipeline" }[base] || base;
@@ -111,7 +113,7 @@
       ["Investors commit and shares are allotted", (S.data.holdings || []).length > 0, "app-captable"],
     ];
     const stage = { applied: "Applied", under_review: "Under review", approved: "Approved", offering: "Offering", funded: "Funded", monitoring: "Monitoring", closed: "Closed", rejected: "Not taken forward" }[c.pipeline_stage] || "Applied";
-    return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) +
+    return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) + engagementCard(c) +
       '<div class="kpis k4">' +
       '<div class="kpi"><small>Stage</small><b>' + stage + "</b><span>with your Aegis Ascend advisor</span></div>" +
       '<div class="kpi"><small>Recommended mix</small><b>' + (ok ? pct(ok.summary.best_share) + " debt" : "–") + "</b><span>" + (ok ? pct(1 - ok.summary.best_share) + " equity · advisor-approved" : "after your advisor's review") + "</span></div>" +
@@ -416,6 +418,7 @@
     lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
   for (const r of Object.keys(PAGES)) PAGES[r]["app-security"] = securityPage;
+  PAGES.investor["app-kyc"] = kycPage;
 
   // ---------- router ----------
   const PUBLIC = { home: PUB.home, services: PUB.services, "services-equity": PUB.services, "services-debt": PUB.services, pricing: PUB.pricing, investors: PUB.investors, lenders: PUB.lenders, trust: PUB.trust, about: PUB.about, contact: PUB.contact };
@@ -534,6 +537,35 @@
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- KYC, e-signing and payments (real backend only) ----------
+  const goTo = (r) => { if (r && r.redirect_url) location.assign(r.redirect_url); };
+  const payCol = () => (API.integrations ? [{ k: "pay", label: "", csv: () => "", html: (f) => (f.paid_on ? (f.paid_via ? '<span class="muted small">Paid online</span>' : "") : '<button class="btn primary sm" type="button" data-act="pay-invoice" data-id="' + esc(f.id) + '">Pay now</button>') }] : []);
+  function engagementCard(c) {
+    const e = c.engagement;
+    if (!e || !API.integrations) return "";
+    if (e.status === "signed") return '<p class="small muted">' + chip("ok", "Engagement letter signed " + date(e.signed_at)) + ' <button class="linkbtn" type="button" data-act="esign-copy" data-id="' + esc(e.esign_id) + '">Download the signed copy</button></p>';
+    if (e.status === "sent") return '<section class="panel notice-panel"><h2>Your engagement letter is ready</h2><p>Aegis Ascend has sent the engagement letter for your review: advisory fee ' + lakh(e.fee_paise / 1e7) + ' plus GST, and the success fees in our fee schedule. Read it and sign online.</p><button class="btn primary" type="button" data-act="esign-start" data-id="' + esc(e.esign_id) + '">Review and sign</button></section>';
+    return "";
+  }
+  function kycPage() {
+    if (!S.kyc) {
+      API.integrations.kycStatus().then((d) => { S.kyc = d; render({ keepScroll: true }); }, (e) => { S.kyc = { error: e.message }; render({ keepScroll: true }); });
+      return head("Identity check (KYC)", "Loading…");
+    }
+    const d = S.kyc, prof = S.user.profile || {}, last = (d.checks || [])[0];
+    if (d.error) return head("Identity check (KYC)", "") + '<div class="notice bad">' + esc(d.error) + "</div>";
+    const state = d.kyc === "verified" ? chip("ok", "Verified") : d.kyc === "pending" ? chip("warn", "In progress") : chip("bad", "Not done");
+    return head("Identity check (KYC)", "We must verify every investor before sharing a private offer or introducing a buyer. It takes a few minutes with your PAN and Aadhaar.") +
+      '<section class="panel"><h2>Status</h2><p>' + state + (d.kyc === "verified" && last ? " PAN ending " + esc(last.pan_last4) + ", verified " + date(last.completed) : "") + "</p>" +
+      (last && last.status === "rejected" ? '<div class="notice bad">Your last check did not go through: ' + esc(last.reason || "") + " Check the details and try again, or contact your advisor.</div>" : "") +
+      (d.kyc === "verified" ? '<p class="muted">Nothing more to do. You can receive private offers and be introduced as a buyer.</p>'
+        : '<form class="form" data-form="kyc-start" novalidate><div class="fields f2">' +
+          '<label class="fld"><span>Name as on your PAN card</span><span class="in"><input name="name" id="k_name" autocomplete="name" value="' + esc(S.user.name) + '" required></span></label>' +
+          '<label class="fld"><span>PAN</span><span class="in"><input name="pan" id="k_pan" autocomplete="off" maxlength="10" placeholder="ABCDE1234F" style="text-transform:uppercase" required></span></label></div>' +
+          '<button class="btn primary" type="submit">' + (d.kyc === "pending" ? "Start again" : "Verify my identity") + '</button><p class="small muted">You will be taken to our verification partner and brought back here. We keep only the last 4 characters of your PAN.</p></form>') +
+      "</section>";
+  }
+
   // ---------- sign-in & security (real backend only) ----------
   function securityPage() {
     if (!S.security) {
@@ -641,7 +673,7 @@
       switch (act) {
         case "toggle-menu": { const nav = $(".pub-nav"); const open = nav.classList.toggle("open"); b.setAttribute("aria-expanded", open); return; }
         case "demo-login": S.user = await API.login(b.dataset.email, API.demoPassword); S.data = null; location.hash = "#app"; return;
-        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; location.hash = "#home"; return;
+        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; S.kyc = null; location.hash = "#home"; return;
         case "reset-demo": await API.reset(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#login"; await render(); return;
         case "twin-save": { const c = twinTarget(); const patch = Object.assign({}, c.twin, S.twinDraft[c.id] || {}); delete patch.sales_drop; delete patch.rate_shock; const res = await API.act("save_company", { company_id: c.id, patch: { twin: patch, raise: patch.raise || c.raise } }); delete S.twinDraft[c.id]; return after(res, "Assumptions saved."); }
         case "twin-reset": { const c = twinTarget(); delete S.twinDraft[c.id]; return render({ keepScroll: true }); }
@@ -662,6 +694,9 @@
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
         case "mfa-cancel": S.mfa = false; return render();
+        case "pay-invoice": b.disabled = true; return goTo(await API.integrations.pay(id));
+        case "esign-start": b.disabled = true; return goTo(await API.integrations.startSigning(id));
+        case "esign-copy": { const st = await KIT.save("signed-" + id + ".pdf", await API.integrations.signedCopy(id)); if (st === "saved") KIT.toast("Signed copy downloaded."); return; }
         case "two-step-setup": S.totpSetup = await API.account.setup(); return render({ keepScroll: true });
         case "sign-out-others": await API.account.signOutOthers(); S.security = null; KIT.toast("Signed out of your other devices."); return render({ keepScroll: true });
         case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
@@ -695,6 +730,7 @@
           await API.account.password(v.password, v.new_password); f.reset(); KIT.toast("Password changed. Other devices are signed out.");
           S.security = null; return render({ keepScroll: true });
         }
+        case "kyc-start": return goTo(await API.integrations.kycStart(v.pan, v.name));
         case "two-step-on": await API.account.enable(v.code); S.security = null; S.totpSetup = null; KIT.toast("Two-step sign-in is on."); return render({ keepScroll: true });
         case "two-step-off": await API.account.disable(v.password, v.code); S.security = null; KIT.toast("Two-step sign-in is off."); return render({ keepScroll: true });
         case "signup": S.user = await API.signup(v); S.data = null; location.hash = "#app"; return;
@@ -726,7 +762,7 @@
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);

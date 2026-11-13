@@ -67,6 +67,10 @@ PARTS = [
         ("backend/notify.py", "Outbox for email, SMS and WhatsApp, and the sender stand-in."),
         ("backend/storage.py", "File storage: local folder or S3-compatible."),
         ("backend/app.py", "FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages."),
+        ("backend/integrations/providers.py", "Provider adapters for KYC, e-signing and payments, and the stand-in provider."),
+        ("backend/integrations/service.py", "Starting checks, signings and payments; applying the providers' signed results once."),
+        ("backend/integrations/documents.py", "The NDA and engagement letter text, and the signed copy with its certificate."),
+        ("backend/integrations/routes.py", "API routes, the provider webhook and the stand-in provider pages."),
         ("backend/cli.py", "Admin commands: init, seed, create advisor, import from the prototype, send the outbox."),
         ("backend/requirements.txt", "Python dependencies."),
         ("Dockerfile", "Container image for the backend."),
@@ -79,6 +83,7 @@ PARTS = [
         ("site/tests/store.test.js", "Demo store matches the server's behaviour."),
         ("backend/tests/test_flask_suite_on_backend.py", "Runs the whole prototype server suite against the new backend."),
         ("backend/tests/shim.py", "Flask-style test client over FastAPI for that suite."),
+        ("backend/tests/test_integrations.py", "KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts."),
         ("backend/tests/test_security.py", "Sessions, two-step sign-in, password change and reset, outbox, import, action lock."),
     ]),
 ]

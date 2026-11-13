@@ -124,7 +124,7 @@
           { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
           { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
           { k: "due", label: "Due", html: (f) => dmy(f.due) },
-          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>" : "") +
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }].concat(WS.payCol()) }) + "</section>" : "") +
       '<section class="panel"><h2>Exit tax view</h2><p class="small muted">Try a sale price before you ask to sell. An estimate, not tax advice.</p><form class="calc" data-calc="exit"><div class="fields f5">' + root.PUB.field("cost", "Amount invested", 1, "Rs cr") + root.PUB.field("sale", "Sale price", 1.4, "Rs cr") + root.PUB.field("months", "Months held", 14, "months") + root.PUB.field("slab", "Your slab rate", 30, "%") + root.PUB.field("fmv", "Fair market value", 1.4, "Rs cr") + '</div></form><div id="calc-exit">' + root.PUB.exitCalc({}) + "</div></section>";
   }
 
@@ -145,8 +145,9 @@
     const mine = (S.data.intros || []).filter((i) => i.status === "granted");
     return WS.head("Deal rooms", "Sign the NDA to open documents. Each document is watermarked with your name and every view is logged for the founder.") +
       (mine.length ? mine.map((i) => { const c = co(i.company_id), r = c.report, sm = (r && r.summary) || {};
-        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label class=\"chk\"><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="inv-nda" data-id="' + i.id + '">Sign NDA</button></div>'
-          : "<p>" + chip("ok", "NDA signed " + UI.date(i.nda_signed_at)) + "</p>" + (r ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(sm.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + UI.cr(sm.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + UI.cr(sm.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(sm.min_dscr) + "</b><span>stress " + UI.xx(sm.min_dscr_stress) + "</span></div></div>" : "") +
+        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at && WS.API.integrations ? '<div class="nda"><p>Before the documents open, sign a non-disclosure agreement with ' + esc(c.name) + '. You will read it and sign online with our e-signing partner, then come back here.</p><button class="btn primary sm" data-act="inv-nda-esign" data-id="' + i.id + '">Review and sign the NDA</button></div>'
+          : !i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label class=\"chk\"><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="inv-nda" data-id="' + i.id + '">Sign NDA</button></div>'
+          : "<p>" + chip("ok", "NDA signed " + UI.date(i.nda_signed_at)) + (i.nda_esign_id ? ' <button class="linkbtn" data-act="esign-copy" data-id="' + esc(i.nda_esign_id) + '">Download the signed NDA</button>' : "") + "</p>" + (r ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(sm.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + UI.cr(sm.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + UI.cr(sm.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(sm.min_dscr) + "</b><span>stress " + UI.xx(sm.min_dscr_stress) + "</span></div></div>" : "") +
             '<h3>Documents</h3><ul class="docs">' + (c.docs || []).map((d) => "<li><span>" + esc(d) + '</span><button class="btn ghost sm" data-act="inv-room-doc" data-id="' + i.id + '" data-doc="' + esc(d) + '">Open</button></li>').join("") + "</ul>") + "</section>"; }).join("")
         : '<section class="panel">' + KIT.empty("No open deal rooms", "Request access from Curated deals. The founder decides who gets in.", '<a class="btn primary" href="#app-deals">See curated deals</a>') + "</section>");
   }
@@ -173,6 +174,7 @@
   // ---------- actions ----------
   Object.assign(WS.clicks, {
     "inv-intro": async (b, id) => WS.after(await WS.API.act("request_intro", { company_id: id }), "Request sent. The founder decides who enters the deal room."),
+    "inv-nda-esign": async (b, id) => { b.disabled = true; return WS.goTo(await WS.API.integrations.signNda(id)); },
     "inv-nda": async (b, id) => { const box = document.getElementById("nda_" + id); if (!box || !box.checked) throw new Error("Tick the box to agree to the NDA first."); return WS.after(await WS.API.act("sign_nda", { intro_id: id }), "NDA signed. The deal room is open."); },
     "inv-room-doc": async (b, id) => WS.after(await WS.API.act("view_room_doc", { intro_id: id, doc: b.dataset.doc }), "Opened \"" + b.dataset.doc + "\", watermarked with your name. The view is logged for the founder."),
     "inv-sell": async (b, id) => {

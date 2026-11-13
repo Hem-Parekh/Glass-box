@@ -5,6 +5,7 @@ psycopg[binary]==3.2.3
 argon2-cffi==23.1.0
 pyotp==2.9.0
 python-multipart==0.0.19
+fpdf2==2.8.1       # signed copies of e-signed documents
 anthropic>=2.8
 werkzeug>=3.0      # only to check passwords of accounts imported from the Flask prototype
 # boto3            # uncomment when GB_STORAGE=s3

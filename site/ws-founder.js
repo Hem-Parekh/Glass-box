@@ -162,7 +162,7 @@
           { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
           { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
           { k: "due", label: "Due", html: (f) => dmy(f.due) },
-          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>";
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }].concat(WS.payCol()) }) + "</section>";
   }
   Object.assign(WS.PAGES.founder, { "app-fees": fees, "app-investors": investors, "app-dealroom": dealroom, "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
 })(typeof globalThis !== "undefined" ? globalThis : this);

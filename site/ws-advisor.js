@@ -120,7 +120,7 @@
     const ck = c.checklist || {}, F = D().invoices.filter((f) => f.company_id === c.id), N = D().notes.filter((n) => n.subject_type === "company" && n.subject_id === c.id);
     const ext = ((c.external_offers || {})[fyNow()] || {});
     return WS.head(c.name, esc(c.sector) + " · " + esc(c.city || "") + " · " + chip("", stageName(c.pipeline_stage)) + ' · <a href="#app-pipeline">Back to the pipeline</a>',
-      '<div class="row gap-s wrap">' + (["approved", "offering"].includes(c.pipeline_stage) ? '<a class="btn primary" href="#app-directory" data-act="a-pick-co" data-id="' + c.id + '">Share offer</a>' : "") + '<button class="btn ghost" data-act="a-update" data-id="' + c.id + '">Post update</button></div>') +
+      '<div class="row gap-s wrap">' + (["approved", "offering"].includes(c.pipeline_stage) ? '<a class="btn primary" href="#app-directory" data-act="a-pick-co" data-id="' + c.id + '">Share offer</a>' : "") + '<button class="btn ghost" data-act="a-update" data-id="' + c.id + '">Post update</button>' + engagementButton(c) + "</div>") +
       '<div class="meters">' + offerMeter(c.id) + memberMeter(c.id) + platMeter(c.id) + "</div>" +
       '<section class="panel"><div class="panel-head"><h2>Cap table</h2><button class="btn ghost sm" data-act="a-cap" data-id="' + c.id + '">Add founder or shareholder</button></div>' +
       KIT.table("a-cap-" + c.id, { name: "cap-table-" + c.name.split(" ")[0], rows: capRows, noSearch: true, pageSize: 50,
@@ -287,6 +287,13 @@
 
   // ---------- revenue ----------
   const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["debt_success", "Debt success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"], ["resale", "Resale fees (0.3–0.5%)"]];
+  // the engagement letter, signed online by the founder (real backend only)
+  function engagementButton(c) {
+    if (!API.integrations) return "";
+    const e = c.engagement || {};
+    if (e.status === "signed") return '<button class="btn ghost" data-act="esign-copy" data-id="' + esc(e.esign_id) + '">Engagement letter (signed ' + UI.date(e.signed_at) + ")</button>";
+    return '<button class="btn ghost" data-act="a-engagement" data-id="' + c.id + '">' + (e.status === "sent" ? "Engagement letter sent · resend" : e.status === "declined" ? "Engagement declined · resend" : "Send engagement letter") + "</button>";
+  }
   function invoiceTable(id, F, compact) {
     return KIT.table(id, { name: "invoices", rows: F, noSearch: compact, pageSize: compact ? 8 : 25, empty: { title: "No invoices", text: "" },
       filters: compact ? [] : [{ k: "kind", label: "Fee", options: KINDS }, { k: "st", label: "Status", options: [["paid", "Paid"], ["due", "Due"], ["overdue", "Overdue"]], match: (f, v) => (f.paid_on ? "paid" : f.due < today() ? "overdue" : "due") === v }],
@@ -492,6 +499,15 @@
         { name: "lender", label: "Payer lender (monitoring and transfer fees)", type: "select", options: lenders.map((u) => [u.id, u.firm]) }, { name: "period", label: "Period or description" }, { name: "amount", label: "Amount before GST", type: "number", min: 0, step: "0.01", unit: "Rs" }, { name: "due", label: "Due date", type: "date", value: DOM.addDays(today(), 15) }],
         validate: (x) => (+x.amount > 0 ? null : "Enter the amount") });
       if (v) return act("save_invoice", { company_id: v.co, kind: v.kind, payer_id: v.lender, period: v.period, amount_paise: Math.round(+v.amount * 100), due: v.due });
+    },
+    "a-engagement": async (b, id) => {
+      const c = D().companies.find((x) => x.id === id);
+      const v = await KIT.dialog({ title: "Send the engagement letter", text: "<p>" + esc(c.name) + "'s founder will read it and sign online. It sets the advisory fee below, plus the standard success fees: 2.5% of an equity raise, 0.4% of revenue for 5 years, 2.5% of a loan we arrange. All plus GST.</p>",
+        confirm: "Send for signing", fields: [{ name: "fee", label: "Advisory fee", type: "number", value: 1, min: 1, step: "0.5", unit: "Rs lakh" }], validate: (x) => (+x.fee >= 1 ? null : "The advisory fee starts at Rs 1 lakh") });
+      if (!v) return;
+      await API.integrations.sendEngagement(id, +v.fee);
+      KIT.toast("Engagement letter sent to the founder.");
+      return WS.render({ reload: true, keepScroll: true });
     },
     "a-paid": async (b, id) => { if (await KIT.confirm("Mark this invoice paid today?", "", "Mark paid")) return act("mark_invoice_paid", { invoice_id: id }); },
     "a-note": async (b, id) => {

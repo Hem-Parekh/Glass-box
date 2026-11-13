@@ -70,7 +70,8 @@ def ip_of(request):
 @app.middleware("http")
 async def guard(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/") and request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get("x-requested-with") != "glassbox":
+    if (path.startswith("/api/") and not path.startswith("/api/webhooks/") and request.method not in ("GET", "HEAD", "OPTIONS")
+            and request.headers.get("x-requested-with") != "glassbox"):
         resp = err("Missing request header.", 400)   # blocks cross-site form posts (CSRF)
     elif path.startswith("/api/") and int(request.headers.get("content-length") or 0) > settings.max_upload_bytes:
         resp = err("That file is too large (8 MB at most).", 413)
@@ -404,6 +405,8 @@ async def act(name: str, request: Request):
             return err("Please sign in.", 401)
         if not fn:
             return err("Unknown action", 404)
+        if name == "sign_nda" and settings.require_esign:
+            return err("Sign the NDA through e-signing.", 403)
         T.write_lock(conn)
         st = Store(conn)
         me_ = next(x for x in st.users if x["id"] == u["id"])
@@ -501,6 +504,12 @@ async def chat_reply(request: Request):
         return dict(reply=CHAT.answer(msgs, page=page if re.fullmatch(r"[a-z0-9/_-]*", page) else "", role=user and user["role"]))
     except CHAT.Offline:
         return err("The assistant is offline.", 503, offline=True)
+
+
+# ---------- KYC, e-signing and payments ----------
+from backend.integrations.routes import router as integrations_router  # noqa: E402
+
+app.include_router(integrations_router)
 
 
 # ---------- pages ----------

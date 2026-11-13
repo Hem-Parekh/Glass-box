@@ -174,7 +174,7 @@
     return WS.head("Fees", "Your fees to Aegis Ascend: monitoring 0.25% to 0.5% a year, transfers 0.3% to 0.5%. All plus 18% GST.") +
       '<section class="panel"><h2>Your invoices</h2>' + KIT.table("l-fees", { name: "fees", rows: F, noSearch: true, empty: { title: "No invoices yet", text: "Monitoring and transfer fees appear here." },
         columns: [{ k: "kind", label: "Fee", html: (f) => esc(f.kind.replace("_", " ")) + '<span class="muted small block">' + esc(f.period) + "</span>" }, { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
-          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) }, { k: "due", label: "Due", html: (f) => dmy(f.due) }, { k: "paid_on", label: "Status", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : f.due < today() ? chip("bad", "Overdue") : chip("warn", "Due")) }] }) + "</section>" +
+          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) }, { k: "due", label: "Due", html: (f) => dmy(f.due) }, { k: "paid_on", label: "Status", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : f.due < today() ? chip("bad", "Overdue") : chip("warn", "Due")) }].concat(WS.payCol()) }) + "</section>" +
       WS.PAGES.lender["app-lfees-calc"]();
   }
 

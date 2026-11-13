@@ -92,6 +92,67 @@ outbox = Table(
 )
 Index("ix_outbox_status", outbox.c.status)
 
+# ---------- provider integrations (KYC, e-signing, payments) ----------
+kyc_checks = Table(
+    "kyc_checks", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("user_id", String(40), nullable=False, index=True),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # started, verified, rejected
+    Column("name_given", String(120)),
+    Column("pan_hash", String(64)),                        # keyed hash: lets us spot reuse without storing the PAN
+    Column("pan_last4", String(4)),
+    Column("reason", Text),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("completed_at", DateTime(timezone=True)),
+)
+
+esign_requests = Table(
+    "esign_requests", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("kind", String(30), nullable=False),            # nda, engagement
+    Column("subject_id", String(60), nullable=False),      # the intro (NDA) or company (engagement letter)
+    Column("company_id", String(40), index=True),
+    Column("signer_id", String(40), nullable=False, index=True),
+    Column("created_by", String(40)),
+    Column("title", String(200), nullable=False),
+    Column("body", Text, nullable=False),                  # the exact text the signer agrees to
+    Column("doc_hash", String(64), nullable=False),        # SHA-256 of that text, printed on the signed copy
+    Column("terms", JSONT),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # created, sent, signed, declined
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("signed_at", DateTime(timezone=True)),
+    Column("signer_ip", String(64)),
+    Column("signed_key", String(80)),                      # storage key of the signed PDF
+)
+
+payments = Table(
+    "payments", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("invoice_id", String(60), nullable=False, index=True),
+    Column("payer_user_id", String(40), nullable=False),
+    Column("amount_paise", BigInteger, nullable=False),    # fee plus GST
+    Column("currency", String(3), nullable=False, default="INR"),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # created, paid, failed
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("paid_at", DateTime(timezone=True)),
+    Column("error", Text),
+)
+
+webhook_events = Table(
+    "webhook_events", metadata,   # every provider callback, so a repeated one is recognised and ignored
+    Column("provider", String(30), primary_key=True),
+    Column("event_id", String(120), primary_key=True),
+    Column("kind", String(20), nullable=False),
+    Column("received_at", DateTime(timezone=True), nullable=False),
+    Column("payload", JSONT),
+)
+
 AUDIT_GUARD_PG = """
 CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger AS $$
 BEGIN RAISE EXCEPTION 'audit log is append-only'; END; $$ LANGUAGE plpgsql;

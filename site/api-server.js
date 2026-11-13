@@ -38,6 +38,20 @@
       if (!res.ok) throw new Error((data && data.error) || "Upload failed (" + res.status + ").");
       return data.file;
     },
+    // KYC, e-signing and payments: each start call answers with the provider page to send the person to.
+    integrations: {
+      kycStatus: () => call("GET", "/api/kyc"),
+      kycStart: (pan, name) => call("POST", "/api/kyc/start", { pan, name }),
+      signNda: (intro_id) => call("POST", "/api/esign/nda", { intro_id }),
+      sendEngagement: (company_id, advisory_fee_lakh) => call("POST", "/api/esign/engagement", { company_id, advisory_fee_lakh }),
+      startSigning: (id) => call("POST", "/api/esign/" + encodeURIComponent(id) + "/start"),
+      signedCopy: async (id) => {
+        const res = await fetch("/api/esign/" + encodeURIComponent(id) + "/document", { credentials: "same-origin" });
+        if (!res.ok) { let d = null; try { d = await res.json(); } catch (e) { /* not JSON */ } throw new Error((d && d.error) || "Download failed (" + res.status + ")."); }
+        return res.blob();
+      },
+      pay: (invoice_id) => call("POST", "/api/pay/" + encodeURIComponent(invoice_id)),
+    },
     async reset() { throw new Error("Reset is only available in the demo."); },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

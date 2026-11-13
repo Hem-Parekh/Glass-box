@@ -26,23 +26,23 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/tools/build-hero3d.sh` (13 lines): Bundles the scene with three.js r160 into site/hero3d.js.
 - **4. Data layer**
   - `site/store.js` (1042 lines): Demo store: every action and rule of the server, kept in the browser.
-  - `site/api-server.js` (43 lines): Adapter that sends the same calls to the Flask API.
+  - `site/api-server.js` (57 lines): Adapter that sends the same calls to the Flask API.
 - **5. Public website, motion and the assistant**
   - `site/public.js` (354 lines): Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact.
   - `site/motion.js` (190 lines): Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page.
   - `site/chat.js` (200 lines): The "Ask Aegis" assistant panel, its quick answers and site guide.
   - `site/sitemap.json` (88 lines): The assistant's map of every page and workspace screen.
 - **6. Sign-in and role workspaces**
-  - `site/portal.js` (733 lines): Sign-in and sign-up, the role-based workspace frame, page router.
+  - `site/portal.js` (769 lines): Sign-in and sign-up, the role-based workspace frame, page router.
   - `site/ws-founder.js` (168 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
-  - `site/ws-investor.js` (223 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
+  - `site/ws-investor.js` (225 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
   - `site/ws-lender.js` (207 lines): Lender: loan book with Sell buttons, schedules, applications, monitoring, loan sales, fees.
-  - `site/ws-advisor.js` (523 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
+  - `site/ws-advisor.js` (539 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
 - **7. Standalone pages and build tools**
   - `site/cma-lock.html` (38 lines): The 'Advisors only' page shown instead of the CMA tool to anyone else.
   - `site/build.py` (46 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
   - `site/tools/skyline.py` (155 lines): Draws the New York skyline (site/assets/skyline.svg) and its inline copy.
-  - `site/tools/bundle-code.py` (117 lines): Writes this file.
+  - `site/tools/bundle-code.py` (122 lines): Writes this file.
 - **8. Server prototype (Flask)**
   - `server/app.py` (514 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
   - `server/actions.py` (806 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
@@ -51,15 +51,19 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `server/chat.py` (205 lines): The website assistant: Claude, answering from the site's facts and site map.
   - `server/requirements.txt` (2 lines): Python dependencies.
 - **9. Production backend (FastAPI + PostgreSQL)**
-  - `backend/config.py` (50 lines): Settings from environment variables.
-  - `backend/db.py` (147 lines): Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
+  - `backend/config.py` (70 lines): Settings from environment variables.
+  - `backend/db.py` (208 lines): Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
   - `backend/store.py` (109 lines): Loads records for the rules and writes back only what changed, with the audit diff.
   - `backend/auth.py` (159 lines): Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens.
   - `backend/notify.py` (47 lines): Outbox for email, SMS and WhatsApp, and the sender stand-in.
   - `backend/storage.py` (56 lines): File storage: local folder or S3-compatible.
-  - `backend/app.py` (574 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+  - `backend/app.py` (583 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+  - `backend/integrations/providers.py` (91 lines): Provider adapters for KYC, e-signing and payments, and the stand-in provider.
+  - `backend/integrations/service.py` (270 lines): Starting checks, signings and payments; applying the providers' signed results once.
+  - `backend/integrations/documents.py` (107 lines): The NDA and engagement letter text, and the signed copy with its certificate.
+  - `backend/integrations/routes.py` (190 lines): API routes, the provider webhook and the stand-in provider pages.
   - `backend/cli.py` (76 lines): Admin commands: init, seed, create advisor, import from the prototype, send the outbox.
-  - `backend/requirements.txt` (13 lines): Python dependencies.
+  - `backend/requirements.txt` (14 lines): Python dependencies.
   - `Dockerfile` (16 lines): Container image for the backend.
   - `docker-compose.yml` (29 lines): Local stack: PostgreSQL plus the app.
 - **10. Tests**
@@ -69,9 +73,10 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/tests/store.test.js` (348 lines): Demo store matches the server's behaviour.
   - `backend/tests/test_flask_suite_on_backend.py` (36 lines): Runs the whole prototype server suite against the new backend.
   - `backend/tests/shim.py` (101 lines): Flask-style test client over FastAPI for that suite.
+  - `backend/tests/test_integrations.py` (195 lines): KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts.
   - `backend/tests/test_security.py` (199 lines): Sessions, two-step sign-in, password change and reset, outbox, import, action lock.
 
-Total: 11117 lines in 48 files.
+Total: 12134 lines in 53 files.
 
 
 ---
@@ -3768,6 +3773,20 @@ Adapter that sends the same calls to the Flask API.
       if (!res.ok) throw new Error((data && data.error) || "Upload failed (" + res.status + ").");
       return data.file;
     },
+    // KYC, e-signing and payments: each start call answers with the provider page to send the person to.
+    integrations: {
+      kycStatus: () => call("GET", "/api/kyc"),
+      kycStart: (pan, name) => call("POST", "/api/kyc/start", { pan, name }),
+      signNda: (intro_id) => call("POST", "/api/esign/nda", { intro_id }),
+      sendEngagement: (company_id, advisory_fee_lakh) => call("POST", "/api/esign/engagement", { company_id, advisory_fee_lakh }),
+      startSigning: (id) => call("POST", "/api/esign/" + encodeURIComponent(id) + "/start"),
+      signedCopy: async (id) => {
+        const res = await fetch("/api/esign/" + encodeURIComponent(id) + "/document", { credentials: "same-origin" });
+        if (!res.ok) { let d = null; try { d = await res.json(); } catch (e) { /* not JSON */ } throw new Error((d && d.error) || "Download failed (" + res.status + ")."); }
+        return res.blob();
+      },
+      pay: (invoice_id) => call("POST", "/api/pay/" + encodeURIComponent(invoice_id)),
+    },
     async reset() { throw new Error("Reset is only available in the demo."); },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -4726,7 +4745,9 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     lender: [["app", "Loan book"], ["app-desk", "Lender desk"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
-    const u = S.user, nav = API.account ? NAVS[u.role].concat([["app-security", "Sign-in & security"]]) : NAVS[u.role];
+    const u = S.user;
+    const extra = (API.integrations && u.role === "investor" ? [["app-kyc", "Identity check (KYC)"]] : []).concat(API.account ? [["app-security", "Sign-in & security"]] : []);
+    const nav = NAVS[u.role].concat(extra);
     const who = u.firm ? u.firm : companyName() || "";
     const unread = S.data ? (S.data.notifications || []).filter((x) => !x.read).length : 0;
     const base = route.split("/")[0], parent = { "app-holding": "app", "app-loan": "app", "app-companyfile": "app-pipeline" }[base] || base;
@@ -4765,7 +4786,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       ["Investors commit and shares are allotted", (S.data.holdings || []).length > 0, "app-captable"],
     ];
     const stage = { applied: "Applied", under_review: "Under review", approved: "Approved", offering: "Offering", funded: "Funded", monitoring: "Monitoring", closed: "Closed", rejected: "Not taken forward" }[c.pipeline_stage] || "Applied";
-    return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) +
+    return head(c.name, esc(c.sector) + " · " + esc(c.city) + " · revenue " + cr(c.revenue, 0) + " · raising " + cr(c.raise, 0)) + engagementCard(c) +
       '<div class="kpis k4">' +
       '<div class="kpi"><small>Stage</small><b>' + stage + "</b><span>with your Aegis Ascend advisor</span></div>" +
       '<div class="kpi"><small>Recommended mix</small><b>' + (ok ? pct(ok.summary.best_share) + " debt" : "–") + "</b><span>" + (ok ? pct(1 - ok.summary.best_share) + " equity · advisor-approved" : "after your advisor's review") + "</span></div>" +
@@ -5070,6 +5091,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
   for (const r of Object.keys(PAGES)) PAGES[r]["app-security"] = securityPage;
+  PAGES.investor["app-kyc"] = kycPage;
 
   // ---------- router ----------
   const PUBLIC = { home: PUB.home, services: PUB.services, "services-equity": PUB.services, "services-debt": PUB.services, pricing: PUB.pricing, investors: PUB.investors, lenders: PUB.lenders, trust: PUB.trust, about: PUB.about, contact: PUB.contact };
@@ -5188,6 +5210,35 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- KYC, e-signing and payments (real backend only) ----------
+  const goTo = (r) => { if (r && r.redirect_url) location.assign(r.redirect_url); };
+  const payCol = () => (API.integrations ? [{ k: "pay", label: "", csv: () => "", html: (f) => (f.paid_on ? (f.paid_via ? '<span class="muted small">Paid online</span>' : "") : '<button class="btn primary sm" type="button" data-act="pay-invoice" data-id="' + esc(f.id) + '">Pay now</button>') }] : []);
+  function engagementCard(c) {
+    const e = c.engagement;
+    if (!e || !API.integrations) return "";
+    if (e.status === "signed") return '<p class="small muted">' + chip("ok", "Engagement letter signed " + date(e.signed_at)) + ' <button class="linkbtn" type="button" data-act="esign-copy" data-id="' + esc(e.esign_id) + '">Download the signed copy</button></p>';
+    if (e.status === "sent") return '<section class="panel notice-panel"><h2>Your engagement letter is ready</h2><p>Aegis Ascend has sent the engagement letter for your review: advisory fee ' + lakh(e.fee_paise / 1e7) + ' plus GST, and the success fees in our fee schedule. Read it and sign online.</p><button class="btn primary" type="button" data-act="esign-start" data-id="' + esc(e.esign_id) + '">Review and sign</button></section>';
+    return "";
+  }
+  function kycPage() {
+    if (!S.kyc) {
+      API.integrations.kycStatus().then((d) => { S.kyc = d; render({ keepScroll: true }); }, (e) => { S.kyc = { error: e.message }; render({ keepScroll: true }); });
+      return head("Identity check (KYC)", "Loading…");
+    }
+    const d = S.kyc, prof = S.user.profile || {}, last = (d.checks || [])[0];
+    if (d.error) return head("Identity check (KYC)", "") + '<div class="notice bad">' + esc(d.error) + "</div>";
+    const state = d.kyc === "verified" ? chip("ok", "Verified") : d.kyc === "pending" ? chip("warn", "In progress") : chip("bad", "Not done");
+    return head("Identity check (KYC)", "We must verify every investor before sharing a private offer or introducing a buyer. It takes a few minutes with your PAN and Aadhaar.") +
+      '<section class="panel"><h2>Status</h2><p>' + state + (d.kyc === "verified" && last ? " PAN ending " + esc(last.pan_last4) + ", verified " + date(last.completed) : "") + "</p>" +
+      (last && last.status === "rejected" ? '<div class="notice bad">Your last check did not go through: ' + esc(last.reason || "") + " Check the details and try again, or contact your advisor.</div>" : "") +
+      (d.kyc === "verified" ? '<p class="muted">Nothing more to do. You can receive private offers and be introduced as a buyer.</p>'
+        : '<form class="form" data-form="kyc-start" novalidate><div class="fields f2">' +
+          '<label class="fld"><span>Name as on your PAN card</span><span class="in"><input name="name" id="k_name" autocomplete="name" value="' + esc(S.user.name) + '" required></span></label>' +
+          '<label class="fld"><span>PAN</span><span class="in"><input name="pan" id="k_pan" autocomplete="off" maxlength="10" placeholder="ABCDE1234F" style="text-transform:uppercase" required></span></label></div>' +
+          '<button class="btn primary" type="submit">' + (d.kyc === "pending" ? "Start again" : "Verify my identity") + '</button><p class="small muted">You will be taken to our verification partner and brought back here. We keep only the last 4 characters of your PAN.</p></form>') +
+      "</section>";
+  }
+
   // ---------- sign-in & security (real backend only) ----------
   function securityPage() {
     if (!S.security) {
@@ -5295,7 +5346,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       switch (act) {
         case "toggle-menu": { const nav = $(".pub-nav"); const open = nav.classList.toggle("open"); b.setAttribute("aria-expanded", open); return; }
         case "demo-login": S.user = await API.login(b.dataset.email, API.demoPassword); S.data = null; location.hash = "#app"; return;
-        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; location.hash = "#home"; return;
+        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; S.kyc = null; location.hash = "#home"; return;
         case "reset-demo": await API.reset(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#login"; await render(); return;
         case "twin-save": { const c = twinTarget(); const patch = Object.assign({}, c.twin, S.twinDraft[c.id] || {}); delete patch.sales_drop; delete patch.rate_shock; const res = await API.act("save_company", { company_id: c.id, patch: { twin: patch, raise: patch.raise || c.raise } }); delete S.twinDraft[c.id]; return after(res, "Assumptions saved."); }
         case "twin-reset": { const c = twinTarget(); delete S.twinDraft[c.id]; return render({ keepScroll: true }); }
@@ -5316,6 +5367,9 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
         case "mfa-cancel": S.mfa = false; return render();
+        case "pay-invoice": b.disabled = true; return goTo(await API.integrations.pay(id));
+        case "esign-start": b.disabled = true; return goTo(await API.integrations.startSigning(id));
+        case "esign-copy": { const st = await KIT.save("signed-" + id + ".pdf", await API.integrations.signedCopy(id)); if (st === "saved") KIT.toast("Signed copy downloaded."); return; }
         case "two-step-setup": S.totpSetup = await API.account.setup(); return render({ keepScroll: true });
         case "sign-out-others": await API.account.signOutOthers(); S.security = null; KIT.toast("Signed out of your other devices."); return render({ keepScroll: true });
         case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
@@ -5349,6 +5403,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
           await API.account.password(v.password, v.new_password); f.reset(); KIT.toast("Password changed. Other devices are signed out.");
           S.security = null; return render({ keepScroll: true });
         }
+        case "kyc-start": return goTo(await API.integrations.kycStart(v.pan, v.name));
         case "two-step-on": await API.account.enable(v.code); S.security = null; S.totpSetup = null; KIT.toast("Two-step sign-in is on."); return render({ keepScroll: true });
         case "two-step-off": await API.account.disable(v.password, v.code); S.security = null; KIT.toast("Two-step sign-in is off."); return render({ keepScroll: true });
         case "signup": S.user = await API.signup(v); S.data = null; location.hash = "#app"; return;
@@ -5380,7 +5435,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
@@ -5556,7 +5611,7 @@ Founder: fundraise, investors, deal room, cap table, data room, revenue share, l
           { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
           { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
           { k: "due", label: "Due", html: (f) => dmy(f.due) },
-          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>";
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }].concat(WS.payCol()) }) + "</section>";
   }
   Object.assign(WS.PAGES.founder, { "app-fees": fees, "app-investors": investors, "app-dealroom": dealroom, "app-fundraise": fundraise, "app-captable": captable, "app-dataroom": dataroom, "app-revshare": revshare, "app-loans": loans });
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -5693,7 +5748,7 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
           { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
           { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) },
           { k: "due", label: "Due", html: (f) => dmy(f.due) },
-          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }] }) + "</section>" : "") +
+          { k: "paid_on", label: "Status", val: (f) => f.paid_on || "", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : chip(f.due < today() ? "bad" : "warn", f.due < today() ? "Overdue" : "Due")) }].concat(WS.payCol()) }) + "</section>" : "") +
       '<section class="panel"><h2>Exit tax view</h2><p class="small muted">Try a sale price before you ask to sell. An estimate, not tax advice.</p><form class="calc" data-calc="exit"><div class="fields f5">' + root.PUB.field("cost", "Amount invested", 1, "Rs cr") + root.PUB.field("sale", "Sale price", 1.4, "Rs cr") + root.PUB.field("months", "Months held", 14, "months") + root.PUB.field("slab", "Your slab rate", 30, "%") + root.PUB.field("fmv", "Fair market value", 1.4, "Rs cr") + '</div></form><div id="calc-exit">' + root.PUB.exitCalc({}) + "</div></section>";
   }
 
@@ -5714,8 +5769,9 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
     const mine = (S.data.intros || []).filter((i) => i.status === "granted");
     return WS.head("Deal rooms", "Sign the NDA to open documents. Each document is watermarked with your name and every view is logged for the founder.") +
       (mine.length ? mine.map((i) => { const c = co(i.company_id), r = c.report, sm = (r && r.summary) || {};
-        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label class=\"chk\"><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="inv-nda" data-id="' + i.id + '">Sign NDA</button></div>'
-          : "<p>" + chip("ok", "NDA signed " + UI.date(i.nda_signed_at)) + "</p>" + (r ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(sm.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + UI.cr(sm.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + UI.cr(sm.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(sm.min_dscr) + "</b><span>stress " + UI.xx(sm.min_dscr_stress) + "</span></div></div>" : "") +
+        return '<section class="panel"><h2>' + esc(c.name) + "</h2>" + (!i.nda_signed_at && WS.API.integrations ? '<div class="nda"><p>Before the documents open, sign a non-disclosure agreement with ' + esc(c.name) + '. You will read it and sign online with our e-signing partner, then come back here.</p><button class="btn primary sm" data-act="inv-nda-esign" data-id="' + i.id + '">Review and sign the NDA</button></div>'
+          : !i.nda_signed_at ? '<div class="nda"><p>By signing you agree to keep all information about ' + esc(c.name) + " confidential, use it only to evaluate this investment, and not to contact the company's customers, lenders or staff without permission.</p><label class=\"chk\"><input type=\"checkbox\" id=\"nda_" + i.id + '"> I agree to the NDA</label> <button class="btn primary sm" data-act="inv-nda" data-id="' + i.id + '">Sign NDA</button></div>'
+          : "<p>" + chip("ok", "NDA signed " + UI.date(i.nda_signed_at)) + (i.nda_esign_id ? ' <button class="linkbtn" data-act="esign-copy" data-id="' + esc(i.nda_esign_id) + '">Download the signed NDA</button>' : "") + "</p>" + (r ? '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(sm.best_share) + ' debt</b></div><div class="kpi"><small>Net effect vs equity</small><b>' + UI.cr(sm.net) + '</b></div><div class="kpi"><small>Break-even value</small><b>' + UI.cr(sm.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(sm.min_dscr) + "</b><span>stress " + UI.xx(sm.min_dscr_stress) + "</span></div></div>" : "") +
             '<h3>Documents</h3><ul class="docs">' + (c.docs || []).map((d) => "<li><span>" + esc(d) + '</span><button class="btn ghost sm" data-act="inv-room-doc" data-id="' + i.id + '" data-doc="' + esc(d) + '">Open</button></li>').join("") + "</ul>") + "</section>"; }).join("")
         : '<section class="panel">' + KIT.empty("No open deal rooms", "Request access from Curated deals. The founder decides who gets in.", '<a class="btn primary" href="#app-deals">See curated deals</a>') + "</section>");
   }
@@ -5742,6 +5798,7 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
   // ---------- actions ----------
   Object.assign(WS.clicks, {
     "inv-intro": async (b, id) => WS.after(await WS.API.act("request_intro", { company_id: id }), "Request sent. The founder decides who enters the deal room."),
+    "inv-nda-esign": async (b, id) => { b.disabled = true; return WS.goTo(await WS.API.integrations.signNda(id)); },
     "inv-nda": async (b, id) => { const box = document.getElementById("nda_" + id); if (!box || !box.checked) throw new Error("Tick the box to agree to the NDA first."); return WS.after(await WS.API.act("sign_nda", { intro_id: id }), "NDA signed. The deal room is open."); },
     "inv-room-doc": async (b, id) => WS.after(await WS.API.act("view_room_doc", { intro_id: id, doc: b.dataset.doc }), "Opened \"" + b.dataset.doc + "\", watermarked with your name. The view is logged for the founder."),
     "inv-sell": async (b, id) => {
@@ -5973,7 +6030,7 @@ Lender: loan book with Sell buttons, schedules, applications, monitoring, loan s
     return WS.head("Fees", "Your fees to Aegis Ascend: monitoring 0.25% to 0.5% a year, transfers 0.3% to 0.5%. All plus 18% GST.") +
       '<section class="panel"><h2>Your invoices</h2>' + KIT.table("l-fees", { name: "fees", rows: F, noSearch: true, empty: { title: "No invoices yet", text: "Monitoring and transfer fees appear here." },
         columns: [{ k: "kind", label: "Fee", html: (f) => esc(f.kind.replace("_", " ")) + '<span class="muted small block">' + esc(f.period) + "</span>" }, { k: "amount_paise", label: "Amount", num: true, csv: (f) => f.amount_paise / 100, html: (f) => rs(f.amount_paise) },
-          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) }, { k: "due", label: "Due", html: (f) => dmy(f.due) }, { k: "paid_on", label: "Status", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : f.due < today() ? chip("bad", "Overdue") : chip("warn", "Due")) }] }) + "</section>" +
+          { k: "gst_paise", label: "GST 18%", num: true, csv: (f) => f.gst_paise / 100, html: (f) => rs(f.gst_paise) }, { k: "due", label: "Due", html: (f) => dmy(f.due) }, { k: "paid_on", label: "Status", html: (f) => (f.paid_on ? chip("ok", "Paid " + dmy(f.paid_on)) : f.due < today() ? chip("bad", "Overdue") : chip("warn", "Due")) }].concat(WS.payCol()) }) + "</section>" +
       WS.PAGES.lender["app-lfees-calc"]();
   }
 
@@ -6133,7 +6190,7 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
     const ck = c.checklist || {}, F = D().invoices.filter((f) => f.company_id === c.id), N = D().notes.filter((n) => n.subject_type === "company" && n.subject_id === c.id);
     const ext = ((c.external_offers || {})[fyNow()] || {});
     return WS.head(c.name, esc(c.sector) + " · " + esc(c.city || "") + " · " + chip("", stageName(c.pipeline_stage)) + ' · <a href="#app-pipeline">Back to the pipeline</a>',
-      '<div class="row gap-s wrap">' + (["approved", "offering"].includes(c.pipeline_stage) ? '<a class="btn primary" href="#app-directory" data-act="a-pick-co" data-id="' + c.id + '">Share offer</a>' : "") + '<button class="btn ghost" data-act="a-update" data-id="' + c.id + '">Post update</button></div>') +
+      '<div class="row gap-s wrap">' + (["approved", "offering"].includes(c.pipeline_stage) ? '<a class="btn primary" href="#app-directory" data-act="a-pick-co" data-id="' + c.id + '">Share offer</a>' : "") + '<button class="btn ghost" data-act="a-update" data-id="' + c.id + '">Post update</button>' + engagementButton(c) + "</div>") +
       '<div class="meters">' + offerMeter(c.id) + memberMeter(c.id) + platMeter(c.id) + "</div>" +
       '<section class="panel"><div class="panel-head"><h2>Cap table</h2><button class="btn ghost sm" data-act="a-cap" data-id="' + c.id + '">Add founder or shareholder</button></div>' +
       KIT.table("a-cap-" + c.id, { name: "cap-table-" + c.name.split(" ")[0], rows: capRows, noSearch: true, pageSize: 50,
@@ -6300,6 +6357,13 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
 
   // ---------- revenue ----------
   const KINDS = [["advisory", "Advisory fees"], ["success", "Success fees (2.5%)"], ["debt_success", "Debt success fees (2.5%)"], ["revenue_share", "Revenue share (0.4%)"], ["monitoring", "Debt monitoring"], ["transfer", "Transfer fees"], ["resale", "Resale fees (0.3–0.5%)"]];
+  // the engagement letter, signed online by the founder (real backend only)
+  function engagementButton(c) {
+    if (!API.integrations) return "";
+    const e = c.engagement || {};
+    if (e.status === "signed") return '<button class="btn ghost" data-act="esign-copy" data-id="' + esc(e.esign_id) + '">Engagement letter (signed ' + UI.date(e.signed_at) + ")</button>";
+    return '<button class="btn ghost" data-act="a-engagement" data-id="' + c.id + '">' + (e.status === "sent" ? "Engagement letter sent · resend" : e.status === "declined" ? "Engagement declined · resend" : "Send engagement letter") + "</button>";
+  }
   function invoiceTable(id, F, compact) {
     return KIT.table(id, { name: "invoices", rows: F, noSearch: compact, pageSize: compact ? 8 : 25, empty: { title: "No invoices", text: "" },
       filters: compact ? [] : [{ k: "kind", label: "Fee", options: KINDS }, { k: "st", label: "Status", options: [["paid", "Paid"], ["due", "Due"], ["overdue", "Overdue"]], match: (f, v) => (f.paid_on ? "paid" : f.due < today() ? "overdue" : "due") === v }],
@@ -6505,6 +6569,15 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
         { name: "lender", label: "Payer lender (monitoring and transfer fees)", type: "select", options: lenders.map((u) => [u.id, u.firm]) }, { name: "period", label: "Period or description" }, { name: "amount", label: "Amount before GST", type: "number", min: 0, step: "0.01", unit: "Rs" }, { name: "due", label: "Due date", type: "date", value: DOM.addDays(today(), 15) }],
         validate: (x) => (+x.amount > 0 ? null : "Enter the amount") });
       if (v) return act("save_invoice", { company_id: v.co, kind: v.kind, payer_id: v.lender, period: v.period, amount_paise: Math.round(+v.amount * 100), due: v.due });
+    },
+    "a-engagement": async (b, id) => {
+      const c = D().companies.find((x) => x.id === id);
+      const v = await KIT.dialog({ title: "Send the engagement letter", text: "<p>" + esc(c.name) + "'s founder will read it and sign online. It sets the advisory fee below, plus the standard success fees: 2.5% of an equity raise, 0.4% of revenue for 5 years, 2.5% of a loan we arrange. All plus GST.</p>",
+        confirm: "Send for signing", fields: [{ name: "fee", label: "Advisory fee", type: "number", value: 1, min: 1, step: "0.5", unit: "Rs lakh" }], validate: (x) => (+x.fee >= 1 ? null : "The advisory fee starts at Rs 1 lakh") });
+      if (!v) return;
+      await API.integrations.sendEngagement(id, +v.fee);
+      KIT.toast("Engagement letter sent to the founder.");
+      return WS.render({ reload: true, keepScroll: true });
     },
     "a-paid": async (b, id) => { if (await KIT.confirm("Mark this invoice paid today?", "", "Mark paid")) return act("mark_invoice_paid", { invoice_id: id }); },
     "a-note": async (b, id) => {
@@ -6877,6 +6950,10 @@ PARTS = [
         ("backend/notify.py", "Outbox for email, SMS and WhatsApp, and the sender stand-in."),
         ("backend/storage.py", "File storage: local folder or S3-compatible."),
         ("backend/app.py", "FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages."),
+        ("backend/integrations/providers.py", "Provider adapters for KYC, e-signing and payments, and the stand-in provider."),
+        ("backend/integrations/service.py", "Starting checks, signings and payments; applying the providers' signed results once."),
+        ("backend/integrations/documents.py", "The NDA and engagement letter text, and the signed copy with its certificate."),
+        ("backend/integrations/routes.py", "API routes, the provider webhook and the stand-in provider pages."),
         ("backend/cli.py", "Admin commands: init, seed, create advisor, import from the prototype, send the outbox."),
         ("backend/requirements.txt", "Python dependencies."),
         ("Dockerfile", "Container image for the backend."),
@@ -6889,6 +6966,7 @@ PARTS = [
         ("site/tests/store.test.js", "Demo store matches the server's behaviour."),
         ("backend/tests/test_flask_suite_on_backend.py", "Runs the whole prototype server suite against the new backend."),
         ("backend/tests/shim.py", "Flask-style test client over FastAPI for that suite."),
+        ("backend/tests/test_integrations.py", "KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts."),
         ("backend/tests/test_security.py", "Sessions, two-step sign-in, password change and reset, outbox, import, action lock."),
     ]),
 ]
@@ -8968,6 +9046,11 @@ Settings from environment variables.
   GB_PUBLIC_URL     the site's own address, used in emailed links (default http://127.0.0.1:8000)
   GB_SEED_DEMO      "1" loads the fictional demo accounts into an empty database
   GB_TODAY          fixes "today" (tests only)
+  GB_KYC_PROVIDER, GB_ESIGN_PROVIDER, GB_PAYMENTS_PROVIDER
+                    "standin" (default) until provider accounts exist; see backend/integrations/README.md
+  GB_WEBHOOK_SECRET signs provider callbacks for the stand-ins (defaults to GB_SECRET_KEY)
+  GB_REQUIRE_ESIGN  "1" makes NDAs go through e-signing only (on by default in production)
+  GB_ALLOW_STANDINS "1" allows stand-in providers in production (for a staging site only)
 """
 import os
 import secrets
@@ -8984,6 +9067,12 @@ class Settings:
     uploads: str = field(default_factory=lambda: os.environ.get("GB_UPLOADS") or os.path.join(ROOT, "backend", "uploads"))
     storage: str = field(default_factory=lambda: os.environ.get("GB_STORAGE", "local"))
     public_url: str = field(default_factory=lambda: os.environ.get("GB_PUBLIC_URL", "http://127.0.0.1:8000").rstrip("/"))
+    kyc_provider: str = field(default_factory=lambda: os.environ.get("GB_KYC_PROVIDER", "standin"))
+    esign_provider: str = field(default_factory=lambda: os.environ.get("GB_ESIGN_PROVIDER", "standin"))
+    payments_provider: str = field(default_factory=lambda: os.environ.get("GB_PAYMENTS_PROVIDER", "standin"))
+    webhook_secret: str = field(default_factory=lambda: os.environ.get("GB_WEBHOOK_SECRET", ""))   # signs stand-in callbacks
+    allow_standins: bool = field(default_factory=lambda: os.environ.get("GB_ALLOW_STANDINS", "") == "1")
+    require_esign: bool = field(default_factory=lambda: os.environ.get("GB_REQUIRE_ESIGN", "") == "1")
     seed_demo: bool = field(default_factory=lambda: os.environ.get("GB_SEED_DEMO", "0") == "1")
     today: str = field(default_factory=lambda: os.environ.get("GB_TODAY", ""))
     session_idle_hours: float = 8          # signed out after 8 hours without activity
@@ -8997,6 +9086,15 @@ class Settings:
             raise SystemExit("GB_SECRET_KEY must be set to a random string of 32+ characters in production.")
         if not self.secret_key:
             self.secret_key = secrets.token_hex(32)
+        if not self.webhook_secret:
+            self.webhook_secret = self.secret_key
+        if self.env == "production" and not os.environ.get("GB_REQUIRE_ESIGN"):
+            self.require_esign = True   # in production NDAs are signed through the e-sign provider, not a tick box
+
+    @property
+    def standins_enabled(self):
+        """Stand-in providers approve whatever you click, so they are off in production unless explicitly allowed."""
+        return self.env != "production" or self.allow_standins
 
     @property
     def secure_cookies(self):
@@ -9108,6 +9206,67 @@ outbox = Table(
     Column("error", Text),
 )
 Index("ix_outbox_status", outbox.c.status)
+
+# ---------- provider integrations (KYC, e-signing, payments) ----------
+kyc_checks = Table(
+    "kyc_checks", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("user_id", String(40), nullable=False, index=True),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # started, verified, rejected
+    Column("name_given", String(120)),
+    Column("pan_hash", String(64)),                        # keyed hash: lets us spot reuse without storing the PAN
+    Column("pan_last4", String(4)),
+    Column("reason", Text),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("completed_at", DateTime(timezone=True)),
+)
+
+esign_requests = Table(
+    "esign_requests", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("kind", String(30), nullable=False),            # nda, engagement
+    Column("subject_id", String(60), nullable=False),      # the intro (NDA) or company (engagement letter)
+    Column("company_id", String(40), index=True),
+    Column("signer_id", String(40), nullable=False, index=True),
+    Column("created_by", String(40)),
+    Column("title", String(200), nullable=False),
+    Column("body", Text, nullable=False),                  # the exact text the signer agrees to
+    Column("doc_hash", String(64), nullable=False),        # SHA-256 of that text, printed on the signed copy
+    Column("terms", JSONT),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # created, sent, signed, declined
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("signed_at", DateTime(timezone=True)),
+    Column("signer_ip", String(64)),
+    Column("signed_key", String(80)),                      # storage key of the signed PDF
+)
+
+payments = Table(
+    "payments", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("invoice_id", String(60), nullable=False, index=True),
+    Column("payer_user_id", String(40), nullable=False),
+    Column("amount_paise", BigInteger, nullable=False),    # fee plus GST
+    Column("currency", String(3), nullable=False, default="INR"),
+    Column("provider", String(30), nullable=False),
+    Column("provider_ref", String(120)),
+    Column("status", String(20), nullable=False),          # created, paid, failed
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("paid_at", DateTime(timezone=True)),
+    Column("error", Text),
+)
+
+webhook_events = Table(
+    "webhook_events", metadata,   # every provider callback, so a repeated one is recognised and ignored
+    Column("provider", String(30), primary_key=True),
+    Column("event_id", String(120), primary_key=True),
+    Column("kind", String(20), nullable=False),
+    Column("received_at", DateTime(timezone=True), nullable=False),
+    Column("payload", JSONT),
+)
 
 AUDIT_GUARD_PG = """
 CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger AS $$
@@ -9640,7 +9799,8 @@ def ip_of(request):
 @app.middleware("http")
 async def guard(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/") and request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get("x-requested-with") != "glassbox":
+    if (path.startswith("/api/") and not path.startswith("/api/webhooks/") and request.method not in ("GET", "HEAD", "OPTIONS")
+            and request.headers.get("x-requested-with") != "glassbox"):
         resp = err("Missing request header.", 400)   # blocks cross-site form posts (CSRF)
     elif path.startswith("/api/") and int(request.headers.get("content-length") or 0) > settings.max_upload_bytes:
         resp = err("That file is too large (8 MB at most).", 413)
@@ -9974,6 +10134,8 @@ async def act(name: str, request: Request):
             return err("Please sign in.", 401)
         if not fn:
             return err("Unknown action", 404)
+        if name == "sign_nda" and settings.require_esign:
+            return err("Sign the NDA through e-signing.", 403)
         T.write_lock(conn)
         st = Store(conn)
         me_ = next(x for x in st.users if x["id"] == u["id"])
@@ -10073,6 +10235,12 @@ async def chat_reply(request: Request):
         return err("The assistant is offline.", 503, offline=True)
 
 
+# ---------- KYC, e-signing and payments ----------
+from backend.integrations.routes import router as integrations_router  # noqa: E402
+
+app.include_router(integrations_router)
+
+
 # ---------- pages ----------
 @app.get("/", response_class=HTMLResponse)
 def index():
@@ -10142,6 +10310,692 @@ def init_db(seed_demo=False):
                 for i, d in enumerate(docs, 1):
                     conn.execute(insert(T.records[c]).values(id=d["id"], company_id=d["id"] if c == "companies" else d.get("company_id"), seq=i, data=d))
 
+```
+
+### `backend/integrations/providers.py`
+
+Provider adapters for KYC, e-signing and payments, and the stand-in provider.
+
+```python
+"""Provider adapters for KYC, e-signing and payments.
+
+Every provider works the same way, whichever company it is:
+  1. start(...)          we ask the provider to start a check, signing or payment; it gives back its own reference and a page
+                         to send the person to (the provider's hosted page)
+  2. the person finishes on the provider's page and comes back to the site
+  3. parse_webhook(...)  the provider calls our webhook with the result; the adapter checks the provider's signature on the
+                         call and turns it into an Event. Only this signed call changes anything: coming back to the site
+                         proves nothing.
+
+Stand-ins play the provider's part until accounts exist. Their hosted pages are served by this backend (/stand-in/...)
+and they send a properly signed webhook, so the real code path runs end to end. They approve whatever you click, so
+they are switched off in production (see settings.standins_enabled).
+
+To add a real provider, write a class with the same methods and register it in PROVIDERS. backend/integrations/README.md
+lists what each method must do and how the usual Indian providers map onto it.
+"""
+import hashlib
+import hmac
+import json
+from dataclasses import dataclass, field
+
+from backend.config import settings
+
+
+class BadSignature(Exception):
+    pass
+
+
+@dataclass
+class Event:
+    """A provider's result, in our words."""
+    id: str            # the provider's event id; the same id is never applied twice
+    kind: str          # kyc, esign or payment
+    ref: str           # the provider's reference for the check, signing or payment we started
+    outcome: str       # kyc: verified | rejected; esign: signed | declined; payment: paid | failed
+    data: dict = field(default_factory=dict)
+
+
+def sign(raw: bytes, secret: str) -> str:
+    return hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
+
+
+class StandIn:
+    """The stand-in provider for all three kinds. References look like standin_<kind>_<our id>."""
+    name = "standin"
+
+    def _start(self, kind, our_id):
+        if not settings.standins_enabled:
+            raise RuntimeError("The stand-in %s provider is switched off in production. Set a real provider." % kind)
+        ref = "standin_%s_%s" % (kind, our_id)
+        return ref, "/stand-in/%s/%s" % (kind, ref)
+
+    # KYC: check the person's PAN and name (a real provider also checks Aadhaar/DigiLocker or a video KYC)
+    def start_kyc(self, check, user, return_url):
+        return self._start("kyc", check["id"])
+
+    # e-signing: the person reads the document and signs (a real provider uses Aadhaar e-sign or a DSC)
+    def start_esign(self, req, signer, return_url):
+        return self._start("esign", req["id"])
+
+    def fetch_signed(self, ref):
+        """A real provider returns its signed PDF; the stand-in has none, so we print our own signed copy."""
+        return None
+
+    # payments: a hosted checkout or payment link for the invoice total (fee plus GST)
+    def start_payment(self, payment, invoice, payer, return_url):
+        return self._start("pay", payment["id"])
+
+    def parse_webhook(self, headers, raw: bytes):
+        given = headers.get("x-aegis-signature", "")
+        if not hmac.compare_digest(given, sign(raw, settings.webhook_secret)):
+            raise BadSignature("Signature does not match")
+        d = json.loads(raw)
+        return Event(id=str(d["id"]), kind=d["kind"], ref=str(d["ref"]), outcome=d["outcome"], data=d.get("data") or {})
+
+
+PROVIDERS = {"standin": StandIn}
+
+
+def provider(kind):
+    name = {"kyc": settings.kyc_provider, "esign": settings.esign_provider, "payment": settings.payments_provider}[kind]
+    if name not in PROVIDERS:
+        raise RuntimeError("Unknown %s provider %r. Add its adapter to backend/integrations/providers.py." % (kind, name))
+    return PROVIDERS[name]()
+
+
+def by_name(name):
+    if name not in PROVIDERS:
+        raise KeyError(name)
+    return PROVIDERS[name]()
+```
+
+### `backend/integrations/service.py`
+
+Starting checks, signings and payments; applying the providers' signed results once.
+
+```python
+"""Starting KYC checks, signings and payments, and applying the providers' signed results.
+
+Results are applied in one transaction behind the same write lock as every other action, through the same Store, with an
+audit entry and notifications, so they look and behave like any other change. A provider event is recorded before it is
+applied; the same event arriving again is ignored."""
+import hashlib
+import hmac
+import re
+from datetime import date
+
+from sqlalchemy import insert, select, update
+
+from backend import db as T
+from backend.auth import utcnow
+from backend.config import settings
+from backend.integrations import documents as DOCS
+from backend.integrations.providers import Event, provider
+from backend.storage import storage
+from backend.store import Store, diff, now, uid, write_audit
+from server.actions import Denied, find, label, notify, notify_advisors
+
+PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
+
+
+def need(cond, msg):
+    if not cond:
+        raise Denied(msg)
+
+
+def today():
+    return settings.today or date.today().isoformat()
+
+
+def nice_date(iso):
+    d = date.fromisoformat(iso[:10])
+    return "%d %s %d" % (d.day, d.strftime("%B"), d.year)
+
+
+def pan_hash(pan):
+    return hmac.new(settings.secret_key.encode(), ("pan:" + pan).encode(), hashlib.sha256).hexdigest()
+
+
+def _save(conn, st, user, action, detail, company_id=None):
+    changes = st.save()
+    write_audit(conn, user, action, detail, company_id, [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in changes])
+
+
+def _user(st, uid_):
+    return next((u for u in st.users if u["id"] == uid_), None)
+
+
+# ---------- KYC ----------
+def start_kyc(conn, user, pan, name):
+    need(user["role"] == "investor", "Identity checks are for investors")
+    pan, name = str(pan or "").strip().upper(), str(name or "").strip()[:120]
+    need(PAN_RE.match(pan), "Enter a valid PAN: 5 letters, 4 digits, 1 letter (for example ABCDE1234F)")
+    need(name, "Enter your name as it appears on your PAN card")
+    T.write_lock(conn)
+    st = Store(conn)
+    me = _user(st, user["id"])
+    prof = me["profile"] = me.get("profile") or {}
+    need(prof.get("kyc") != "verified", "Your identity is already verified")
+    h = pan_hash(pan)
+    other = conn.execute(select(T.kyc_checks.c.user_id).where(T.kyc_checks.c.pan_hash == h, T.kyc_checks.c.status == "verified",
+                                                               T.kyc_checks.c.user_id != user["id"])).first()
+    need(not other, "This PAN is already verified on another account. Contact your advisor.")
+    check = dict(id=uid("kyc"), user_id=user["id"], name_given=name, pan_last4=pan[-4:])
+    p = provider("kyc")
+    ref, url = p.start_kyc(check, me, settings.public_url + "/#app-kyc")
+    conn.execute(insert(T.kyc_checks).values(provider=p.name, provider_ref=ref, status="started", pan_hash=h, created_at=utcnow(), **check))
+    prof["kyc"] = "pending"
+    _save(conn, st, user, "kyc_started", "Started an identity check (PAN ending %s) with %s" % (pan[-4:], p.name))
+    return dict(redirect_url=url)
+
+
+def kyc_status(conn, user):
+    rows = conn.execute(select(T.kyc_checks).where(T.kyc_checks.c.user_id == user["id"]).order_by(T.kyc_checks.c.created_at.desc()).limit(5)).all()
+    return dict(kyc=(user.get("profile") or {}).get("kyc") or "not_started",
+                checks=[dict(id=r.id, status=r.status, pan_last4=r.pan_last4, provider=r.provider, reason=r.reason,
+                             started=r.created_at.isoformat(), completed=r.completed_at and r.completed_at.isoformat()) for r in rows])
+
+
+def _apply_kyc(conn, st, ev, provider_name):
+    r = conn.execute(select(T.kyc_checks).where(T.kyc_checks.c.provider == provider_name, T.kyc_checks.c.provider_ref == ev.ref)).first()
+    need(r, "Unknown KYC check")
+    if r.status != "started":
+        return "already decided"
+    inv = _user(st, r.user_id)
+    prof = inv["profile"] = inv.get("profile") or {}
+    if ev.outcome == "verified":
+        conn.execute(update(T.kyc_checks).where(T.kyc_checks.c.id == r.id).values(status="verified", completed_at=utcnow()))
+        prof.update(kyc="verified", kyc_verified_at=now(), kyc_ref=r.id, pan_last4=r.pan_last4, kyc_note=None)
+        notify(st, inv["id"], "kyc", "Your identity is verified. You can now receive private offers.", "app-kyc")
+        notify_advisors(st, "kyc", "KYC verified: " + label(inv), "app-directory")
+        _save(conn, st, inv, "kyc_verified", "Identity verified by %s (PAN ending %s)" % (provider_name, r.pan_last4))
+    else:
+        reason = str(ev.data.get("reason") or "The details could not be verified")[:300]
+        conn.execute(update(T.kyc_checks).where(T.kyc_checks.c.id == r.id).values(status="rejected", reason=reason, completed_at=utcnow()))
+        prof.update(kyc="not_started", kyc_note=reason)
+        notify(st, inv["id"], "kyc", "Your identity check did not go through: " + reason, "app-kyc")
+        _save(conn, st, inv, "kyc_rejected", "Identity check not passed (%s): %s" % (provider_name, reason))
+    return "applied"
+
+
+# ---------- e-signing ----------
+def _new_request(conn, kind, subject_id, company_id, signer, created_by, title, body, terms=None):
+    req = dict(id=uid("sig"), kind=kind, subject_id=subject_id, company_id=company_id, signer_id=signer["id"], created_by=created_by,
+               title=title, body=body, doc_hash=DOCS.doc_hash(body), terms=terms, provider=settings.esign_provider, status="created", created_at=utcnow())
+    conn.execute(insert(T.esign_requests).values(**req))
+    return req
+
+
+def _send(conn, req, signer, return_path):
+    p = provider("esign")
+    ref, url = p.start_esign(req, signer, settings.public_url + return_path)
+    conn.execute(update(T.esign_requests).where(T.esign_requests.c.id == req["id"]).values(provider=p.name, provider_ref=ref, status="sent"))
+    return url
+
+
+def start_nda(conn, user, intro_id):
+    T.write_lock(conn)
+    st = Store(conn)
+    i = find(st.intros, intro_id)
+    need(i and user["role"] == "investor" and i["investor_id"] == user["id"], "Introduction not found")
+    need(i["status"] == "granted", "The founder has not granted access yet")
+    need(not i.get("nda_signed_at"), "You have already signed this NDA")
+    c = find(st.companies, i["company_id"])
+    me = _user(st, user["id"])
+    old = conn.execute(select(T.esign_requests).where(T.esign_requests.c.kind == "nda", T.esign_requests.c.subject_id == i["id"],
+                                                      T.esign_requests.c.status.in_(("created", "sent")))).first()
+    req = dict(old._mapping) if old else _new_request(conn, "nda", i["id"], c["id"], me, user["id"], *DOCS.nda(c, me, nice_date(today())))
+    write_audit(conn, user, "esign_started", "Opened the NDA for %s for e-signing" % c["name"], c["id"])
+    return dict(redirect_url=_send(conn, req, me, "/#app-rooms"))
+
+
+def send_engagement(conn, user, company_id, fee_lakh):
+    need(user["role"] == "advisor", "Only an advisor sends engagement letters")
+    try:
+        fee_paise = int(round(float(fee_lakh) * 100_000 * 100))
+    except (TypeError, ValueError):
+        fee_paise = 0
+    need(fee_paise >= 100_000 * 100, "The advisory fee starts at Rs 1 lakh")
+    need(fee_paise <= 1_00_00_000 * 100, "Check the advisory fee: it is above Rs 1 crore")
+    T.write_lock(conn)
+    st = Store(conn)
+    c = find(st.companies, company_id)
+    need(c, "Company not found")
+    founder = next((u for u in st.users if u["role"] == "founder" and u.get("company_id") == c["id"]), None)
+    need(founder, "This company has no founder account to sign")
+    eng = c.get("engagement") or {}
+    need(eng.get("status") != "signed", "This company has already signed its engagement letter")
+    if eng.get("esign_id"):   # a resent letter replaces the unsigned one
+        conn.execute(update(T.esign_requests).where(T.esign_requests.c.id == eng["esign_id"], T.esign_requests.c.status.in_(("created", "sent")))
+                     .values(status="replaced"))
+    req = _new_request(conn, "engagement", c["id"], c["id"], founder, user["id"], *DOCS.engagement(c, founder, fee_paise, nice_date(today())),
+                       terms=dict(fee_paise=fee_paise))
+    c["engagement"] = dict(status="sent", esign_id=req["id"], fee_paise=fee_paise, sent_at=now(), signed_at=None)
+    notify(st, founder["id"], "esign", "Your engagement letter from Aegis Ascend is ready to sign", "app")
+    _save(conn, st, user, "engagement_sent", "Sent the engagement letter to %s (advisory fee Rs %s lakh)" % (c["name"], "{:g}".format(fee_paise / 10_000_000)), c["id"])
+    return dict(esign_id=req["id"])
+
+
+def start_esign(conn, user, esign_id):
+    r = conn.execute(select(T.esign_requests).where(T.esign_requests.c.id == esign_id)).first()
+    need(r and r.signer_id == user["id"], "Document not found")
+    need(r.status in ("created", "sent"), "This document is already %s" % r.status)
+    me = dict(conn.execute(select(T.users).where(T.users.c.id == user["id"])).first()._mapping)
+    write_audit(conn, user, "esign_started", "Opened \"%s\" for e-signing" % r.title, r.company_id)
+    return dict(redirect_url=_send(conn, dict(r._mapping), me, "/#app-rooms" if r.kind == "nda" else "/#app"))
+
+
+def esign_document(conn, user, esign_id):
+    """The signed copy, for the signer and advisors."""
+    r = conn.execute(select(T.esign_requests).where(T.esign_requests.c.id == esign_id)).first()
+    need(r and (r.signer_id == user["id"] or user["role"] == "advisor"), "Document not found")
+    need(r.status == "signed" and r.signed_key, "This document has not been signed yet")
+    return r, storage().get(r.signed_key)
+
+
+def _apply_esign(conn, st, ev, provider_name):
+    r = conn.execute(select(T.esign_requests).where(T.esign_requests.c.provider == provider_name, T.esign_requests.c.provider_ref == ev.ref)).first()
+    need(r, "Unknown signing request")
+    if r.status != "sent":
+        return "already decided"
+    signer = _user(st, r.signer_id)
+    if ev.outcome != "signed":
+        conn.execute(update(T.esign_requests).where(T.esign_requests.c.id == r.id).values(status="declined"))
+        if r.kind == "engagement":
+            c = find(st.companies, r.subject_id)
+            c["engagement"] = dict(c.get("engagement") or {}, status="declined")
+            notify_advisors(st, "esign", "%s declined the engagement letter" % c["name"], "app-companyfile/" + c["id"])
+        _save(conn, st, signer, "esign_declined", "Declined to sign \"%s\"" % r.title, r.company_id)
+        return "applied"
+    signed_at, ip = utcnow(), str(ev.data.get("ip") or "")[:64] or None
+    req = dict(r._mapping, signed_at=signed_at, signer_ip=ip)
+    pdf = provider("esign").fetch_signed(ev.ref) or DOCS.signed_pdf(req, signer, "%s e-sign" % provider_name)
+    key = "esign_%s.pdf" % r.id
+    storage().put(key, pdf, "application/pdf")
+    conn.execute(update(T.esign_requests).where(T.esign_requests.c.id == r.id).values(status="signed", signed_at=signed_at, signer_ip=ip, signed_key=key))
+    if r.kind == "nda":
+        i = find(st.intros, r.subject_id)
+        i["nda_signed_at"] = i.get("nda_signed_at") or signed_at.isoformat()
+        i["nda_esign_id"] = r.id
+        _save(conn, st, signer, "nda_esigned", "Signed the NDA for %s by e-sign" % find(st.companies, r.company_id)["name"], r.company_id)
+    else:
+        c = find(st.companies, r.subject_id)
+        c["engagement"] = dict(c.get("engagement") or {}, status="signed", signed_at=signed_at.isoformat())
+        notify_advisors(st, "esign", "%s signed the engagement letter" % c["name"], "app-companyfile/" + c["id"])
+        _save(conn, st, signer, "engagement_signed", "Signed the engagement letter by e-sign", c["id"])
+    return "applied"
+
+
+# ---------- payments ----------
+def start_payment(conn, user, invoice_id):
+    T.write_lock(conn)
+    st = Store(conn)
+    f = find(st.invoices, invoice_id)
+    mine = f and ((f["payer"] == "company" and user["role"] == "founder" and user.get("company_id") == f["company_id"])
+                  or (f["payer"] in ("investor", "lender") and f.get("payer_id") == user["id"]))
+    need(mine, "Invoice not found")
+    need(not f.get("paid_on"), "This invoice is already paid")
+    total = f["amount_paise"] + f["gst_paise"]
+    pay = dict(id=uid("pay"), invoice_id=f["id"], payer_user_id=user["id"], amount_paise=total)
+    p = provider("payment")
+    back = {"founder": "/#app-fees", "investor": "/#app-sells", "lender": "/#app-lfees"}.get(user["role"], "/#app")
+    ref, url = p.start_payment(pay, f, user, settings.public_url + back)
+    conn.execute(insert(T.payments).values(provider=p.name, provider_ref=ref, status="created", currency="INR", created_at=utcnow(), **pay))
+    write_audit(conn, user, "payment_started", "Started an online payment of invoice %s (Rs %s incl. GST)" % (f["id"], "{:,.2f}".format(total / 100)), f["company_id"])
+    return dict(redirect_url=url)
+
+
+def _apply_payment(conn, st, ev, provider_name):
+    r = conn.execute(select(T.payments).where(T.payments.c.provider == provider_name, T.payments.c.provider_ref == ev.ref)).first()
+    need(r, "Unknown payment")
+    if r.status == "paid":
+        return "already decided"
+    payer = _user(st, r.payer_user_id)
+    if ev.outcome != "paid":
+        conn.execute(update(T.payments).where(T.payments.c.id == r.id).values(status="failed", error=str(ev.data.get("reason") or "")[:300]))
+        return "applied"
+    amount = int(ev.data.get("amount_paise") or -1)
+    if amount != r.amount_paise:   # never mark an invoice paid for a different sum
+        conn.execute(update(T.payments).where(T.payments.c.id == r.id).values(status="failed", error="Amount %s does not match %s" % (amount, r.amount_paise)))
+        notify_advisors(st, "payment", "A payment for invoice %s arrived with the wrong amount. Check it with the provider." % r.invoice_id, "app-revenue")
+        _save(conn, st, payer, "payment_mismatch", "Online payment for invoice %s did not match the amount due" % r.invoice_id)
+        return "mismatch"
+    conn.execute(update(T.payments).where(T.payments.c.id == r.id).values(status="paid", paid_at=utcnow()))
+    f = find(st.invoices, r.invoice_id)
+    if not f.get("paid_on"):
+        f.update(paid_on=today(), paid_via=provider_name, payment_ref=str(ev.data.get("payment_id") or ev.ref)[:120])
+    notify_advisors(st, "payment", "Invoice %s paid online by %s" % (f["id"], label(payer)), "app-revenue")
+    _save(conn, st, payer, "invoice_paid_online", "Paid invoice %s online (Rs %s incl. GST, %s)" % (f["id"], "{:,.2f}".format(r.amount_paise / 100), provider_name), f["company_id"])
+    return "applied"
+
+
+# ---------- provider events ----------
+APPLY = {"kyc": _apply_kyc, "esign": _apply_esign, "payment": _apply_payment}
+
+
+def process_event(provider_name, ev: Event):
+    """Apply a verified provider event once. Returns what happened, for the webhook's reply."""
+    need(ev.kind in APPLY, "Unknown event kind")
+    with T.engine().begin() as conn:
+        T.write_lock(conn)
+        seen = conn.execute(select(T.webhook_events.c.event_id).where(T.webhook_events.c.provider == provider_name, T.webhook_events.c.event_id == ev.id)).first()
+        if seen:
+            return "duplicate"
+        conn.execute(insert(T.webhook_events).values(provider=provider_name, event_id=ev.id, kind=ev.kind, received_at=utcnow(),
+                                                     payload=dict(ref=ev.ref, outcome=ev.outcome, data=ev.data)))
+        return APPLY[ev.kind](conn, Store(conn), ev, provider_name)
+```
+
+### `backend/integrations/documents.py`
+
+The NDA and engagement letter text, and the signed copy with its certificate.
+
+```python
+"""The documents people sign, and the signed copy with its signature certificate.
+
+The text is fixed when the signing request is created; its SHA-256 is stored and printed on the signed copy, so anyone
+can check later that the signed text is exactly what was shown. Wording is a working draft for legal review."""
+import hashlib
+import io
+
+from fpdf import FPDF
+
+FIRM = "Aegis Ascend Financial Advisors"
+
+
+def doc_hash(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def nda(company, investor, date_text):
+    who = investor.get("firm") or investor["name"]
+    return ("Non-disclosure agreement",
+            "This agreement is made on %s between %s (the Investor), represented by %s, and %s (the Company), "
+            "with %s acting as the Company's adviser.\n\n"
+            "1. Purpose. The Company will share confidential information through the %s deal room so the Investor can evaluate a "
+            "possible investment (the Purpose).\n\n"
+            "2. Confidentiality. The Investor will keep all such information confidential, use it only for the Purpose, and share it "
+            "only with its own advisers who are bound by the same duty.\n\n"
+            "3. No contact. The Investor will not contact the Company's customers, suppliers, lenders or staff about the Company "
+            "without the Company's written permission.\n\n"
+            "4. Exceptions. Information that is public, already known to the Investor, or required to be disclosed by law or a "
+            "regulator is not confidential.\n\n"
+            "5. Return. On request the Investor will delete or return the information.\n\n"
+            "6. Term. These duties last two years from today.\n\n"
+            "7. Law. Indian law applies and the courts of Mumbai have jurisdiction."
+            % (date_text, who, investor["name"], company["name"], FIRM, FIRM))
+
+
+def engagement(company, founder, fee_paise, date_text):
+    fee = fee_paise / 100
+    return ("Engagement letter",
+            "This letter is made on %s between %s (the Company), represented by %s, and %s (Aegis Ascend).\n\n"
+            "1. Services. Aegis Ascend will prepare an independent debt vs equity report for the Company, reviewed and signed off "
+            "by a named advisor, and, if the Company chooses, help arrange the recommended equity raise or loan.\n\n"
+            "2. Advisory fee. Rs %s plus GST at 18%%, payable within 15 days of this letter.\n\n"
+            "3. Success fees. If an equity raise closes through Aegis Ascend: 2.5%% of the amount raised at closing, and 0.4%% of the "
+            "Company's net revenue for 5 years, paid quarterly. If a loan arranged through Aegis Ascend is disbursed: 2.5%% of the "
+            "loan amount at disbursal. All plus GST.\n\n"
+            "4. Independence. Aegis Ascend sells no loan and runs no fund. Investors hold shares in their own name; money never "
+            "passes through Aegis Ascend.\n\n"
+            "5. Information. The Company confirms that the figures it provides are accurate, and will share nothing with an "
+            "investor or lender without its own approval in the workspace.\n\n"
+            "6. Term. This letter runs until the Company ends it in writing; fees already earned remain payable.\n\n"
+            "7. Law. Indian law applies and the courts of Mumbai have jurisdiction."
+            % (date_text, company["name"], founder["name"], FIRM, "{:,.0f}".format(fee)))
+
+
+def _latin(s):
+    return (str(s).replace("–", "-").replace("—", "-").replace("’", "'").replace("‘", "'")
+            .replace("“", '"').replace("”", '"').replace("₹", "Rs ").encode("latin-1", "replace").decode("latin-1"))
+
+
+def signed_pdf(req, signer, method):
+    """The signed copy: the document as shown, then a signature certificate."""
+    pdf = FPDF(format="A4")
+    pdf.set_margins(20, 18, 20)
+    pdf.set_auto_page_break(True, 18)
+    pdf.add_page()
+    pdf.set_fill_color(13, 14, 16)
+    pdf.rect(0, 0, 210, 26, "F")
+    pdf.set_xy(20, 9)
+    pdf.set_font("Times", "", 15)
+    pdf.set_text_color(244, 239, 230)
+    pdf.cell(0, 8, "AEGIS ASCEND", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_y(36)
+    pdf.set_text_color(22, 23, 26)
+    pdf.set_font("Times", "", 20)
+    pdf.multi_cell(0, 9, _latin(req["title"]), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "", 10.5)
+    for para in req["body"].split("\n\n"):
+        pdf.multi_cell(0, 5.6, _latin(para), new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(2.5)
+    pdf.ln(4)
+    pdf.set_draw_color(201, 160, 79)
+    pdf.set_line_width(0.6)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(5)
+    pdf.set_font("Times", "", 14)
+    pdf.cell(0, 8, "Signature certificate", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9.5)
+    rows = [("Signed by", "%s (%s)" % (signer["name"], signer["email"])),
+            ("Signed at", req["signed_at"].strftime("%d %b %Y, %H:%M:%S UTC")),
+            ("IP address", req.get("signer_ip") or "-"),
+            ("Method", method),
+            ("Request", req["id"]),
+            ("Document SHA-256", req["doc_hash"])]
+    for k, v in rows:
+        pdf.set_text_color(71, 68, 62)
+        pdf.cell(42, 6, k)
+        pdf.set_text_color(22, 23, 26)
+        pdf.multi_cell(0, 6, _latin(v), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
+    pdf.set_text_color(71, 68, 62)
+    pdf.set_font("Helvetica", "I", 8.5)
+    pdf.multi_cell(0, 4.6, "The SHA-256 above is the fingerprint of the document text exactly as it was shown to the signer. "
+                           "Any change to the text gives a different fingerprint.")
+    out = io.BytesIO()
+    pdf.output(out)
+    return out.getvalue()
+```
+
+### `backend/integrations/routes.py`
+
+API routes, the provider webhook and the stand-in provider pages.
+
+```python
+"""HTTP routes for KYC, e-signing and payments: what the website calls, the providers' webhook, and the stand-in pages."""
+import html
+import json
+import uuid
+
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from sqlalchemy import select
+
+from backend import db as T
+from backend.config import settings
+from backend.integrations import service as SVC
+from backend.integrations.providers import BadSignature, StandIn, by_name, sign
+from server.actions import Denied
+
+router = APIRouter()
+
+
+def _err(msg, status):
+    return JSONResponse(dict(error=msg), status_code=status)
+
+
+async def _body(request):
+    try:
+        d = await request.json()
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def _signed_in(conn, request):
+    from backend.app import current   # late import: app.py includes this router
+    return current(conn, request)
+
+
+def _run(request, fn):
+    """Signed-in user + one transaction; Denied becomes a 403 like every other action."""
+    with T.engine().begin() as conn:
+        u, _ = _signed_in(conn, request)
+        if not u:
+            return _err("Please sign in.", 401)
+        return fn(conn, u)
+
+
+@router.get("/api/integrations")
+def info():
+    return dict(kyc=settings.kyc_provider, esign=settings.esign_provider, payments=settings.payments_provider, require_esign=settings.require_esign)
+
+
+@router.get("/api/kyc")
+def kyc_status(request: Request):
+    return _run(request, lambda conn, u: SVC.kyc_status(conn, u))
+
+
+@router.post("/api/kyc/start")
+async def kyc_start(request: Request):
+    p = await _body(request)
+    return _run(request, lambda conn, u: SVC.start_kyc(conn, u, p.get("pan"), p.get("name")))
+
+
+@router.post("/api/esign/nda")
+async def esign_nda(request: Request):
+    p = await _body(request)
+    return _run(request, lambda conn, u: SVC.start_nda(conn, u, p.get("intro_id")))
+
+
+@router.post("/api/esign/engagement")
+async def esign_engagement(request: Request):
+    p = await _body(request)
+    return _run(request, lambda conn, u: SVC.send_engagement(conn, u, p.get("company_id"), p.get("advisory_fee_lakh")))
+
+
+@router.post("/api/esign/{esign_id}/start")
+def esign_start(esign_id: str, request: Request):
+    return _run(request, lambda conn, u: SVC.start_esign(conn, u, esign_id))
+
+
+@router.get("/api/esign/{esign_id}/document")
+def esign_doc(esign_id: str, request: Request):
+    def go(conn, u):
+        r, pdf = SVC.esign_document(conn, u, esign_id)
+        from backend.store import write_audit
+        write_audit(conn, u, "download", "Downloaded the signed copy of \"%s\"" % r.title, r.company_id)
+        name = "%s-signed-%s.pdf" % (r.kind, r.signed_at.date().isoformat())
+        return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="%s"' % name})
+    return _run(request, go)
+
+
+@router.post("/api/pay/{invoice_id}")
+def pay(invoice_id: str, request: Request):
+    return _run(request, lambda conn, u: SVC.start_payment(conn, u, invoice_id))
+
+
+@router.post("/api/webhooks/{provider_name}")
+async def webhook(provider_name: str, request: Request):
+    """Providers call this with results. Not signed in and no site header: the provider's signature is the proof."""
+    try:
+        p = by_name(provider_name)
+    except KeyError:
+        return _err("Unknown provider", 404)
+    raw = await request.body()
+    try:
+        ev = p.parse_webhook({k.lower(): v for k, v in request.headers.items()}, raw)
+    except BadSignature:
+        return _err("Bad signature", 401)
+    except (ValueError, KeyError, TypeError):
+        return _err("Unreadable event", 400)
+    try:
+        return dict(result=SVC.process_event(p.name, ev))
+    except Denied as e:
+        return _err(str(e), 422)
+
+
+# ---------- stand-in provider pages (test mode only) ----------
+STANDIN_TABLE = {"kyc": (T.kyc_checks, "user_id"), "esign": (T.esign_requests, "signer_id"), "pay": (T.payments, "payer_user_id")}
+OUTCOMES = {"kyc": (("verified", "Approve: details match"), ("rejected", "Reject: name does not match PAN")),
+            "esign": (("signed", "Sign the document"), ("declined", "Decline to sign")),
+            "pay": (("paid", "Pay now (test mode)"), ("failed", "Simulate a failed payment"))}
+RETURN = {"kyc": "/#app-kyc", "esign": None, "pay": None}
+
+
+def _standin_row(conn, request, kind, ref):
+    if not settings.standins_enabled or kind not in STANDIN_TABLE:
+        return None, None
+    table, owner = STANDIN_TABLE[kind]
+    r = conn.execute(select(table).where(table.c.provider == "standin", table.c.provider_ref == ref)).first()
+    u, _ = _signed_in(conn, request)
+    if not r or not u or getattr(r, owner) != u["id"]:   # only the person it belongs to can open it
+        return None, None
+    return r, u
+
+
+def _page(title, inner):
+    return HTMLResponse("""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>%s</title><meta name="robots" content="noindex"><style>
+body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;background:#F2F1EE;color:#16171A}
+.band{background:#7a1f1f;color:#fff;padding:10px 20px;font-size:14px;text-align:center}
+main{max-width:640px;margin:32px auto;padding:0 16px}.card{background:#fff;border:1px solid #DCD2BF;border-radius:6px;padding:24px}
+h1{font:400 26px/1.25 Georgia,serif;margin:0 0 8px}.muted{color:#47443E;font-size:14px}.doc{white-space:pre-wrap;border:1px solid #DCD2BF;
+background:#FBF8F1;padding:16px;border-radius:4px;max-height:360px;overflow:auto;font-size:14px}dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+dt{color:#47443E}dd{margin:0;font-weight:600}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}button{font:inherit;padding:11px 18px;border-radius:4px;
+border:1px solid #16171A;background:#16171A;color:#E8C77B;cursor:pointer}button.alt{background:#fff;color:#16171A}</style></head><body>
+<div class="band">Stand-in provider · test mode · nothing here is a real check, signature or payment</div><main><div class="card">%s</div></main></body></html>"""
+                        % (html.escape(title), inner))
+
+
+@router.get("/stand-in/{kind}/{ref}", response_class=HTMLResponse)
+def standin_page(kind: str, ref: str, request: Request):
+    with T.engine().begin() as conn:
+        r, u = _standin_row(conn, request, kind, ref)
+        if not r:
+            return _page("Not found", "<h1>Not found</h1><p class=muted>This link is not for you, has expired, or test providers are switched off.</p>")
+        e = html.escape
+        if kind == "kyc":
+            head = "<h1>Verify your identity</h1><p class=muted>A real provider would check your PAN with the Income Tax Department and your Aadhaar through DigiLocker.</p>"
+            info = "<dl><dt>Name given</dt><dd>%s</dd><dt>PAN</dt><dd>&bull;&bull;&bull;&bull;&bull;&bull;%s</dd></dl>" % (e(r.name_given or ""), e(r.pan_last4 or ""))
+        elif kind == "esign":
+            head = "<h1>%s</h1><p class=muted>Read the document, then sign. A real provider would ask for an Aadhaar OTP or your digital signature.</p>" % e(r.title)
+            info = '<div class="doc">%s</div><p class=muted>Document fingerprint (SHA-256): %s</p>' % (e(r.body), e(r.doc_hash))
+        else:
+            head = "<h1>Pay your invoice</h1><p class=muted>A real provider would offer UPI, net banking and cards.</p>"
+            info = "<dl><dt>Invoice</dt><dd>%s</dd><dt>Amount (incl. GST)</dt><dd>Rs %s</dd></dl>" % (e(r.invoice_id), "{:,.2f}".format(r.amount_paise / 100))
+        done = (kind == "kyc" and r.status != "started") or (kind == "esign" and r.status != "sent") or (kind == "pay" and r.status == "paid")
+        buttons = "<p class=muted>This was already completed.</p>" if done else '<form method="post" class="row">' + "".join(
+            '<button name="outcome" value="%s"%s>%s</button>' % (v, "" if i == 0 else ' class="alt"', e(l)) for i, (v, l) in enumerate(OUTCOMES[kind])) + "</form>"
+        return _page(head.split("</h1>")[0][4:], head + info + buttons)
+
+
+@router.post("/stand-in/{kind}/{ref}")
+async def standin_submit(kind: str, ref: str, request: Request):
+    """Plays the provider: sends our webhook a signed event, exactly as a real provider would, then returns to the site."""
+    form = await request.form()
+    with T.engine().begin() as conn:
+        r, u = _standin_row(conn, request, kind, ref)
+        if not r:
+            return RedirectResponse("/#app", status_code=303)
+        outcome = form.get("outcome")
+        if outcome not in [o for o, _ in OUTCOMES[kind]]:
+            return RedirectResponse("/#app", status_code=303)
+        data = {"kyc": lambda: {"reason": "The name does not match the PAN record"} if outcome == "rejected" else {},
+                "esign": lambda: {"ip": request.client.host if request.client else None},
+                "pay": lambda: {"amount_paise": r.amount_paise, "payment_id": "standin_payment_" + uuid.uuid4().hex[:10]}}[kind]()
+        back = RETURN[kind] or ("/#app-rooms" if kind == "esign" and r.kind == "nda" else "/#app" if kind == "esign" else
+                                {"founder": "/#app-fees", "investor": "/#app-sells", "lender": "/#app-lfees"}.get(u["role"], "/#app"))
+    raw = json.dumps(dict(id="evt_" + uuid.uuid4().hex, kind={"pay": "payment"}.get(kind, kind), ref=ref, outcome=outcome, data=data)).encode()
+    try:
+        SVC.process_event("standin", StandIn().parse_webhook({"x-aegis-signature": sign(raw, settings.webhook_secret)}, raw))
+    except Denied:
+        pass
+    return RedirectResponse(back, status_code=303)
 ```
 
 ### `backend/cli.py`
@@ -10239,6 +11093,7 @@ psycopg[binary]==3.2.3
 argon2-cffi==23.1.0
 pyotp==2.9.0
 python-multipart==0.0.19
+fpdf2==2.8.1       # signed copies of e-signed documents
 anthropic>=2.8
 werkzeug>=3.0      # only to check passwords of accounts imported from the Flask prototype
 # boto3            # uncomment when GB_STORAGE=s3
@@ -11388,6 +12243,208 @@ def assert_audit_append_only():
         with pytest.raises(Exception):
             with T.engine().begin() as conn:
                 conn.execute(text(sql))
+```
+
+### `backend/tests/test_integrations.py`
+
+KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts.
+
+```python
+"""KYC, e-signing and payments through the stand-in providers, plus the webhook's safety checks."""
+import json
+import uuid
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from backend import app as B
+from backend import db as T
+from backend.config import settings
+from backend.integrations.providers import sign
+from backend.tests import shim
+
+H = {"X-Requested-With": "glassbox"}
+
+
+@pytest.fixture()
+def fresh(tmp_path):
+    shim.fresh(tmp_path, "2026-10-19")
+    yield tmp_path
+    settings.require_esign = False
+    settings.env = "development"
+
+
+def client(email):
+    c = TestClient(B.app, base_url="http://127.0.0.1")
+    assert c.post("/api/login", json={"email": email, "password": "demo1234"}, headers=H).status_code == 200
+    return c
+
+
+def user(email):
+    return next(u for u in shim.store().users if u["email"] == email)
+
+
+def standin(c, url, outcome):
+    """Open the stand-in provider page, then press one of its buttons."""
+    page = c.get(url)
+    assert page.status_code == 200 and "Stand-in provider" in page.text
+    r = c.post(url, data={"outcome": outcome}, follow_redirects=False)
+    assert r.status_code == 303
+    return r.headers["location"]
+
+
+def unverified_investor():
+    return next(u for u in shim.store().users if u["role"] == "investor" and (u.get("profile") or {}).get("kyc") != "verified")
+
+
+# ---------- KYC ----------
+def test_kyc_verifies_an_investor(fresh):
+    inv = unverified_investor()
+    c = client(inv["email"])
+    assert c.post("/api/kyc/start", json={"pan": "ABC123", "name": "X"}, headers=H).status_code == 403
+    r = c.post("/api/kyc/start", json={"pan": "abcpe1234f", "name": inv["name"]}, headers=H)
+    assert r.status_code == 200
+    assert user(inv["email"])["profile"]["kyc"] == "pending"
+    assert standin(c, r.json()["redirect_url"], "verified") == "/#app-kyc"
+    prof = user(inv["email"])["profile"]
+    assert prof["kyc"] == "verified" and prof["pan_last4"] == "234F"
+    st = c.get("/api/kyc").json()
+    assert st["kyc"] == "verified" and st["checks"][0]["status"] == "verified"
+    with T.engine().connect() as conn:   # the PAN itself is never stored
+        row = conn.execute(select(T.kyc_checks)).first()
+        assert "ABCPE1234F" not in json.dumps({k: str(v) for k, v in row._mapping.items()})
+    audit = [a["action"] for a in client("advisor@demo.in").get("/api/state").json()["audit"]]
+    assert "kyc_verified" in audit and "kyc_started" in audit
+
+
+def test_kyc_rejection_and_pan_reuse(fresh):
+    a, b = [u for u in shim.store().users if u["role"] == "investor" and (u.get("profile") or {}).get("kyc") != "verified"][:2]
+    ca = client(a["email"])
+    url = ca.post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": a["name"]}, headers=H).json()["redirect_url"]
+    standin(ca, url, "rejected")
+    prof = user(a["email"])["profile"]
+    assert prof["kyc"] == "not_started" and "does not match" in prof["kyc_note"]
+    url = ca.post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": a["name"]}, headers=H).json()["redirect_url"]
+    standin(ca, url, "verified")
+    cb = client(b["email"])
+    r = cb.post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": b["name"]}, headers=H)
+    assert r.status_code == 403 and "another account" in r.json()["error"]
+
+
+def test_standin_page_only_opens_for_its_owner(fresh):
+    inv = unverified_investor()
+    url = client(inv["email"]).post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": inv["name"]}, headers=H).json()["redirect_url"]
+    other = client("advisor@demo.in")
+    assert "Not found" in other.get(url).text
+    other.post(url, data={"outcome": "verified"}, follow_redirects=False)
+    assert user(inv["email"])["profile"]["kyc"] == "pending"
+
+
+# ---------- webhook safety ----------
+def _event(ref, kind="kyc", outcome="verified", data=None, eid=None):
+    return json.dumps(dict(id=eid or "evt_" + uuid.uuid4().hex, kind=kind, ref=ref, outcome=outcome, data=data or {})).encode()
+
+
+def test_webhook_rejects_bad_signatures_and_ignores_repeats(fresh):
+    inv = unverified_investor()
+    c = client(inv["email"])
+    ref = c.post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": inv["name"]}, headers=H).json()["redirect_url"].rsplit("/", 1)[1]
+    hook = TestClient(B.app)
+    raw = _event(ref, eid="evt_same")
+    assert hook.post("/api/webhooks/standin", content=raw, headers={"X-Aegis-Signature": "forged"}).status_code == 401
+    assert user(inv["email"])["profile"]["kyc"] == "pending"
+    good = {"X-Aegis-Signature": sign(raw, settings.webhook_secret), "Content-Type": "application/json"}
+    assert hook.post("/api/webhooks/standin", content=raw, headers=good).json() == {"result": "applied"}
+    assert hook.post("/api/webhooks/standin", content=raw, headers=good).json() == {"result": "duplicate"}
+    assert user(inv["email"])["profile"]["kyc"] == "verified"
+    assert hook.post("/api/webhooks/nobody", content=raw, headers=good).status_code == 404
+
+
+# ---------- e-signing ----------
+def _granted_intro():
+    founder = client("founder@demo.in")
+    assert founder.post("/api/act/decide_intro", json={"intro_id": "i_1", "decision": "grant"}, headers=H).status_code == 200
+    intro = next(i for i in shim.store().intros if i["id"] == "i_1")
+    inv = next(u for u in shim.store().users if u["id"] == intro["investor_id"])
+    return client(inv["email"]), inv
+
+
+def test_nda_by_esign_opens_the_deal_room(fresh):
+    c, inv = _granted_intro()
+    settings.require_esign = True
+    assert c.post("/api/act/sign_nda", json={"intro_id": "i_1"}, headers=H).status_code == 403   # no tick-box NDA
+    r = c.post("/api/esign/nda", json={"intro_id": "i_1"}, headers=H)
+    assert r.status_code == 200
+    page = c.get(r.json()["redirect_url"]).text
+    assert "Non-disclosure agreement" in page and "Kalyan Polymers" in page
+    assert standin(c, r.json()["redirect_url"], "signed") == "/#app-rooms"
+    intro = next(i for i in shim.store().intros if i["id"] == "i_1")
+    assert intro["nda_signed_at"] and intro["nda_esign_id"]
+    pdf = c.get("/api/esign/%s/document" % intro["nda_esign_id"])
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF") and b"attachment" in pdf.headers["content-disposition"].encode()
+    assert client("advisor@demo.in").get("/api/esign/%s/document" % intro["nda_esign_id"]).status_code == 200
+    assert client("lender@demo.in").get("/api/esign/%s/document" % intro["nda_esign_id"]).status_code == 403
+    assert c.post("/api/esign/nda", json={"intro_id": "i_1"}, headers=H).status_code == 403   # already signed
+
+
+def test_engagement_letter(fresh):
+    adv = client("advisor@demo.in")
+    assert adv.post("/api/esign/engagement", json={"company_id": "c_kalyan", "advisory_fee_lakh": 0.5}, headers=H).status_code == 403
+    r = adv.post("/api/esign/engagement", json={"company_id": "c_kalyan", "advisory_fee_lakh": 1.5}, headers=H)
+    assert r.status_code == 200
+    sid = r.json()["esign_id"]
+    founder = client("founder@demo.in")
+    c = next(x for x in founder.get("/api/state").json()["companies"] if x["id"] == "c_kalyan")
+    assert c["engagement"]["status"] == "sent" and c["engagement"]["fee_paise"] == 150_000 * 100
+    assert adv.post("/api/esign/%s/start" % sid, headers=H).status_code == 403          # only the founder signs
+    url = founder.post("/api/esign/%s/start" % sid, headers=H).json()["redirect_url"]
+    assert "Rs 150,000 plus GST" in founder.get(url).text
+    standin(founder, url, "signed")
+    c = next(x for x in shim.store().companies if x["id"] == "c_kalyan")
+    assert c["engagement"]["status"] == "signed"
+    assert any(n["text"] == "Kalyan Polymers Pvt Ltd signed the engagement letter" for n in shim.store().notifications)
+    assert founder.get("/api/esign/%s/document" % sid).content.startswith(b"%PDF")
+
+
+# ---------- payments ----------
+def _new_invoice(amount_paise=1_000_000):
+    adv = client("advisor@demo.in")
+    assert adv.post("/api/act/save_invoice", json={"company_id": "c_kalyan", "kind": "advisory", "amount_paise": amount_paise, "period": "Test"}, headers=H).status_code == 200
+    return next(f for f in reversed(shim.store().invoices) if f["period"] == "Test")
+
+
+def test_founder_pays_an_invoice_online(fresh):
+    f = _new_invoice()
+    assert client("lender@demo.in").post("/api/pay/" + f["id"], headers=H).status_code == 403   # not the payer
+    founder = client("founder@demo.in")
+    url = founder.post("/api/pay/" + f["id"], headers=H).json()["redirect_url"]
+    assert "11,800.00" in founder.get(url).text            # Rs 10,000 + 18% GST
+    standin(founder, url, "failed")
+    assert not next(x for x in shim.store().invoices if x["id"] == f["id"])["paid_on"]
+    url = founder.post("/api/pay/" + f["id"], headers=H).json()["redirect_url"]
+    assert standin(founder, url, "paid") == "/#app-fees"
+    paid = next(x for x in shim.store().invoices if x["id"] == f["id"])
+    assert paid["paid_on"] == "2026-10-19" and paid["paid_via"] == "standin" and paid["payment_ref"].startswith("standin_payment_")
+    assert founder.post("/api/pay/" + f["id"], headers=H).status_code == 403   # already paid
+
+
+def test_payment_with_the_wrong_amount_is_not_accepted(fresh):
+    f = _new_invoice()
+    founder = client("founder@demo.in")
+    ref = founder.post("/api/pay/" + f["id"], headers=H).json()["redirect_url"].rsplit("/", 1)[1]
+    raw = _event(ref, kind="payment", outcome="paid", data={"amount_paise": 100})
+    r = TestClient(B.app).post("/api/webhooks/standin", content=raw, headers={"X-Aegis-Signature": sign(raw, settings.webhook_secret)})
+    assert r.json() == {"result": "mismatch"}
+    assert not next(x for x in shim.store().invoices if x["id"] == f["id"])["paid_on"]
+
+
+def test_standins_are_off_in_production(fresh):
+    inv = unverified_investor()
+    c = client(inv["email"])
+    settings.env = "production"
+    with pytest.raises(RuntimeError):
+        c.post("/api/kyc/start", json={"pan": "ABCPE1234F", "name": inv["name"]}, headers=H)
 ```
 
 ### `backend/tests/test_security.py`
