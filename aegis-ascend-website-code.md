@@ -19,8 +19,8 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/optimizer.js` (249 lines): Equity vs Debt Optimizer (browser port of the Python model).
   - `site/ui.js` (162 lines): Escaping, number formats, the click-any-number explain panel, small SVG charts.
   - `site/domain.js` (127 lines): Business arithmetic in integer paise; mirrors server/domain.py.
-  - `site/kit.js` (242 lines): Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
-  - `site/pdf.js` (260 lines): Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF.
+  - `site/kit.js` (263 lines): Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
+  - `site/pdf.js` (263 lines): Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF.
 - **3. Home page 3D emblem**
   - `site/src/hero3d.js` (266 lines): The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette.
   - `site/tools/build-hero3d.sh` (13 lines): Bundles the scene with three.js r160 into site/hero3d.js.
@@ -56,7 +56,7 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `server/tests/test_demo_store.py` (12 lines): Runs the demo store tests from Python.
   - `site/tests/store.test.js` (348 lines): Demo store matches the server's behaviour.
 
-Total: 9369 lines in 34 files.
+Total: 9393 lines in 34 files.
 
 
 ---
@@ -1893,13 +1893,34 @@ Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
     const cell = (col, r) => (col.csv ? col.csv(r) : col.val ? col.val(r) : strip(col.html ? col.html(r) : r[col.k]));
     const data = [cols.map((col) => col.label)].concat(rows.map((r) => cols.map((col) => cell(col, r))));
     const name = (c.name || id).replace(/[^\w-]+/g, "-");
-    if (kind === "csv") save(name + ".csv", new Blob(["﻿" + data.map((row) => row.map((v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\r\n")], { type: "text/csv" }));
-    else save(name + ".xlsx", xlsx(data, c.name || "Export"));
-    toast("Downloaded " + rows.length + " row" + (rows.length === 1 ? "" : "s") + " as " + (kind === "csv" ? "CSV" : "Excel") + ".");
+    const done = (st) => { if (st === "saved") toast("Downloaded " + rows.length + " row" + (rows.length === 1 ? "" : "s") + " as " + (kind === "csv" ? "CSV" : "Excel") + "."); };
+    const failed = (e) => toast(e.message, "bad");
+    if (kind === "csv") save(name + ".csv", new Blob(["﻿" + data.map((row) => row.map((v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\r\n")], { type: "text/csv" })).then(done, failed);
+    else save(name + ".xlsx", xlsx(data, c.name || "Export")).then(done, failed);
   }
-  function save(name, blob) {
+  // Inside claude.ai the page runs in a sandbox that blocks ordinary downloads, so files go through the
+  // viewer's "downloads" capability (they confirm each save). Anywhere else (the Flask server, a file on disk)
+  // it falls back to a normal browser download.
+  let DL;
+  const downloads = () => (DL = DL || (root.claude && typeof root.claude.use === "function"
+    ? Promise.race([root.claude.use("downloads").catch(() => null), new Promise((ok) => setTimeout(() => ok(null), 12000))])
+    : Promise.resolve(null)));
+  if (root.claude && typeof root.claude.use === "function") setTimeout(downloads, 0); // start resolving early
+  function plainSave(name, blob) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  async function save(name, blob) {
+    const dl = await downloads();
+    if (!dl) { plainSave(name, blob); return "saved"; }
+    try { await dl.save({ filename: name, data: blob }); return "saved"; }
+    catch (e) {
+      const code = e && e.code;
+      if (code === "declined") return "declined";
+      if (code === "rate_limited") throw new Error("A download is already waiting for your confirmation.");
+      if (code === "rejected_extension" || code === "extension_not_enabled") throw new Error("This file type can't be downloaded here.");
+      throw new Error("Downloads aren't available in this view. Open the site in its own tab to download.");
+    }
   }
 
   // ---------- a minimal .xlsx writer (stored zip, inline strings) ----------
@@ -2244,9 +2265,12 @@ Branded PDF reports: lays out the tools' results and signed reports on A4 pages 
     return doc;
   }
 
-  function save(meta, blocks) {
+  // Resolves with the file name once saved, or null if the viewer declined the download prompt.
+  async function save(meta, blocks) {
     const doc = build(meta, blocks);
     const name = (meta.filename || meta.title || "report").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) + ".pdf";
+    const blob = doc.output("blob");
+    if (root.KIT && root.KIT.save) return (await root.KIT.save(name, blob)) === "saved" ? name : null;
     doc.save(name);
     return name;
   }
@@ -5133,12 +5157,12 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         stamp: "Working draft · not yet reviewed", footer: "Working draft from the " + T.name + ". Decision-support analysis from tested calculation code, not financial advice. Only a report signed off by an Aegis Ascend advisor is final.",
         filename: T.name + (c ? " " + c.name : "") + " " + new Date().toISOString().slice(0, 10),
       }, $(T.form), $(T.out));
-      KIT.toast("Downloaded " + name);
+      if (name) KIT.toast("Downloaded " + name);
     } finally { b.disabled = false; b.textContent = label; }
   }
   // The signed debt vs equity report. Founders and advisors get the full working (the report keeps its inputs);
   // investors get the reviewed summary, watermarked with their name.
-  function reportPdf(c, r, opts = {}) {
+  async function reportPdf(c, r, opts = {}) {
     const s = r.summary || {}, approved = r.status === "approved" || !!r.reviewed_by;
     const blocks = [{ t: "kpis", items: [["Recommended mix", pct(s.best_share) + " debt", pct(1 - s.best_share) + " equity"], ["Better off than all-equity", cr(s.net), "today's money"], ["Break-even value", cr(s.break_even, 0), "debt wins above this"], ["Lowest DSCR", xx(s.min_dscr), "stress case " + xx(s.min_dscr_stress), s.min_dscr_stress < 1]] }];
     if (r.inputs) {
@@ -5164,14 +5188,14 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     }
     if (r.review_note) blocks.push({ t: "h", text: "Advisor's note" }, { t: "p", text: "“" + r.review_note + "”", italic: true });
     if (r.checks) blocks.push({ t: "h", text: "Release checklist" }, { t: "bullets", items: [["validation", "Validation checks passed"], ["founder_confirmed", "Figures confirmed by the founder"], ["verifier", "Number check by the verifier passed"]].map(([k, l]) => (r.checks[k] ? "Done: " : "Pending: ") + l).concat(["Engine version recorded: " + (r.engine_version || GB.ENGINE_VERSION)]) });
-    const name = GBPDF.save({
+    const name = await GBPDF.save({
       kind: "Debt vs equity report", title: r.title || "Debt vs equity report", subtitle: c.name + (c.sector ? " · " + c.sector : ""),
       facts: [["Company", c.name], ["Engine", r.engine_version], ["Submitted", r.created_at && date(r.created_at)]],
       stamp: approved ? "Reviewed by " + (r.reviewed_by ? userName(r.reviewed_by) : "an advisor") + " · " + date(r.reviewed_at) : "Draft · waiting for advisor review", stampBad: !approved,
       watermark: opts.watermark, footer: (opts.watermark ? "Private offer document for " + S.user.name + ". Do not forward. " : "") + "Every number comes from the calculation engine and was checked by an Aegis Ascend advisor before sign-off. Decision-support analysis, not a guarantee of outcomes.",
       filename: "Debt vs equity report " + c.name + (approved ? "" : " draft"),
     }, blocks);
-    KIT.toast("Downloaded " + name);
+    if (name) KIT.toast("Downloaded " + name);
     return name;
   }
 
@@ -5202,7 +5226,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
-        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return reportPdf(companyById(r.company_id), r); }
+        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
       }
@@ -5642,14 +5666,14 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
       const o = S.data.offers.find((x) => x.id === id), c = co(o.company_id);
       if (!c.report) throw new Error("This company has no signed-off report yet.");
       await WS.API.act("view_doc", { offer_id: id, doc: "Advisor-reviewed report" });
-      WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
+      await WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
       return WS.render({ reload: true, keepScroll: true });
     },
     "inv-doc": (b, id) => {
       const v = views().find((x) => x.id === id), d = b.dataset.doc;
       const text = d + "\n\nSummary prepared by Aegis Ascend Financial Advisors (demo data, fictional)\n\nInvestor: " + S.user.name + (S.user.firm ? " (" + S.user.firm + ")" : "") + "\nCompany: " + v.c.name +
         "\nShares: " + DOM.shares(v.shares) + "\nAmount paid: " + rs(v.cost) + "\nAllotment date: " + dmy(v.h.allotment_date) + "\nMinimum holding: 6 months, until " + dmy(v.lock_until) + "\n\nThe signed original is held by Aegis Ascend.";
-      KIT.save(d.replace(/[^\w]+/g, "-").toLowerCase() + "-" + v.c.name.split(" ")[0].toLowerCase() + ".txt", new Blob([text], { type: "text/plain" }));
+      return KIT.save(d.replace(/[^\w]+/g, "-").toLowerCase() + "-" + v.c.name.split(" ")[0].toLowerCase() + ".txt", new Blob([text], { type: "text/plain" }));
     },
   });
 

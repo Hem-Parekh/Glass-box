@@ -530,12 +530,12 @@
         stamp: "Working draft · not yet reviewed", footer: "Working draft from the " + T.name + ". Decision-support analysis from tested calculation code, not financial advice. Only a report signed off by an Aegis Ascend advisor is final.",
         filename: T.name + (c ? " " + c.name : "") + " " + new Date().toISOString().slice(0, 10),
       }, $(T.form), $(T.out));
-      KIT.toast("Downloaded " + name);
+      if (name) KIT.toast("Downloaded " + name);
     } finally { b.disabled = false; b.textContent = label; }
   }
   // The signed debt vs equity report. Founders and advisors get the full working (the report keeps its inputs);
   // investors get the reviewed summary, watermarked with their name.
-  function reportPdf(c, r, opts = {}) {
+  async function reportPdf(c, r, opts = {}) {
     const s = r.summary || {}, approved = r.status === "approved" || !!r.reviewed_by;
     const blocks = [{ t: "kpis", items: [["Recommended mix", pct(s.best_share) + " debt", pct(1 - s.best_share) + " equity"], ["Better off than all-equity", cr(s.net), "today's money"], ["Break-even value", cr(s.break_even, 0), "debt wins above this"], ["Lowest DSCR", xx(s.min_dscr), "stress case " + xx(s.min_dscr_stress), s.min_dscr_stress < 1]] }];
     if (r.inputs) {
@@ -561,14 +561,14 @@
     }
     if (r.review_note) blocks.push({ t: "h", text: "Advisor's note" }, { t: "p", text: "“" + r.review_note + "”", italic: true });
     if (r.checks) blocks.push({ t: "h", text: "Release checklist" }, { t: "bullets", items: [["validation", "Validation checks passed"], ["founder_confirmed", "Figures confirmed by the founder"], ["verifier", "Number check by the verifier passed"]].map(([k, l]) => (r.checks[k] ? "Done: " : "Pending: ") + l).concat(["Engine version recorded: " + (r.engine_version || GB.ENGINE_VERSION)]) });
-    const name = GBPDF.save({
+    const name = await GBPDF.save({
       kind: "Debt vs equity report", title: r.title || "Debt vs equity report", subtitle: c.name + (c.sector ? " · " + c.sector : ""),
       facts: [["Company", c.name], ["Engine", r.engine_version], ["Submitted", r.created_at && date(r.created_at)]],
       stamp: approved ? "Reviewed by " + (r.reviewed_by ? userName(r.reviewed_by) : "an advisor") + " · " + date(r.reviewed_at) : "Draft · waiting for advisor review", stampBad: !approved,
       watermark: opts.watermark, footer: (opts.watermark ? "Private offer document for " + S.user.name + ". Do not forward. " : "") + "Every number comes from the calculation engine and was checked by an Aegis Ascend advisor before sign-off. Decision-support analysis, not a guarantee of outcomes.",
       filename: "Debt vs equity report " + c.name + (approved ? "" : " draft"),
     }, blocks);
-    KIT.toast("Downloaded " + name);
+    if (name) KIT.toast("Downloaded " + name);
     return name;
   }
 
@@ -599,7 +599,7 @@
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
-        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return reportPdf(companyById(r.company_id), r); }
+        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
       }

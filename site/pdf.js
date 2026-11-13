@@ -176,9 +176,12 @@
     return doc;
   }
 
-  function save(meta, blocks) {
+  // Resolves with the file name once saved, or null if the viewer declined the download prompt.
+  async function save(meta, blocks) {
     const doc = build(meta, blocks);
     const name = (meta.filename || meta.title || "report").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) + ".pdf";
+    const blob = doc.output("blob");
+    if (root.KIT && root.KIT.save) return (await root.KIT.save(name, blob)) === "saved" ? name : null;
     doc.save(name);
     return name;
   }

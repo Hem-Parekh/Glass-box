@@ -74,13 +74,34 @@
     const cell = (col, r) => (col.csv ? col.csv(r) : col.val ? col.val(r) : strip(col.html ? col.html(r) : r[col.k]));
     const data = [cols.map((col) => col.label)].concat(rows.map((r) => cols.map((col) => cell(col, r))));
     const name = (c.name || id).replace(/[^\w-]+/g, "-");
-    if (kind === "csv") save(name + ".csv", new Blob(["﻿" + data.map((row) => row.map((v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\r\n")], { type: "text/csv" }));
-    else save(name + ".xlsx", xlsx(data, c.name || "Export"));
-    toast("Downloaded " + rows.length + " row" + (rows.length === 1 ? "" : "s") + " as " + (kind === "csv" ? "CSV" : "Excel") + ".");
+    const done = (st) => { if (st === "saved") toast("Downloaded " + rows.length + " row" + (rows.length === 1 ? "" : "s") + " as " + (kind === "csv" ? "CSV" : "Excel") + "."); };
+    const failed = (e) => toast(e.message, "bad");
+    if (kind === "csv") save(name + ".csv", new Blob(["﻿" + data.map((row) => row.map((v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\r\n")], { type: "text/csv" })).then(done, failed);
+    else save(name + ".xlsx", xlsx(data, c.name || "Export")).then(done, failed);
   }
-  function save(name, blob) {
+  // Inside claude.ai the page runs in a sandbox that blocks ordinary downloads, so files go through the
+  // viewer's "downloads" capability (they confirm each save). Anywhere else (the Flask server, a file on disk)
+  // it falls back to a normal browser download.
+  let DL;
+  const downloads = () => (DL = DL || (root.claude && typeof root.claude.use === "function"
+    ? Promise.race([root.claude.use("downloads").catch(() => null), new Promise((ok) => setTimeout(() => ok(null), 12000))])
+    : Promise.resolve(null)));
+  if (root.claude && typeof root.claude.use === "function") setTimeout(downloads, 0); // start resolving early
+  function plainSave(name, blob) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  async function save(name, blob) {
+    const dl = await downloads();
+    if (!dl) { plainSave(name, blob); return "saved"; }
+    try { await dl.save({ filename: name, data: blob }); return "saved"; }
+    catch (e) {
+      const code = e && e.code;
+      if (code === "declined") return "declined";
+      if (code === "rate_limited") throw new Error("A download is already waiting for your confirmation.");
+      if (code === "rejected_extension" || code === "extension_not_enabled") throw new Error("This file type can't be downloaded here.");
+      throw new Error("Downloads aren't available in this view. Open the site in its own tab to download.");
+    }
   }
 
   // ---------- a minimal .xlsx writer (stored zip, inline strings) ----------

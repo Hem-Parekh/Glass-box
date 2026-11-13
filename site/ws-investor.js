@@ -208,14 +208,14 @@
       const o = S.data.offers.find((x) => x.id === id), c = co(o.company_id);
       if (!c.report) throw new Error("This company has no signed-off report yet.");
       await WS.API.act("view_doc", { offer_id: id, doc: "Advisor-reviewed report" });
-      WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
+      await WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
       return WS.render({ reload: true, keepScroll: true });
     },
     "inv-doc": (b, id) => {
       const v = views().find((x) => x.id === id), d = b.dataset.doc;
       const text = d + "\n\nSummary prepared by Aegis Ascend Financial Advisors (demo data, fictional)\n\nInvestor: " + S.user.name + (S.user.firm ? " (" + S.user.firm + ")" : "") + "\nCompany: " + v.c.name +
         "\nShares: " + DOM.shares(v.shares) + "\nAmount paid: " + rs(v.cost) + "\nAllotment date: " + dmy(v.h.allotment_date) + "\nMinimum holding: 6 months, until " + dmy(v.lock_until) + "\n\nThe signed original is held by Aegis Ascend.";
-      KIT.save(d.replace(/[^\w]+/g, "-").toLowerCase() + "-" + v.c.name.split(" ")[0].toLowerCase() + ".txt", new Blob([text], { type: "text/plain" }));
+      return KIT.save(d.replace(/[^\w]+/g, "-").toLowerCase() + "-" + v.c.name.split(" ")[0].toLowerCase() + ".txt", new Blob([text], { type: "text/plain" }));
     },
   });
 
