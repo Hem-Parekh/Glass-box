@@ -567,6 +567,17 @@ Menu groups: Today; **Deals** (Company pipeline, Companies, Investor directory, 
   - **Loan sanction letter:** the true all-in yearly cost, the instalment, the total paid, and flags for risky clauses (floating rate, personal guarantee, cross-default, prepayment penalty and similar).
   - **Equity term sheet:** the founder's stake after the round, the effective pre-money valuation, a "who gets what at exit" table, and flags for risky clauses (full-ratchet anti-dilution, participating preference, a large option pool and similar).
 
+### Downloading reports as PDF
+- **Every tool has a "Download PDF" button** at the top of its page: the Funding Twin, the Equity vs Debt Optimizer, the Readiness Score and the Term Sheet Analyser. The CMA funding report keeps its own one-page PDF.
+  - The PDF is branded and A4. It holds the tool's results as shown on screen (headline figures, tables, charts and written summary), followed by a table of every input used.
+  - It is marked **"Working draft · not yet reviewed"**, because only a report signed off by an advisor is final.
+- **The signed debt vs equity report** can be downloaded as a PDF:
+  - **Advisor:** from each report in the Review queue (a report still in review is marked as a draft).
+  - **Founder:** from the new "Debt vs equity report" panel on the Fundraise tracker, once the advisor has signed it off.
+  - **Investor:** from each private offer under Opportunities. The PDF carries a watermark with the investor's name and the date, and each download is logged as a document view.
+  - It carries the "Reviewed by" stamp, the recommended mix, the advisor's note and the release checklist. Founders and advisors also get the full working: founder value by route, the range of outcomes, DSCR by year, the loan schedule and every assumption. Investors get the reviewed summary only.
+- PDFs are made in the browser with jsPDF (`site/jspdf.min.js`, laid out by `site/pdf.js`), so they work in the demo and on the server, and nothing is uploaded.
+
 ### Admin
 - **Enquiries:** messages from the website's contact form.
 - **Audit log:** every action, with filters by action, user and company, plus search. Each entry can be expanded to show the exact before and after values. You can export it.

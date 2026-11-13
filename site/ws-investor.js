@@ -165,7 +165,7 @@
       '<div class="kpis k4"><div class="kpi"><small>Raising</small><b>' + rs(c.raise_paise, true) + '</b></div><div class="kpi"><small>Offer price</small><b>' + (c.offer_price_paise ? rsPrice(c.offer_price_paise) : "–") + "</b><span>a share</span></div>" +
       '<div class="kpi"><small>Engine best mix</small><b>' + pct(s.best_share) + ' debt</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(s.min_dscr) + "</b><span>stress " + UI.xx(s.min_dscr_stress) + "</span></div></div>" +
       (r ? '<p><span class="stamp">Reviewed by ' + esc(WS.userName(r.reviewed_by)) + " · " + UI.date(r.reviewed_at) + "</span> " + (r.review_note ? '<span class="muted">"' + esc(r.review_note) + '"</span>' : "") + "</p>" : "") +
-      '<div class="row gap-s wrap"><button class="btn ghost sm" data-act="inv-report" data-id="' + o.id + '">Read the advisor-reviewed report</button>' +
+      '<div class="row gap-s wrap"><button class="btn ghost sm" data-act="inv-report" data-id="' + o.id + '">Read the advisor-reviewed report</button>' + '<button class="btn ghost sm" data-act="inv-report-pdf" data-id="' + o.id + '">Download PDF</button>' +
       (o.response === "pending" || o.response === "declined" ? '<button class="btn primary sm" data-act="inv-interest" data-id="' + o.id + '">Express interest</button>' : "") +
       (o.response === "pending" || o.response === "interested" ? '<button class="btn ghost sm" data-act="inv-decline" data-id="' + o.id + '">Decline</button>' : "") + "</div></article>";
   }
@@ -202,6 +202,13 @@
       await KIT.dialog({ title: r.title || "Advisor-reviewed report", confirm: "Close", cancel: "Back",
         text: "<p class=\"small muted\">Watermarked: " + esc(S.user.name) + " · " + dmy(today()) + ". Private, do not forward.</p><ul class=\"ticks\"><li>Best mix: " + pct(s.best_share) + " debt, " + pct(1 - s.best_share) + " equity</li><li>Founder better off than all-equity by " + UI.cr(s.net) + " (today's money)</li><li>Debt wins above a company value of " + UI.cr(s.break_even, 0) + "</li><li>Lowest DSCR " + UI.xx(s.min_dscr) + ", stress case " + UI.xx(s.min_dscr_stress) + "</li></ul>" +
           (r.review_note ? "<p>Advisor's note: \"" + esc(r.review_note) + "\"</p>" : "") + "<p class=\"small muted\">Every number comes from the calculation engine and was checked by the advisor before sign-off.</p>" });
+      return WS.render({ reload: true, keepScroll: true });
+    },
+    "inv-report-pdf": async (b, id) => {
+      const o = S.data.offers.find((x) => x.id === id), c = co(o.company_id);
+      if (!c.report) throw new Error("This company has no signed-off report yet.");
+      await WS.API.act("view_doc", { offer_id: id, doc: "Advisor-reviewed report" });
+      WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
       return WS.render({ reload: true, keepScroll: true });
     },
     "inv-doc": (b, id) => {

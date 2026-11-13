@@ -2,7 +2,7 @@
 
   python site/tools/bundle-code.py        ->  aegis-ascend-website-code.md (repository root)
 
-Left out: images, the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
+Left out: images, the vendored jsPDF library (site/jspdf.min.js), the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
 and the standalone optimizer/ and fundmix/ tools.
 """
 import datetime
@@ -22,6 +22,7 @@ PARTS = [
         ("site/ui.js", "Escaping, number formats, the click-any-number explain panel, small SVG charts."),
         ("site/domain.js", "Business arithmetic in integer paise; mirrors server/domain.py."),
         ("site/kit.js", "Workspace components: tables, dialogs, toasts, timelines, kanban, empty states."),
+        ("site/pdf.js", "Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF."),
     ]),
     ("3. Home page 3D emblem", "The WebGL hero scene. site/hero3d.js is built from this source with three.js by site/tools/build-hero3d.sh.", [
         ("site/src/hero3d.js", "The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette."),
@@ -72,9 +73,9 @@ def main():
     w = out.append
     w("# Aegis Ascend website: complete source code\n")
     w("Generated %s. Every file below is reproduced in full, in the order the page loads it.\n" % datetime.date.today().isoformat())
-    w("Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
+    w("Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
     w("## How the pieces fit\n")
-    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
+    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
     w("2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.")
     w("3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.\n")
     w("## Contents\n")

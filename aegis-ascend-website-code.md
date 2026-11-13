@@ -2,11 +2,11 @@
 
 Generated 2026-11-13. Every file below is reproduced in full, in the order the page loads it.
 
-Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.
+Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.
 
 ## How the pieces fit
 
-1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.
+1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.
 2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.
 3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.
 
@@ -20,6 +20,7 @@ Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.j
   - `site/ui.js` (162 lines): Escaping, number formats, the click-any-number explain panel, small SVG charts.
   - `site/domain.js` (127 lines): Business arithmetic in integer paise; mirrors server/domain.py.
   - `site/kit.js` (242 lines): Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
+  - `site/pdf.js` (260 lines): Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF.
 - **3. Home page 3D emblem**
   - `site/src/hero3d.js` (266 lines): The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette.
   - `site/tools/build-hero3d.sh` (13 lines): Bundles the scene with three.js r160 into site/hero3d.js.
@@ -32,16 +33,16 @@ Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.j
   - `site/chat.js` (200 lines): The "Ask Aegis" assistant panel, its quick answers and site guide.
   - `site/sitemap.json` (88 lines): The assistant's map of every page and workspace screen.
 - **6. Sign-in and role workspaces**
-  - `site/portal.js` (585 lines): Sign-in and sign-up, the role-based workspace frame, page router.
-  - `site/ws-founder.js` (165 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
-  - `site/ws-investor.js` (216 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
+  - `site/portal.js` (649 lines): Sign-in and sign-up, the role-based workspace frame, page router.
+  - `site/ws-founder.js` (168 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
+  - `site/ws-investor.js` (223 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
   - `site/ws-lender.js` (207 lines): Lender: loan book with Sell buttons, schedules, applications, monitoring, loan sales, fees.
   - `site/ws-advisor.js` (523 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
 - **7. Standalone pages and build tools**
   - `site/cma-lock.html` (38 lines): The 'Advisors only' page shown instead of the CMA tool to anyone else.
   - `site/build.py` (46 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
   - `site/tools/skyline.py` (155 lines): Draws the New York skyline (site/assets/skyline.svg) and its inline copy.
-  - `site/tools/bundle-code.py` (100 lines): Writes this file.
+  - `site/tools/bundle-code.py` (101 lines): Writes this file.
 - **8. Server (Flask)**
   - `server/app.py` (514 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
   - `server/actions.py` (806 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
@@ -55,7 +56,7 @@ Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.j
   - `server/tests/test_demo_store.py` (12 lines): Runs the demo store tests from Python.
   - `site/tests/store.test.js` (348 lines): Demo store matches the server's behaviour.
 
-Total: 9034 lines in 33 files.
+Total: 9369 lines in 34 files.
 
 
 ---
@@ -2058,6 +2059,273 @@ Workspace components: tables, dialogs, toasts, timelines, kanban, empty states.
 
   root.KIT = { table, selected, clearSel, select, exportTable, xlsx, save, dialog, confirm, toast, figure, mount, empty, skeleton, timeline, kanban, strip };
 })(typeof globalThis !== "undefined" ? globalThis : this);
+```
+
+### `site/pdf.js`
+
+Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF.
+
+```javascript
+/* Branded PDF reports: one renderer for every tool and for signed debt vs equity reports.
+   GBPDF.build(meta, blocks) lays out A4 pages with jsPDF (site/jspdf.min.js) and downloads the file.
+   GBPDF.fromPage(meta, formEl, outEl) turns a tool page (its inputs and results) into blocks first. */
+(function (root) {
+  "use strict";
+  const C = { ink: [22, 23, 26], soft: [71, 68, 62], gold: [201, 160, 79], goldInk: [123, 92, 31], line: [217, 205, 180], tint: [245, 238, 223], black: [13, 14, 16], ivory: [244, 239, 230], faint: [236, 230, 218], bad: [166, 50, 41], good: [30, 120, 90] };
+  const A4 = { w: 595.28, h: 841.89 }, M = 46, W = A4.w - 2 * M, TOP = 66, BOTTOM = A4.h - 58;
+
+  // The standard PDF fonts cover Latin-1 plus a few typographic marks; map the rest to plain text.
+  const MAP = { "−": "-", "‑": "-", "≈": "~", "≥": ">=", "≤": "<=", "₹": "Rs ", "✓": "Yes", "✔": "Yes", "✗": "No", "→": "->", "←": "<-", " ": " ", " ": " ", " ": " ", "◆": "-", "♦": "-" };
+  const KEEP = new Set("–—‘’“”•…€");
+  function clean(s) {
+    return String(s == null ? "" : s).replace(/[Ā-￿]/g, (ch) => (MAP[ch] != null ? MAP[ch] : KEEP.has(ch) ? ch : "")).replace(/[ \t]+/g, " ").trim();
+  }
+  const today = () => { const d = new Date(); return d.getDate() + " " + d.toLocaleString("en-GB", { month: "short" }) + " " + d.getFullYear(); };
+
+  function build(meta, blocks) {
+    const J = root.jspdf && root.jspdf.jsPDF;
+    if (!J) throw new Error("The PDF maker did not load. Refresh the page and try again.");
+    const doc = new J({ unit: "pt", format: "a4", compress: true });
+    doc.setProperties({ title: clean(meta.title), subject: clean(meta.subtitle || ""), author: "Aegis Ascend Financial Advisors", creator: "Aegis Ascend" });
+    let y = 0;
+    const font = (f, st, size, col) => { doc.setFont(f, st); doc.setFontSize(size); doc.setTextColor.apply(doc, col || C.ink); };
+    const lines = (t, w) => doc.splitTextToSize(clean(t), w);
+
+    function cover() {
+      doc.setFillColor.apply(doc, C.black); doc.rect(0, 0, A4.w, 96, "F");
+      doc.setFillColor.apply(doc, C.gold);
+      const dx = M + 9, dy = 40; doc.triangle(dx, dy - 9, dx + 9, dy, dx, dy + 9, "F"); doc.triangle(dx, dy - 9, dx - 9, dy, dx, dy + 9, "F");
+      font("times", "normal", 17, C.ivory); doc.text("AEGIS", M + 28, 46, { charSpace: 2 });
+      doc.setTextColor.apply(doc, C.gold); doc.text("ASCEND", M + 28 + doc.getTextWidth("AEGIS ") + 12, 46, { charSpace: 2 });
+      font("helvetica", "normal", 7.5, C.gold); doc.text("FINANCIAL ADVISORS", M + 28, 60, { charSpace: 2.2 });
+      font("helvetica", "normal", 8, [190, 182, 166]); doc.text(clean(meta.kind || "Report"), A4.w - M, 46, { align: "right" });
+      doc.text(today(), A4.w - M, 60, { align: "right" });
+      y = 128;
+      font("times", "normal", 22, C.ink); for (const l of lines(meta.title, W)) { doc.text(l, M, y); y += 26; }
+      if (meta.subtitle) { font("helvetica", "normal", 10.5, C.soft); for (const l of lines(meta.subtitle, W)) { doc.text(l, M, y - 6); y += 14; } }
+      const facts = (meta.facts || []).filter((f) => f && f[1]);
+      if (facts.length) {
+        y += 4; font("helvetica", "normal", 8.5, C.soft);
+        const txt = facts.map((f) => clean(f[0]) + ": " + clean(f[1])).join("   ·   ");
+        for (const l of lines(txt, W)) { doc.text(l, M, y); y += 12; }
+      }
+      if (meta.stamp) {
+        y += 6; const t = clean(meta.stamp); font("helvetica", "bold", 9, meta.stampBad ? C.bad : C.goldInk);
+        const tw = doc.getTextWidth(t) + 20;
+        doc.setDrawColor.apply(doc, meta.stampBad ? C.bad : C.gold); doc.setLineWidth(1); doc.roundedRect(M, y - 11, tw, 18, 2, 2, "S");
+        doc.text(t, M + 10, y + 1); y += 16;
+      }
+      y += 10; doc.setDrawColor.apply(doc, C.gold); doc.setLineWidth(1.2); doc.line(M, y, A4.w - M, y); y += 22;
+    }
+    function mark() {
+      if (!meta.watermark) return;
+      font("helvetica", "bold", 30, [236, 231, 221]);
+      doc.text(clean(meta.watermark), A4.w / 2, A4.h / 2 + 60, { align: "center", angle: 32 });
+    }
+    function newPage() {
+      doc.addPage(); mark(); y = TOP;
+    }
+    function need(h) { if (y + h > BOTTOM) newPage(); }
+
+    function heading(t, level, keep) {
+      const big = level !== 3;
+      need((big ? 46 : 30) + (keep || 0));
+      if (big) { y += 6; font("times", "normal", 14.5, C.ink); doc.text(clean(t), M, y); y += 6; doc.setDrawColor.apply(doc, C.line); doc.setLineWidth(0.6); doc.line(M, y, A4.w - M, y); y += 16; }
+      else { y += 2; font("helvetica", "bold", 10, C.goldInk); doc.text(clean(t), M, y); y += 14; }
+    }
+    function para(t, o = {}) {
+      const size = o.size || (o.note ? 8.5 : 10), lh = size * 1.38;
+      font("helvetica", o.bold ? "bold" : o.italic ? "italic" : "normal", size, o.note ? C.soft : o.color || C.ink);
+      for (const l of lines(t, W - (o.indent || 0))) { need(lh); doc.text(l, M + (o.indent || 0), y); y += lh; }
+      y += o.after != null ? o.after : 6;
+    }
+    function bullets(items) {
+      for (const it of items) {
+        font("helvetica", "normal", 10, C.ink);
+        const ls = lines(it, W - 16);
+        need(14 * Math.min(ls.length, 2));
+        doc.setFillColor.apply(doc, C.gold); const by = y - 3.5; doc.triangle(M + 4, by - 3, M + 7, by, M + 4, by + 3, "F"); doc.triangle(M + 4, by - 3, M + 1, by, M + 4, by + 3, "F");
+        for (const l of ls) { need(14); doc.text(l, M + 16, y); y += 13.8; }
+        y += 2;
+      }
+      y += 4;
+    }
+    function kpis(items) {
+      const per = items.length >= 4 ? 4 : items.length, gap = 8, w = (W - gap * (per - 1)) / per;
+      for (let i = 0; i < items.length; i += per) {
+        const row = items.slice(i, i + per);
+        const hts = row.map(([l, v, s]) => { font("helvetica", "normal", 7.5); const a = lines(l, w - 16).length; font("helvetica", "bold", 14); const b = lines(v, w - 16).length; font("helvetica", "normal", 7.5); const c = s ? lines(s, w - 16).length : 0; return 16 + a * 9.5 + b * 17 + c * 9.5 + 4; });
+        const h = Math.max(...hts); need(h + 8);
+        row.forEach(([l, v, s, bad], j) => {
+          const x = M + j * (w + gap); let yy = y + 15;
+          doc.setFillColor.apply(doc, j === 0 && i === 0 ? C.tint : [255, 255, 255]); doc.setDrawColor.apply(doc, C.line); doc.setLineWidth(0.6); doc.rect(x, y, w, h, "FD");
+          doc.setFillColor.apply(doc, C.gold); doc.rect(x, y, 2.5, h, "F");
+          font("helvetica", "normal", 7.5, C.soft); for (const t of lines(String(l).toUpperCase(), w - 16)) { doc.text(t, x + 10, yy); yy += 9.5; }
+          yy += 6; font("helvetica", "bold", 14, bad ? C.bad : C.ink); for (const t of lines(v, w - 16)) { doc.text(t, x + 10, yy); yy += 17; }
+          if (s) { yy -= 4; font("helvetica", "normal", 7.5, C.soft); for (const t of lines(s, w - 16)) { doc.text(t, x + 10, yy); yy += 9.5; } }
+        });
+        y += h + 10;
+      }
+      y += 4;
+    }
+    function table(head, rows, align) {
+      const n = Math.max(head.length, ...rows.map((r) => r.length)), pad = 5, size = n > 5 ? 8 : 8.8, lh = size * 1.3;
+      head = head.map(clean); rows = rows.map((r) => Array.from({ length: n }, (_, i) => clean(r[i])));
+      align = align || head.map((_, i) => (i > 0 && rows.length && rows.every((r) => /^[-+(]?\s*(Rs\s*)?[\d,.]+\s*(%|x|cr|crore|lakh|yrs|years|points)?\)?$|^$/i.test(r[i])) ? "right" : "left"));
+      // natural widths, then scale to the page
+      font("helvetica", "normal", size);
+      const nat = Array.from({ length: n }, (_, i) => Math.min(220, Math.max(doc.getTextWidth(head[i] || "") * 1.05, ...rows.map((r) => doc.getTextWidth(r[i] || ""))) + 2 * pad + 2));
+      const minW = 46; let tot = nat.reduce((a, b) => a + b, 0);
+      let ws = nat.map((x) => Math.max(minW, (x / tot) * W));
+      tot = ws.reduce((a, b) => a + b, 0); ws = ws.map((x) => (x / tot) * W);
+      const rowLines = (r, bold) => { font("helvetica", bold ? "bold" : "normal", size); return r.map((t, i) => doc.splitTextToSize(t || "", ws[i] - 2 * pad)); };
+      const drawRow = (cells, kind, idx) => {
+        const h = Math.max(...cells.map((c) => c.length)) * lh + 2 * pad - 1.5;
+        let x = M;
+        if (kind === "head") doc.setFillColor.apply(doc, C.tint); else doc.setFillColor.apply(doc, idx % 2 ? [251, 248, 241] : [255, 255, 255]);
+        doc.rect(M, y, W, h, "F");
+        doc.setDrawColor.apply(doc, C.line); doc.setLineWidth(0.5); doc.line(M, y + h, M + W, y + h);
+        cells.forEach((c, i) => {
+          font("helvetica", kind === "head" ? "bold" : i === 0 && kind !== "plain" ? "bold" : "normal", kind === "head" ? size - 0.6 : size, kind === "head" ? C.goldInk : C.ink);
+          const right = align[i] === "right", tx = right ? x + ws[i] - pad : x + pad;
+          c.forEach((t, k) => doc.text(t, tx, y + pad + size * 0.85 + k * lh, right ? { align: "right" } : undefined));
+          x += ws[i];
+        });
+        y += h;
+        return h;
+      };
+      const hc = rowLines(head, true), hh = Math.max(...hc.map((c) => c.length)) * lh + 2 * pad;
+      need(hh + 24); doc.setDrawColor.apply(doc, C.gold); doc.setLineWidth(1); doc.line(M, y, M + W, y); drawRow(hc, "head");
+      rows.forEach((r, i) => {
+        const cells = rowLines(r, false), h = Math.max(...cells.map((c) => c.length)) * lh + 2 * pad;
+        if (y + h > BOTTOM) { newPage(); doc.setDrawColor.apply(doc, C.gold); doc.setLineWidth(1); doc.line(M, y, M + W, y); drawRow(hc, "head"); }
+        drawRow(cells, "body", i);
+      });
+      y += 14;
+    }
+    function image(b) {
+      let w = Math.min(W, b.w), h = (b.h / b.w) * w;
+      if (h > 300) { h = 300; w = (b.w / b.h) * h; }
+      need(h + 10); doc.addImage(b.data, "PNG", M, y, w, h, undefined, "FAST"); y += h + 12;
+    }
+
+    mark(); cover();
+    // a heading stays on the same page as the start of what follows it
+    const keepH = (b) => !b ? 0 : b.t === "img" ? Math.min(300, (b.h / b.w) * Math.min(W, b.w)) + 10 : b.t === "kpis" ? 80 : b.t === "table" || b.t === "kv" ? 70 : b.t === "h" ? 40 : 30;
+    blocks = blocks.filter(Boolean);
+    blocks.forEach((b, i) => {
+      if (b.t === "h") { const nx = blocks[i + 1]; heading(b.text, b.level, keepH(nx) + (nx && ["h", "p", "note"].includes(nx.t) ? keepH(blocks[i + 2]) : 0)); }
+      else if (b.t === "p") para(b.text, b);
+      else if (b.t === "note") para(b.text, { note: true });
+      else if (b.t === "bullets") bullets(b.items);
+      else if (b.t === "kpis") kpis(b.items);
+      else if (b.t === "table") table(b.head, b.rows, b.align);
+      else if (b.t === "kv") table(b.head || ["Item", "Value"], b.rows, ["left", "left"]);
+      else if (b.t === "img") image(b);
+      else if (b.t === "space") y += b.h || 10;
+    });
+    if (meta.closing) { y += 6; para(meta.closing, { note: true }); }
+
+    // running header, footer, page numbers and the optional watermark on every page
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      if (i > 1) {
+        font("times", "normal", 8, C.goldInk); doc.text("AEGIS ASCEND", M, 36, { charSpace: 1.5 });
+        font("helvetica", "normal", 8, C.soft); doc.text(clean(meta.title), A4.w - M, 36, { align: "right" });
+        doc.setDrawColor.apply(doc, C.line); doc.setLineWidth(0.5); doc.line(M, 44, A4.w - M, 44);
+      }
+      doc.setDrawColor.apply(doc, C.line); doc.setLineWidth(0.5); doc.line(M, A4.h - 44, A4.w - M, A4.h - 44);
+      font("helvetica", "normal", 7, C.soft);
+      const foot = clean(meta.footer || "Decision-support analysis from tested calculation code, not financial advice. Figures depend on the inputs shown.");
+      doc.text(doc.splitTextToSize(foot, W - 70), M, A4.h - 32);
+      doc.text("Page " + i + " of " + pages, A4.w - M, A4.h - 32, { align: "right" });
+    }
+    return doc;
+  }
+
+  function save(meta, blocks) {
+    const doc = build(meta, blocks);
+    const name = (meta.filename || meta.title || "report").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) + ".pdf";
+    doc.save(name);
+    return name;
+  }
+
+  // ---------- reading a tool page ----------
+  const txt = (el) => clean((el.innerText || el.textContent || "").replace(/\s*\n\s*/g, " "));
+  function formInputs(form) {
+    const rows = [];
+    if (!form) return rows;
+    form.querySelectorAll("label.fld, label.slider").forEach((lab) => {
+      if (lab.closest("[hidden]")) return;
+      const span = lab.querySelector("span"); if (!span) return;
+      const c = span.cloneNode(true); c.querySelectorAll("i, b").forEach((x) => x.remove());
+      const ctl = lab.querySelector("input, select, textarea");
+      if (lab.classList.contains("slider")) { rows.push([txt(span).replace(/\s+by\s+.*$/i, ""), txt(span).replace(/^.*?\s+by\s+/i, "")]); return; }
+      if (!ctl || ctl.type === "file" || ctl.type === "hidden") return;
+      let v = ctl.tagName === "SELECT" ? (ctl.selectedOptions[0] || {}).text || ctl.value : ctl.value;
+      const unit = lab.querySelector("em"); if (unit && v !== "") v += " " + txt(unit);
+      rows.push([txt(c), v === "" ? "-" : v]);
+    });
+    form.querySelectorAll(".checkset label, .checks label, label.check").forEach((lab) => {
+      const cb = lab.querySelector('input[type="checkbox"]'); if (!cb) return;
+      rows.push([txt(lab), cb.checked ? "Yes" : "No"]);
+    });
+    return rows;
+  }
+
+  async function svgImage(svg) {
+    const box = svg.getBoundingClientRect(); if (box.width < 20 || box.height < 20) return null;
+    const clone = svg.cloneNode(true), src = [svg, ...svg.querySelectorAll("*")], dst = [clone, ...clone.querySelectorAll("*")];
+    const props = ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "opacity", "fill-opacity", "stroke-opacity", "font-size", "font-family", "font-weight", "text-anchor", "dominant-baseline", "visibility"];
+    src.forEach((el, i) => {
+      const cs = getComputedStyle(el); if (!dst[i] || !dst[i].setAttribute) return;
+      dst[i].setAttribute("style", props.map((p) => p + ":" + cs.getPropertyValue(p)).join(";") + (el.tagName === "text" || el.tagName === "tspan" ? ";font-family:Helvetica,Arial,sans-serif" : ""));
+    });
+    clone.setAttribute("width", box.width); clone.setAttribute("height", box.height);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+    try {
+      const im = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+      const k = 2, cv = document.createElement("canvas"); cv.width = Math.round(box.width * k); cv.height = Math.round(box.height * k);
+      const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(im, 0, 0, cv.width, cv.height);
+      return { t: "img", data: cv.toDataURL("image/png"), w: box.width, h: box.height };
+    } catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+  }
+
+  async function walk(el, out) {
+    for (const ch of el.children) {
+      if (ch.hidden || ch.matches("button, form, input, select, textarea, script, style, [data-pdf-skip]")) continue;
+      if (getComputedStyle(ch).display === "none") continue;
+      if (ch.matches(".kpis")) {
+        out.push({ t: "kpis", items: [...ch.querySelectorAll(".kpi")].map((k) => { const b = k.querySelector("b"); return [k.querySelector("small") ? txt(k.querySelector("small")) : "", b ? txt(b) : "", k.querySelector("span") ? txt(k.querySelector("span")) : "", !!(b && b.classList.contains("t-bad"))]; }) });
+      } else if (/^H[1-3]$/.test(ch.tagName)) out.push({ t: "h", text: txt(ch), level: ch.tagName === "H3" ? 3 : 2 });
+      else if (ch.tagName === "TABLE" || ch.matches(".tw")) {
+        const tb = ch.tagName === "TABLE" ? ch : ch.querySelector("table"); if (!tb) continue;
+        const head = [...tb.querySelectorAll("thead th")].map(txt);
+        const rows = [...tb.querySelectorAll("tbody tr")].map((tr) => [...tr.children].map(txt));
+        const align = [...tb.querySelectorAll("thead th")].map((th) => (th.classList.contains("num") ? "right" : "left"));
+        if (rows.length) out.push({ t: "table", head: head.length ? head : rows[0].map(() => ""), rows, align: align.length ? align : undefined });
+      } else if (ch.tagName === "svg" || ch.tagName === "SVG") { const im = await svgImage(ch); if (im) out.push(im); }
+      else if (ch.tagName === "UL" || ch.tagName === "OL") { const items = [...ch.children].map(txt).filter(Boolean); if (items.length) out.push({ t: "bullets", items }); }
+      else if (ch.tagName === "P" || ch.matches(".notice")) { const t = txt(ch); if (t) out.push(ch.matches(".muted, .small, .notice") ? { t: "note", text: t } : { t: "p", text: t, bold: ch.matches(".rule") }); }
+      else if (ch.matches(".meter")) { const l = ch.querySelector(".meter-top span"), v = ch.querySelector(".meter-top b"); out.push({ t: "h", level: 3, text: (l ? txt(l) : "") + ": " + (v ? txt(v) : "") }); }
+      else if (ch.children.length && ch.querySelector("div, p, section, ul, ol, table, h1, h2, h3, svg, .kpis")) await walk(ch, out);
+      else { const t = txt(ch); if (t) out.push({ t: "p", text: t }); }
+    }
+    return out;
+  }
+
+  async function fromPage(meta, form, out) {
+    const blocks = [];
+    const inputs = formInputs(form);
+    if (out) await walk(out, blocks);
+    if (inputs.length) blocks.push({ t: "h", text: meta.inputsTitle || "Inputs used" }, { t: "kv", head: ["Input", "Value"], rows: inputs });
+    return save(meta, blocks);
+  }
+
+  root.GBPDF = { build, save, fromPage, clean };
+})(typeof window !== "undefined" ? window : globalThis);
 ```
 
 
@@ -4406,6 +4674,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   const statusChip = (s) => chip({ approved: "ok", in_review: "warn", changes: "bad", draft: "", requested: "warn", granted: "ok", declined: "bad", applied: "warn", sanctioned: "ok", disbursed: "ok", consent_needed: "warn", completed: "ok", open: "warn" }[s] || "", ({ in_review: "In review", changes: "Changes requested", consent_needed: "Needs founder consent", first_refusal: "First refusal", buyer_intro: "Buyer introduction", spa: "SPA", open: "In progress" })[s] || s.charAt(0).toUpperCase() + s.slice(1));
   const stamp = (r) => (r && r.status === "approved" ? '<span class="stamp">Reviewed by ' + esc(userName(r.reviewed_by)) + " · " + date(r.reviewed_at) + "</span>" : "");
   const latestReport = (cid) => S.data.reports.filter((r) => r.company_id === cid).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+  const pdfBtn = (tool) => '<button class="btn ghost sm" type="button" data-act="pdf-tool" data-tool="' + tool + '">Download PDF</button>';
   const head = (title, sub, extra) => '<div class="pg-head masthead"><div><h1>' + esc(title) + "</h1>" + (sub ? '<p class="muted">' + sub + "</p>" : "") + "</div>" + (extra || "") + "</div>";
   const empty = (t, d) => '<div class="empty"><b>' + esc(t) + "</b><p>" + d + "</p></div>";
 
@@ -4461,7 +4730,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     const q = twinInputs(c);
     const sel = S.user.role === "advisor" ? '<label class="fld inline"><span>Company</span><span class="in"><select data-act="twin-company">' + S.data.companies.map((x) => "<option value=\"" + x.id + '"' + (x.id === c.id ? " selected" : "") + ">" + esc(x.name) + "</option>").join("") + "</select></span></label>" : "";
     const fv = (k, kind) => kind === "pct" ? +(q[k] * 100).toFixed(4) : q[k];
-    return head("Funding Twin", "A live copy of " + esc(c.name) + "'s finances. Change any input and every number below updates. Click a number to see how it is calculated.", sel) +
+    return head("Funding Twin", "A live copy of " + esc(c.name) + "'s finances. Change any input and every number below updates. Click a number to see how it is calculated.", '<div class="row gap-s wrap">' + sel + pdfBtn("twin") + "</div>") +
       '<div class="twin"><form class="panel twin-in" data-form="twin" data-company="' + c.id + '" novalidate><h2>Assumptions</h2>' +
       '<div class="fields f2">' + TWIN_FIELDS.map(([k, l, u, kind, src]) => '<label class="fld" for="t_' + k + '"><span>' + esc(l) + ' <i class="src src-' + src + '">' + src + '</i></span><span class="in"><input id="t_' + k + '" name="' + k + '" data-kind="' + kind + '" value="' + esc(fv(k, kind)) + '" inputmode="decimal"><em>' + u + "</em></span></label>").join("") + "</div>" +
       '<h3>Stress slider</h3><label class="slider" for="t_sales_drop"><span>Sales fall by <b id="sv_sales">' + pct(q.sales_drop) + '</b></span><input type="range" id="t_sales_drop" name="sales_drop" data-kind="pct" min="0" max="40" step="1" value="' + Math.round(q.sales_drop * 100) + '"></label>' +
@@ -4506,7 +4775,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       t.schedule.map((r) => "<tr><td>Y" + r.year + '</td><td class="num">' + n(r.opening, 2) + '</td><td class="num">' + n(r.interest, 2) + '</td><td class="num">' + n(r.principal, 2) + '</td><td class="num">' + n(r.payment, 2) + '</td><td class="num">' + n(Math.abs(r.closing) < 1e-9 ? 0 : r.closing, 2) + "</td></tr>").join("") +
       '</tbody></table></div><p class="muted small">Yearly instalment = P x r / (1 - (1 + r)^-n) = ' + gx(cr(t.payment, 2), { title: "Yearly loan instalment", formula: "P x r / (1 - (1 + r)^-n)", inputs: [["P (loan)", cr(q.raise), "founder"], ["r (rate)", pct(q.loan_rate, 2), "benchmark"], ["n (years)", q.tenor, "benchmark"]] }) + ". Total repaid " + cr(t.total_repaid, 2) + ".</p></section>" +
       '<section class="panel"><h2>Plain-language summary</h2><p class="narr">' + esc(narrative) + '</p><p class="small ' + (verified === found.length ? "t-good" : "t-bad") + '">Number check: ' + verified + " of " + found.length + " numbers in this summary match the engine output.</p>" +
-      (S.user.role === "advisor" ? submitBlock(c, rep, t, q, verified === found.length) : "") + "</section>";
+      (S.user.role === "advisor" ? '<div data-pdf-skip>' + submitBlock(c, rep, t, q, verified === found.length) + "</div>" : "") + "</section>";
   }
   function simBlock(s) {
     return '<div class="kpis k3"><div class="kpi"><small>Debt leaves you better off</small><b>' + pct(s.p_debt_better) + '</b><span>of simulated futures (all-debt vs all-equity)</span></div><div class="kpi"><small>Risk of a year with DSCR below 1</small><b class="' + (s.p_default > 0.1 ? "t-bad" : "") + '">' + pct(s.p_default) + '</b><span>with the whole raise as debt</span></div><div class="kpi"><small>Net effect range (10th-90th)</small><b>' + cr(s.p10, 0) + " to " + cr(s.p90, 0) + "</b><span>median " + cr(s.p50, 0) + " (year-N value)</span></div></div><p class=\"muted small\">" + s.runs.toLocaleString("en-IN") + " runs, seed " + s.seed + ".</p>";
@@ -4524,7 +4793,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   function readinessPage() {
     const c = S.user.role === "founder" ? myCompany() : twinTarget();
     const a = Object.assign({}, GB.READINESS_DEFAULTS, c.readiness || {});
-    return head("Funding Readiness Score", "How ready " + esc(c.name) + " is to raise debt and equity today, and what to fix first.") +
+    return head("Funding Readiness Score", "How ready " + esc(c.name) + " is to raise debt and equity today, and what to fix first.", pdfBtn("readiness")) +
       '<div class="twin"><form class="panel twin-in" data-form="readiness" data-company="' + c.id + '" novalidate><h2>Your answers</h2><div class="fields f2">' +
       READY_FIELDS.map(([k, l, u, kind]) => '<label class="fld"><span>' + esc(l) + '</span><span class="in"><input name="' + k + '" id="rd_' + k + '" data-kind="' + kind + '" value="' + (kind === "pct" ? +(a[k] * 100).toFixed(2) : a[k]) + '" inputmode="decimal">' + (u ? "<em>" + u + "</em>" : "") + "</span></label>").join("") + "</div>" +
       '<div class="checkset">' + READY_CHECKS.map(([k, l]) => '<label><input type="checkbox" name="' + k + '" id="rd_' + k + '"' + (a[k] ? " checked" : "") + "> " + esc(l) + "</label>").join("") + "</div>" +
@@ -4578,7 +4847,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   }
   function optimizerPage() {
     const q = optInputs();
-    return head("Equity vs Debt Optimizer", "Tests every mix from 0% to 100% equity, year by year, and shows which leaves the founder the most money. Hover a field for what it means; click any underlined number for its working.") +
+    return head("Equity vs Debt Optimizer", "Tests every mix from 0% to 100% equity, year by year, and shows which leaves the founder the most money. Hover a field for what it means; click any underlined number for its working.", pdfBtn("optimizer")) +
       '<div class="twin"><form class="panel twin-in" data-form="opt" novalidate><h2>Inputs</h2><div class="fields f2">' + OPT_FIELDS.map(optField).join("") + "</div>" +
       '<details><summary class="small" style="cursor:pointer">Advanced: tax, exit value, fees, payout</summary><div class="fields f2" style="margin-top:12px">' + OPT_ADV.map(optField).join("") + "</div></details>" +
       '<label class="fld"><span>Rank mixes by</span><span class="in"><select name="metric" id="o_metric">' + Object.entries(EDO.METRICS).map(([k, v]) => '<option value="' + k + '"' + (q.metric === k ? " selected" : "") + ">" + esc(v) + "</option>").join("") + "</select></span></label>" +
@@ -4646,7 +4915,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
 
   function termSheetPage() {
     const tab = S.tsTab;
-    return head("Term Sheet Analyser", "The real cost and the risky clauses of a sanction letter or an equity term sheet.") +
+    return head("Term Sheet Analyser", "The real cost and the risky clauses of a sanction letter or an equity term sheet.", pdfBtn("termsheet")) +
       '<div class="tabs" role="tablist"><button role="tab" aria-selected="' + (tab === "loan") + '" data-act="ts-tab" data-t="loan">Loan sanction letter</button><button role="tab" aria-selected="' + (tab === "equity") + '" data-act="ts-tab" data-t="equity">Equity term sheet</button></div>' +
       (tab === "loan" ? '<div class="twin"><form class="panel twin-in" data-calc="loants" novalidate><h2>Terms</h2><div class="fields f2">' +
         PUB.field("amount", "Loan amount", 10, "Rs cr") + PUB.field("rate", "Headline rate", 10.5, "%") + PUB.field("tenor", "Tenor", 7, "years") + PUB.field("processing_fee", "Processing fee", 1, "%") + PUB.field("other_fees", "Other upfront fees", 0.05, "Rs cr") + PUB.field("prepayment_penalty", "Prepayment penalty", 2, "%") + PUB.field("collateral_margin", "Collateral margin", 25, "%") +
@@ -4701,7 +4970,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     const q = S.data.reports.slice().sort((a, b) => (a.status === "in_review" ? -1 : 1));
     return head("Review queue", "Check the release checklist, challenge the assumptions, then sign off or send back.") +
       q.map((r) => { const c = companyById(r.company_id), s = r.summary || {};
-        return '<section class="panel"><div class="pg-head"><div><h2>' + esc(r.title) + '</h2><p class="muted">' + esc(c.name) + " · " + esc(r.engine_version || "") + " · submitted " + date(r.created_at) + "</p></div>" + statusChip(r.status) + "</div>" +
+        return '<section class="panel"><div class="pg-head"><div><h2>' + esc(r.title) + '</h2><p class="muted">' + esc(c.name) + " · " + esc(r.engine_version || "") + " · submitted " + date(r.created_at) + "</p></div>" + '<div class="row gap-s">' + statusChip(r.status) + '<button class="btn ghost sm" type="button" data-act="pdf-report" data-id="' + r.id + '">Download PDF</button></div></div>' +
           '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(s.best_share) + ' debt</b></div><div class="kpi"><small>Net effect</small><b>' + cr(s.net) + '</b></div><div class="kpi"><small>Break-even</small><b>' + cr(s.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + xx(s.min_dscr) + "</b><span>stress " + xx(s.min_dscr_stress) + "</span></div></div>" +
           '<ul class="checks"><li class="' + (r.checks && r.checks.validation ? "done" : "") + '">Validation checks passed</li><li class="' + (r.checks && r.checks.founder_confirmed ? "done" : "") + '">Data confirmed by the founder</li><li class="' + (r.checks && r.checks.verifier ? "done" : "") + '">Verifier number check passed</li><li class="done">Engine version recorded</li></ul>' +
           (r.status === "in_review" ? '<form data-form="review" data-id="' + r.id + '"><label class="fld"><span>Review note</span><span class="in"><textarea name="note" id="rv_' + r.id + '" rows="2" placeholder="What you checked and anything the founder should change"></textarea></span></label><div class="row gap-s"><button class="btn primary" type="submit" name="decision" value="approve">Approve and stamp</button><button class="btn ghost" type="submit" name="decision" value="changes">Request changes</button><button class="btn ghost" type="button" data-act="open-twin" data-id="' + c.id + '">Open in Funding Twin</button></div></form>'
@@ -4845,6 +5114,67 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- PDF downloads ----------
+  const TOOLS = {
+    twin: { name: "Funding Twin", form: 'form[data-form="twin"]', out: "#twin-out", sub: "Best debt and equity mix, stress tests and loan schedule", company: () => twinTarget() },
+    readiness: { name: "Funding Readiness Score", form: 'form[data-form="readiness"]', out: "#ready-out", sub: "Debt and equity readiness out of 100, with what to fix first", company: () => (S.user.role === "founder" ? myCompany() : twinTarget()) },
+    optimizer: { name: "Equity vs Debt Optimizer", form: 'form[data-form="opt"]', out: "#opt-out", sub: "Every mix from 0% to 100% equity, ranked for the founder" },
+    termsheet: { name: "Term Sheet Analyser", form: 'form[data-calc="loants"], form[data-calc="eqts"]', out: "#calc-loants, #calc-eqts", sub: () => (S.tsTab === "loan" ? "Loan sanction letter: true cost and risky clauses" : "Equity term sheet: founder stake and risky clauses") },
+  };
+  const preparedBy = () => S.user.name + " (" + roleName(S.user.role) + ")";
+  async function toolPdf(b) {
+    const T = TOOLS[b.dataset.tool]; if (!T) return;
+    const label = b.textContent; b.disabled = true; b.textContent = "Preparing…";
+    try {
+      const c = T.company ? T.company() : null;
+      const name = await GBPDF.fromPage({
+        kind: T.name, title: T.name + (c ? ": " + c.name : ""), subtitle: typeof T.sub === "function" ? T.sub() : T.sub,
+        facts: [["Company", c && c.name], ["Prepared by", preparedBy()], ["Engine", GB.ENGINE_VERSION]],
+        stamp: "Working draft · not yet reviewed", footer: "Working draft from the " + T.name + ". Decision-support analysis from tested calculation code, not financial advice. Only a report signed off by an Aegis Ascend advisor is final.",
+        filename: T.name + (c ? " " + c.name : "") + " " + new Date().toISOString().slice(0, 10),
+      }, $(T.form), $(T.out));
+      KIT.toast("Downloaded " + name);
+    } finally { b.disabled = false; b.textContent = label; }
+  }
+  // The signed debt vs equity report. Founders and advisors get the full working (the report keeps its inputs);
+  // investors get the reviewed summary, watermarked with their name.
+  function reportPdf(c, r, opts = {}) {
+    const s = r.summary || {}, approved = r.status === "approved" || !!r.reviewed_by;
+    const blocks = [{ t: "kpis", items: [["Recommended mix", pct(s.best_share) + " debt", pct(1 - s.best_share) + " equity"], ["Better off than all-equity", cr(s.net), "today's money"], ["Break-even value", cr(s.break_even, 0), "debt wins above this"], ["Lowest DSCR", xx(s.min_dscr), "stress case " + xx(s.min_dscr_stress), s.min_dscr_stress < 1]] }];
+    if (r.inputs) {
+      const q = Object.assign({}, GB.TWIN_DEFAULTS, r.inputs), t = GB.twin(q), b = t.best, disc = Math.pow(1 + q.discount_rate, q.horizon);
+      const exp = GB.dscrPath(q, b.loan), str = GB.dscrPath(q, b.loan, { salesDrop: q.sales_drop, rateShock: q.rate_shock });
+      blocks.push({ t: "h", text: "Recommendation" },
+        { t: "p", text: "We recommend raising " + pct(b.share) + " of the " + cr(q.raise, 0) + " as debt (" + cr(b.loan) + ") and " + pct(1 - b.share) + " as equity (" + cr(b.equity) + "). Over " + q.horizon + " years this leaves the founder about " + cr((b.value - t.equity.value) / disc) + " better off in today's money than raising it all as equity." },
+        { t: "p", text: "Debt wins outright if the company is worth more than " + cr(t.break_even, 0) + " in year " + q.horizon + ", which needs value growth of " + pct(t.break_even_growth, 1) + " a year against an assumed " + pct(q.value_growth) + ". At this mix the lowest repayment safety ratio (DSCR) is " + xx(b.dscr) + ", and " + xx(b.dscr_stress) + " with sales down " + pct(q.sales_drop) + " and rates up " + (q.rate_shock * 100).toFixed(1) + " points." },
+        { t: "h", text: "Founder value by route, year " + q.horizon },
+        { t: "table", head: ["Route", "Loan", "Equity raised", "Founder value"], rows: [["All equity", cr(0), cr(q.raise), cr(t.equity.value)], ["All debt", cr(q.raise), cr(0), cr(t.debt.value)], ["Recommended mix", cr(b.loan), cr(b.equity), cr(b.value)]] },
+        { t: "h", text: "Range of outcomes" },
+        { t: "table", head: ["Case", "Value growth", "Founder value, all debt", "Founder value, all equity", "Net effect today"], rows: ["best", "expected", "worst"].map((k) => { const x = t.range[k]; return [k.charAt(0).toUpperCase() + k.slice(1), pct(x.growth), cr(x.debt), cr(x.equity), cr(x.net)]; }) },
+        { t: "h", text: "Repayment safety by year (DSCR)" },
+        { t: "table", head: ["Year", "Expected", "Stress case", "Cash after debt service, stress"], rows: exp.map((x, i) => ["Y" + x.year, xx(x.dscr), xx(str[i].dscr), cr(str[i].cash_after)]) },
+        { t: "note", text: "Minimum DSCR required: " + xx(q.dscr_min) + " in the expected case and 1.00x under stress. Loan at the recommended mix: " + cr(b.loan) + "." },
+        { t: "h", text: "Loan schedule (all-debt case)" },
+        { t: "table", head: ["Year", "Opening", "Interest", "Principal", "Payment", "Closing"], rows: t.schedule.map((x) => ["Y" + x.year, n(x.opening, 2), n(x.interest, 2), n(x.principal, 2), n(x.payment, 2), n(Math.abs(x.closing) < 1e-9 ? 0 : x.closing, 2)]) },
+        { t: "note", text: "Amounts in Rs crore. Yearly instalment " + cr(t.payment, 2) + "; total repaid " + cr(t.total_repaid, 2) + "." },
+        { t: "h", text: "Assumptions" },
+        { t: "kv", head: ["Assumption", "Value", "Source"], rows: TWIN_FIELDS.map(([k, l, u, kind, src]) => [l, (kind === "pct" ? +(q[k] * 100).toFixed(2) : q[k]) + " " + u, src]).concat([["Sales drop in the stress case", pct(q.sales_drop), "founder"], ["Interest rise in the stress case", (q.rate_shock * 100).toFixed(1) + " points", "founder"]]) });
+    } else {
+      blocks.push({ t: "h", text: "Recommendation" }, { t: "p", text: "Raise " + pct(s.best_share) + " as debt and " + pct(1 - s.best_share) + " as equity. The founder ends up about " + cr(s.net) + " better off in today's money than with an all-equity raise. Debt wins outright above a company value of " + cr(s.break_even, 0) + ". The lowest repayment safety ratio is " + xx(s.min_dscr) + ", and " + xx(s.min_dscr_stress) + " in the stress case." });
+    }
+    if (r.review_note) blocks.push({ t: "h", text: "Advisor's note" }, { t: "p", text: "“" + r.review_note + "”", italic: true });
+    if (r.checks) blocks.push({ t: "h", text: "Release checklist" }, { t: "bullets", items: [["validation", "Validation checks passed"], ["founder_confirmed", "Figures confirmed by the founder"], ["verifier", "Number check by the verifier passed"]].map(([k, l]) => (r.checks[k] ? "Done: " : "Pending: ") + l).concat(["Engine version recorded: " + (r.engine_version || GB.ENGINE_VERSION)]) });
+    const name = GBPDF.save({
+      kind: "Debt vs equity report", title: r.title || "Debt vs equity report", subtitle: c.name + (c.sector ? " · " + c.sector : ""),
+      facts: [["Company", c.name], ["Engine", r.engine_version], ["Submitted", r.created_at && date(r.created_at)]],
+      stamp: approved ? "Reviewed by " + (r.reviewed_by ? userName(r.reviewed_by) : "an advisor") + " · " + date(r.reviewed_at) : "Draft · waiting for advisor review", stampBad: !approved,
+      watermark: opts.watermark, footer: (opts.watermark ? "Private offer document for " + S.user.name + ". Do not forward. " : "") + "Every number comes from the calculation engine and was checked by an Aegis Ascend advisor before sign-off. Decision-support analysis, not a guarantee of outcomes.",
+      filename: "Debt vs equity report " + c.name + (approved ? "" : " draft"),
+    }, blocks);
+    KIT.toast("Downloaded " + name);
+    return name;
+  }
+
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b || b.tagName === "SELECT") return;
     const act = b.dataset.act, id = b.dataset.id;
@@ -4871,6 +5201,8 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         case "ts-tab": S.tsTab = b.dataset.t; return render({ keepScroll: true });
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
+        case "pdf-tool": return await toolPdf(b);
+        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
       }
@@ -4913,7 +5245,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
@@ -4947,6 +5279,9 @@ Founder: fundraise, investors, deal room, cap table, data room, revenue share, l
     const idx = Math.max(0, STAGES.findIndex(([k]) => k === c.pipeline_stage));
     return WS.head("Fundraise tracker", "Where your raise stands. Investors' names appear only after they agree to share them with you.") +
       '<section class="panel"><h2>Stage</h2>' + (c.pipeline_stage === "rejected" ? '<p class="t-bad">Your application was not taken forward. Your advisor will explain why.</p>' : KIT.timeline(STAGES, STAGES[idx][0], { [c.pipeline_stage]: c.stage_since })) + "</section>" +
+      (() => { const r = WS.latestReport(c.id); return '<section class="panel"><h2>Debt vs equity report</h2>' + (r ? '<div class="row gap-s wrap"><span><b>' + esc(r.title) + "</b></span>" + WS.statusChip(r.status) + WS.stamp(r) + "</div>" +
+        (r.status === "approved" ? '<p class="muted">Signed off by your advisor. Download it to share with your board or bank.</p><button class="btn primary sm" type="button" data-act="pdf-report" data-id="' + r.id + '">Download PDF</button>' : '<p class="muted">Your advisor is reviewing this report. You can download it once it is signed off.</p>')
+        : '<p class="muted">Your advisor prepares this report with the Funding Twin. It appears here once submitted.</p>') + "</section>"; })() +
       '<div class="kpis k4" data-stagger><div class="kpi"><small>Offers sent this year</small><b>' + gx(String(offersN + ext), { title: "Offers counted for FY " + fy, formula: "Investors offered through Aegis Ascend + offers your company made directly. Limit 200 per financial year for each kind of security.", inputs: [["Through Aegis Ascend", String(offersN), "offer log"], ["Made directly", String(ext), "advisor"]] }) + "</b><span>of " + (D().settings || {}).offer_limit + " allowed in FY " + fy + '</span></div>' +
       '<div class="kpi"><small>Interested</small><b>' + keen.length + '</b></div><div class="kpi"><small>Committed</small><b>' + committed.length + '</b></div><div class="kpi"><small>Raised so far</small><b>' + rs(raised, true) + "</b><span>of " + rs(c.raise_paise, true) + "</span></div></div>" +
       '<div class="grid2"><section class="panel"><h2>Investors</h2>' + (keen.length + committed.length ? '<ul class="docs">' + committed.concat(keen).map((o) => "<li><span>" + (o.investor_id ? "<b>" + esc(o.investor_name) + "</b>" : '<span class="muted">' + esc(o.investor_name) + "</span>") + "</span>" + chip(o.response === "invested" ? "ok" : "warn", o.response === "invested" ? "Committed" : "Interested") + "</li>").join("") + "</ul>" : '<p class="muted">No responses yet.</p>') +
@@ -5264,7 +5599,7 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
       '<div class="kpis k4"><div class="kpi"><small>Raising</small><b>' + rs(c.raise_paise, true) + '</b></div><div class="kpi"><small>Offer price</small><b>' + (c.offer_price_paise ? rsPrice(c.offer_price_paise) : "–") + "</b><span>a share</span></div>" +
       '<div class="kpi"><small>Engine best mix</small><b>' + pct(s.best_share) + ' debt</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + UI.xx(s.min_dscr) + "</b><span>stress " + UI.xx(s.min_dscr_stress) + "</span></div></div>" +
       (r ? '<p><span class="stamp">Reviewed by ' + esc(WS.userName(r.reviewed_by)) + " · " + UI.date(r.reviewed_at) + "</span> " + (r.review_note ? '<span class="muted">"' + esc(r.review_note) + '"</span>' : "") + "</p>" : "") +
-      '<div class="row gap-s wrap"><button class="btn ghost sm" data-act="inv-report" data-id="' + o.id + '">Read the advisor-reviewed report</button>' +
+      '<div class="row gap-s wrap"><button class="btn ghost sm" data-act="inv-report" data-id="' + o.id + '">Read the advisor-reviewed report</button>' + '<button class="btn ghost sm" data-act="inv-report-pdf" data-id="' + o.id + '">Download PDF</button>' +
       (o.response === "pending" || o.response === "declined" ? '<button class="btn primary sm" data-act="inv-interest" data-id="' + o.id + '">Express interest</button>' : "") +
       (o.response === "pending" || o.response === "interested" ? '<button class="btn ghost sm" data-act="inv-decline" data-id="' + o.id + '">Decline</button>' : "") + "</div></article>";
   }
@@ -5301,6 +5636,13 @@ Investor: portfolio, holdings, sell requests and resale fees, opportunities, dea
       await KIT.dialog({ title: r.title || "Advisor-reviewed report", confirm: "Close", cancel: "Back",
         text: "<p class=\"small muted\">Watermarked: " + esc(S.user.name) + " · " + dmy(today()) + ". Private, do not forward.</p><ul class=\"ticks\"><li>Best mix: " + pct(s.best_share) + " debt, " + pct(1 - s.best_share) + " equity</li><li>Founder better off than all-equity by " + UI.cr(s.net) + " (today's money)</li><li>Debt wins above a company value of " + UI.cr(s.break_even, 0) + "</li><li>Lowest DSCR " + UI.xx(s.min_dscr) + ", stress case " + UI.xx(s.min_dscr_stress) + "</li></ul>" +
           (r.review_note ? "<p>Advisor's note: \"" + esc(r.review_note) + "\"</p>" : "") + "<p class=\"small muted\">Every number comes from the calculation engine and was checked by the advisor before sign-off.</p>" });
+      return WS.render({ reload: true, keepScroll: true });
+    },
+    "inv-report-pdf": async (b, id) => {
+      const o = S.data.offers.find((x) => x.id === id), c = co(o.company_id);
+      if (!c.report) throw new Error("This company has no signed-off report yet.");
+      await WS.API.act("view_doc", { offer_id: id, doc: "Advisor-reviewed report" });
+      WS.reportPdf(c, Object.assign({ status: "approved" }, c.report), { watermark: S.user.name + " · " + dmy(today()) + " · private" });
       return WS.render({ reload: true, keepScroll: true });
     },
     "inv-doc": (b, id) => {
@@ -6133,7 +6475,7 @@ def seed_markers():
 
 
 def scripts_inline():
-    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("hero3d.js"),
+    parts = [read("calc.js"), read("optimizer.js"), read("ui.js"), read("domain.js"), read("kit.js"), read("jspdf.min.js"), read("pdf.js"), read("hero3d.js"),
              "window.GB_SEED = " + seed_markers() + ";", "window.GB_SITEMAP = " + json.dumps(json.loads(read("sitemap.json")), separators=(",", ":")) + ";", read("store.js"),
              'window.GB_API = window.GBStore; window.GB_CMA_URL = "fundmix.html"; window.GB_ASSETS = "assets/";',
              read("public.js"), read("motion.js"), read("chat.js"), read("portal.js"), read("ws-investor.js"), read("ws-lender.js"), read("ws-advisor.js"), read("ws-founder.js")]
@@ -6335,7 +6677,7 @@ Writes this file.
 
   python site/tools/bundle-code.py        ->  aegis-ascend-website-code.md (repository root)
 
-Left out: images, the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
+Left out: images, the vendored jsPDF library (site/jspdf.min.js), the generated skyline.svg and hero3d.js bundle (rebuilt by their tools), site/dist/,
 and the standalone optimizer/ and fundmix/ tools.
 """
 import datetime
@@ -6355,6 +6697,7 @@ PARTS = [
         ("site/ui.js", "Escaping, number formats, the click-any-number explain panel, small SVG charts."),
         ("site/domain.js", "Business arithmetic in integer paise; mirrors server/domain.py."),
         ("site/kit.js", "Workspace components: tables, dialogs, toasts, timelines, kanban, empty states."),
+        ("site/pdf.js", "Branded PDF reports: lays out the tools' results and signed reports on A4 pages with jsPDF."),
     ]),
     ("3. Home page 3D emblem", "The WebGL hero scene. site/hero3d.js is built from this source with three.js by site/tools/build-hero3d.sh.", [
         ("site/src/hero3d.js", "The 3D gold emblem built from the logo's outlines, the rising city, stars, camera, bloom and vignette."),
@@ -6405,9 +6748,9 @@ def main():
     w = out.append
     w("# Aegis Ascend website: complete source code\n")
     w("Generated %s. Every file below is reproduced in full, in the order the page loads it.\n" % datetime.date.today().isoformat())
-    w("Not included: images, the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
+    w("Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licence), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.\n")
     w("## How the pieces fit\n")
-    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
+    w("1. `site/build.py` reads `site/shell.html` and replaces `<!--SCRIPTS-->` with the scripts: calc, optimizer, ui, domain, kit, jsPDF, pdf, hero3d, the seed data and site map, store, public, motion, chat, portal, then the four role files.")
     w("2. The result is one self-contained page, `site/dist/index.html`, that runs the demo in the browser.")
     w("3. `python -m server.app` serves the same page from Flask, with `api-server.js` in place of the demo store.\n")
     w("## Contents\n")
@@ -6469,7 +6812,7 @@ from server.actions import ACTIONS, COLLECTIONS, Denied, can_see_file, now, pub,
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
-SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "hero3d.js", "api-server.js", "public.js", "motion.js", "chat.js", "portal.js",
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "hero3d.js", "api-server.js", "public.js", "motion.js", "chat.js", "portal.js",
            "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
 SITE_FILES = set(SCRIPTS)
 ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}

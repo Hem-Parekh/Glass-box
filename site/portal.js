@@ -71,6 +71,7 @@
   const statusChip = (s) => chip({ approved: "ok", in_review: "warn", changes: "bad", draft: "", requested: "warn", granted: "ok", declined: "bad", applied: "warn", sanctioned: "ok", disbursed: "ok", consent_needed: "warn", completed: "ok", open: "warn" }[s] || "", ({ in_review: "In review", changes: "Changes requested", consent_needed: "Needs founder consent", first_refusal: "First refusal", buyer_intro: "Buyer introduction", spa: "SPA", open: "In progress" })[s] || s.charAt(0).toUpperCase() + s.slice(1));
   const stamp = (r) => (r && r.status === "approved" ? '<span class="stamp">Reviewed by ' + esc(userName(r.reviewed_by)) + " · " + date(r.reviewed_at) + "</span>" : "");
   const latestReport = (cid) => S.data.reports.filter((r) => r.company_id === cid).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+  const pdfBtn = (tool) => '<button class="btn ghost sm" type="button" data-act="pdf-tool" data-tool="' + tool + '">Download PDF</button>';
   const head = (title, sub, extra) => '<div class="pg-head masthead"><div><h1>' + esc(title) + "</h1>" + (sub ? '<p class="muted">' + sub + "</p>" : "") + "</div>" + (extra || "") + "</div>";
   const empty = (t, d) => '<div class="empty"><b>' + esc(t) + "</b><p>" + d + "</p></div>";
 
@@ -126,7 +127,7 @@
     const q = twinInputs(c);
     const sel = S.user.role === "advisor" ? '<label class="fld inline"><span>Company</span><span class="in"><select data-act="twin-company">' + S.data.companies.map((x) => "<option value=\"" + x.id + '"' + (x.id === c.id ? " selected" : "") + ">" + esc(x.name) + "</option>").join("") + "</select></span></label>" : "";
     const fv = (k, kind) => kind === "pct" ? +(q[k] * 100).toFixed(4) : q[k];
-    return head("Funding Twin", "A live copy of " + esc(c.name) + "'s finances. Change any input and every number below updates. Click a number to see how it is calculated.", sel) +
+    return head("Funding Twin", "A live copy of " + esc(c.name) + "'s finances. Change any input and every number below updates. Click a number to see how it is calculated.", '<div class="row gap-s wrap">' + sel + pdfBtn("twin") + "</div>") +
       '<div class="twin"><form class="panel twin-in" data-form="twin" data-company="' + c.id + '" novalidate><h2>Assumptions</h2>' +
       '<div class="fields f2">' + TWIN_FIELDS.map(([k, l, u, kind, src]) => '<label class="fld" for="t_' + k + '"><span>' + esc(l) + ' <i class="src src-' + src + '">' + src + '</i></span><span class="in"><input id="t_' + k + '" name="' + k + '" data-kind="' + kind + '" value="' + esc(fv(k, kind)) + '" inputmode="decimal"><em>' + u + "</em></span></label>").join("") + "</div>" +
       '<h3>Stress slider</h3><label class="slider" for="t_sales_drop"><span>Sales fall by <b id="sv_sales">' + pct(q.sales_drop) + '</b></span><input type="range" id="t_sales_drop" name="sales_drop" data-kind="pct" min="0" max="40" step="1" value="' + Math.round(q.sales_drop * 100) + '"></label>' +
@@ -171,7 +172,7 @@
       t.schedule.map((r) => "<tr><td>Y" + r.year + '</td><td class="num">' + n(r.opening, 2) + '</td><td class="num">' + n(r.interest, 2) + '</td><td class="num">' + n(r.principal, 2) + '</td><td class="num">' + n(r.payment, 2) + '</td><td class="num">' + n(Math.abs(r.closing) < 1e-9 ? 0 : r.closing, 2) + "</td></tr>").join("") +
       '</tbody></table></div><p class="muted small">Yearly instalment = P x r / (1 - (1 + r)^-n) = ' + gx(cr(t.payment, 2), { title: "Yearly loan instalment", formula: "P x r / (1 - (1 + r)^-n)", inputs: [["P (loan)", cr(q.raise), "founder"], ["r (rate)", pct(q.loan_rate, 2), "benchmark"], ["n (years)", q.tenor, "benchmark"]] }) + ". Total repaid " + cr(t.total_repaid, 2) + ".</p></section>" +
       '<section class="panel"><h2>Plain-language summary</h2><p class="narr">' + esc(narrative) + '</p><p class="small ' + (verified === found.length ? "t-good" : "t-bad") + '">Number check: ' + verified + " of " + found.length + " numbers in this summary match the engine output.</p>" +
-      (S.user.role === "advisor" ? submitBlock(c, rep, t, q, verified === found.length) : "") + "</section>";
+      (S.user.role === "advisor" ? '<div data-pdf-skip>' + submitBlock(c, rep, t, q, verified === found.length) + "</div>" : "") + "</section>";
   }
   function simBlock(s) {
     return '<div class="kpis k3"><div class="kpi"><small>Debt leaves you better off</small><b>' + pct(s.p_debt_better) + '</b><span>of simulated futures (all-debt vs all-equity)</span></div><div class="kpi"><small>Risk of a year with DSCR below 1</small><b class="' + (s.p_default > 0.1 ? "t-bad" : "") + '">' + pct(s.p_default) + '</b><span>with the whole raise as debt</span></div><div class="kpi"><small>Net effect range (10th-90th)</small><b>' + cr(s.p10, 0) + " to " + cr(s.p90, 0) + "</b><span>median " + cr(s.p50, 0) + " (year-N value)</span></div></div><p class=\"muted small\">" + s.runs.toLocaleString("en-IN") + " runs, seed " + s.seed + ".</p>";
@@ -189,7 +190,7 @@
   function readinessPage() {
     const c = S.user.role === "founder" ? myCompany() : twinTarget();
     const a = Object.assign({}, GB.READINESS_DEFAULTS, c.readiness || {});
-    return head("Funding Readiness Score", "How ready " + esc(c.name) + " is to raise debt and equity today, and what to fix first.") +
+    return head("Funding Readiness Score", "How ready " + esc(c.name) + " is to raise debt and equity today, and what to fix first.", pdfBtn("readiness")) +
       '<div class="twin"><form class="panel twin-in" data-form="readiness" data-company="' + c.id + '" novalidate><h2>Your answers</h2><div class="fields f2">' +
       READY_FIELDS.map(([k, l, u, kind]) => '<label class="fld"><span>' + esc(l) + '</span><span class="in"><input name="' + k + '" id="rd_' + k + '" data-kind="' + kind + '" value="' + (kind === "pct" ? +(a[k] * 100).toFixed(2) : a[k]) + '" inputmode="decimal">' + (u ? "<em>" + u + "</em>" : "") + "</span></label>").join("") + "</div>" +
       '<div class="checkset">' + READY_CHECKS.map(([k, l]) => '<label><input type="checkbox" name="' + k + '" id="rd_' + k + '"' + (a[k] ? " checked" : "") + "> " + esc(l) + "</label>").join("") + "</div>" +
@@ -243,7 +244,7 @@
   }
   function optimizerPage() {
     const q = optInputs();
-    return head("Equity vs Debt Optimizer", "Tests every mix from 0% to 100% equity, year by year, and shows which leaves the founder the most money. Hover a field for what it means; click any underlined number for its working.") +
+    return head("Equity vs Debt Optimizer", "Tests every mix from 0% to 100% equity, year by year, and shows which leaves the founder the most money. Hover a field for what it means; click any underlined number for its working.", pdfBtn("optimizer")) +
       '<div class="twin"><form class="panel twin-in" data-form="opt" novalidate><h2>Inputs</h2><div class="fields f2">' + OPT_FIELDS.map(optField).join("") + "</div>" +
       '<details><summary class="small" style="cursor:pointer">Advanced: tax, exit value, fees, payout</summary><div class="fields f2" style="margin-top:12px">' + OPT_ADV.map(optField).join("") + "</div></details>" +
       '<label class="fld"><span>Rank mixes by</span><span class="in"><select name="metric" id="o_metric">' + Object.entries(EDO.METRICS).map(([k, v]) => '<option value="' + k + '"' + (q.metric === k ? " selected" : "") + ">" + esc(v) + "</option>").join("") + "</select></span></label>" +
@@ -311,7 +312,7 @@
 
   function termSheetPage() {
     const tab = S.tsTab;
-    return head("Term Sheet Analyser", "The real cost and the risky clauses of a sanction letter or an equity term sheet.") +
+    return head("Term Sheet Analyser", "The real cost and the risky clauses of a sanction letter or an equity term sheet.", pdfBtn("termsheet")) +
       '<div class="tabs" role="tablist"><button role="tab" aria-selected="' + (tab === "loan") + '" data-act="ts-tab" data-t="loan">Loan sanction letter</button><button role="tab" aria-selected="' + (tab === "equity") + '" data-act="ts-tab" data-t="equity">Equity term sheet</button></div>' +
       (tab === "loan" ? '<div class="twin"><form class="panel twin-in" data-calc="loants" novalidate><h2>Terms</h2><div class="fields f2">' +
         PUB.field("amount", "Loan amount", 10, "Rs cr") + PUB.field("rate", "Headline rate", 10.5, "%") + PUB.field("tenor", "Tenor", 7, "years") + PUB.field("processing_fee", "Processing fee", 1, "%") + PUB.field("other_fees", "Other upfront fees", 0.05, "Rs cr") + PUB.field("prepayment_penalty", "Prepayment penalty", 2, "%") + PUB.field("collateral_margin", "Collateral margin", 25, "%") +
@@ -366,7 +367,7 @@
     const q = S.data.reports.slice().sort((a, b) => (a.status === "in_review" ? -1 : 1));
     return head("Review queue", "Check the release checklist, challenge the assumptions, then sign off or send back.") +
       q.map((r) => { const c = companyById(r.company_id), s = r.summary || {};
-        return '<section class="panel"><div class="pg-head"><div><h2>' + esc(r.title) + '</h2><p class="muted">' + esc(c.name) + " · " + esc(r.engine_version || "") + " · submitted " + date(r.created_at) + "</p></div>" + statusChip(r.status) + "</div>" +
+        return '<section class="panel"><div class="pg-head"><div><h2>' + esc(r.title) + '</h2><p class="muted">' + esc(c.name) + " · " + esc(r.engine_version || "") + " · submitted " + date(r.created_at) + "</p></div>" + '<div class="row gap-s">' + statusChip(r.status) + '<button class="btn ghost sm" type="button" data-act="pdf-report" data-id="' + r.id + '">Download PDF</button></div></div>' +
           '<div class="kpis k4"><div class="kpi"><small>Best mix</small><b>' + pct(s.best_share) + ' debt</b></div><div class="kpi"><small>Net effect</small><b>' + cr(s.net) + '</b></div><div class="kpi"><small>Break-even</small><b>' + cr(s.break_even, 0) + '</b></div><div class="kpi"><small>Lowest DSCR</small><b>' + xx(s.min_dscr) + "</b><span>stress " + xx(s.min_dscr_stress) + "</span></div></div>" +
           '<ul class="checks"><li class="' + (r.checks && r.checks.validation ? "done" : "") + '">Validation checks passed</li><li class="' + (r.checks && r.checks.founder_confirmed ? "done" : "") + '">Data confirmed by the founder</li><li class="' + (r.checks && r.checks.verifier ? "done" : "") + '">Verifier number check passed</li><li class="done">Engine version recorded</li></ul>' +
           (r.status === "in_review" ? '<form data-form="review" data-id="' + r.id + '"><label class="fld"><span>Review note</span><span class="in"><textarea name="note" id="rv_' + r.id + '" rows="2" placeholder="What you checked and anything the founder should change"></textarea></span></label><div class="row gap-s"><button class="btn primary" type="submit" name="decision" value="approve">Approve and stamp</button><button class="btn ghost" type="submit" name="decision" value="changes">Request changes</button><button class="btn ghost" type="button" data-act="open-twin" data-id="' + c.id + '">Open in Funding Twin</button></div></form>'
@@ -510,6 +511,67 @@
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- PDF downloads ----------
+  const TOOLS = {
+    twin: { name: "Funding Twin", form: 'form[data-form="twin"]', out: "#twin-out", sub: "Best debt and equity mix, stress tests and loan schedule", company: () => twinTarget() },
+    readiness: { name: "Funding Readiness Score", form: 'form[data-form="readiness"]', out: "#ready-out", sub: "Debt and equity readiness out of 100, with what to fix first", company: () => (S.user.role === "founder" ? myCompany() : twinTarget()) },
+    optimizer: { name: "Equity vs Debt Optimizer", form: 'form[data-form="opt"]', out: "#opt-out", sub: "Every mix from 0% to 100% equity, ranked for the founder" },
+    termsheet: { name: "Term Sheet Analyser", form: 'form[data-calc="loants"], form[data-calc="eqts"]', out: "#calc-loants, #calc-eqts", sub: () => (S.tsTab === "loan" ? "Loan sanction letter: true cost and risky clauses" : "Equity term sheet: founder stake and risky clauses") },
+  };
+  const preparedBy = () => S.user.name + " (" + roleName(S.user.role) + ")";
+  async function toolPdf(b) {
+    const T = TOOLS[b.dataset.tool]; if (!T) return;
+    const label = b.textContent; b.disabled = true; b.textContent = "Preparing…";
+    try {
+      const c = T.company ? T.company() : null;
+      const name = await GBPDF.fromPage({
+        kind: T.name, title: T.name + (c ? ": " + c.name : ""), subtitle: typeof T.sub === "function" ? T.sub() : T.sub,
+        facts: [["Company", c && c.name], ["Prepared by", preparedBy()], ["Engine", GB.ENGINE_VERSION]],
+        stamp: "Working draft · not yet reviewed", footer: "Working draft from the " + T.name + ". Decision-support analysis from tested calculation code, not financial advice. Only a report signed off by an Aegis Ascend advisor is final.",
+        filename: T.name + (c ? " " + c.name : "") + " " + new Date().toISOString().slice(0, 10),
+      }, $(T.form), $(T.out));
+      KIT.toast("Downloaded " + name);
+    } finally { b.disabled = false; b.textContent = label; }
+  }
+  // The signed debt vs equity report. Founders and advisors get the full working (the report keeps its inputs);
+  // investors get the reviewed summary, watermarked with their name.
+  function reportPdf(c, r, opts = {}) {
+    const s = r.summary || {}, approved = r.status === "approved" || !!r.reviewed_by;
+    const blocks = [{ t: "kpis", items: [["Recommended mix", pct(s.best_share) + " debt", pct(1 - s.best_share) + " equity"], ["Better off than all-equity", cr(s.net), "today's money"], ["Break-even value", cr(s.break_even, 0), "debt wins above this"], ["Lowest DSCR", xx(s.min_dscr), "stress case " + xx(s.min_dscr_stress), s.min_dscr_stress < 1]] }];
+    if (r.inputs) {
+      const q = Object.assign({}, GB.TWIN_DEFAULTS, r.inputs), t = GB.twin(q), b = t.best, disc = Math.pow(1 + q.discount_rate, q.horizon);
+      const exp = GB.dscrPath(q, b.loan), str = GB.dscrPath(q, b.loan, { salesDrop: q.sales_drop, rateShock: q.rate_shock });
+      blocks.push({ t: "h", text: "Recommendation" },
+        { t: "p", text: "We recommend raising " + pct(b.share) + " of the " + cr(q.raise, 0) + " as debt (" + cr(b.loan) + ") and " + pct(1 - b.share) + " as equity (" + cr(b.equity) + "). Over " + q.horizon + " years this leaves the founder about " + cr((b.value - t.equity.value) / disc) + " better off in today's money than raising it all as equity." },
+        { t: "p", text: "Debt wins outright if the company is worth more than " + cr(t.break_even, 0) + " in year " + q.horizon + ", which needs value growth of " + pct(t.break_even_growth, 1) + " a year against an assumed " + pct(q.value_growth) + ". At this mix the lowest repayment safety ratio (DSCR) is " + xx(b.dscr) + ", and " + xx(b.dscr_stress) + " with sales down " + pct(q.sales_drop) + " and rates up " + (q.rate_shock * 100).toFixed(1) + " points." },
+        { t: "h", text: "Founder value by route, year " + q.horizon },
+        { t: "table", head: ["Route", "Loan", "Equity raised", "Founder value"], rows: [["All equity", cr(0), cr(q.raise), cr(t.equity.value)], ["All debt", cr(q.raise), cr(0), cr(t.debt.value)], ["Recommended mix", cr(b.loan), cr(b.equity), cr(b.value)]] },
+        { t: "h", text: "Range of outcomes" },
+        { t: "table", head: ["Case", "Value growth", "Founder value, all debt", "Founder value, all equity", "Net effect today"], rows: ["best", "expected", "worst"].map((k) => { const x = t.range[k]; return [k.charAt(0).toUpperCase() + k.slice(1), pct(x.growth), cr(x.debt), cr(x.equity), cr(x.net)]; }) },
+        { t: "h", text: "Repayment safety by year (DSCR)" },
+        { t: "table", head: ["Year", "Expected", "Stress case", "Cash after debt service, stress"], rows: exp.map((x, i) => ["Y" + x.year, xx(x.dscr), xx(str[i].dscr), cr(str[i].cash_after)]) },
+        { t: "note", text: "Minimum DSCR required: " + xx(q.dscr_min) + " in the expected case and 1.00x under stress. Loan at the recommended mix: " + cr(b.loan) + "." },
+        { t: "h", text: "Loan schedule (all-debt case)" },
+        { t: "table", head: ["Year", "Opening", "Interest", "Principal", "Payment", "Closing"], rows: t.schedule.map((x) => ["Y" + x.year, n(x.opening, 2), n(x.interest, 2), n(x.principal, 2), n(x.payment, 2), n(Math.abs(x.closing) < 1e-9 ? 0 : x.closing, 2)]) },
+        { t: "note", text: "Amounts in Rs crore. Yearly instalment " + cr(t.payment, 2) + "; total repaid " + cr(t.total_repaid, 2) + "." },
+        { t: "h", text: "Assumptions" },
+        { t: "kv", head: ["Assumption", "Value", "Source"], rows: TWIN_FIELDS.map(([k, l, u, kind, src]) => [l, (kind === "pct" ? +(q[k] * 100).toFixed(2) : q[k]) + " " + u, src]).concat([["Sales drop in the stress case", pct(q.sales_drop), "founder"], ["Interest rise in the stress case", (q.rate_shock * 100).toFixed(1) + " points", "founder"]]) });
+    } else {
+      blocks.push({ t: "h", text: "Recommendation" }, { t: "p", text: "Raise " + pct(s.best_share) + " as debt and " + pct(1 - s.best_share) + " as equity. The founder ends up about " + cr(s.net) + " better off in today's money than with an all-equity raise. Debt wins outright above a company value of " + cr(s.break_even, 0) + ". The lowest repayment safety ratio is " + xx(s.min_dscr) + ", and " + xx(s.min_dscr_stress) + " in the stress case." });
+    }
+    if (r.review_note) blocks.push({ t: "h", text: "Advisor's note" }, { t: "p", text: "“" + r.review_note + "”", italic: true });
+    if (r.checks) blocks.push({ t: "h", text: "Release checklist" }, { t: "bullets", items: [["validation", "Validation checks passed"], ["founder_confirmed", "Figures confirmed by the founder"], ["verifier", "Number check by the verifier passed"]].map(([k, l]) => (r.checks[k] ? "Done: " : "Pending: ") + l).concat(["Engine version recorded: " + (r.engine_version || GB.ENGINE_VERSION)]) });
+    const name = GBPDF.save({
+      kind: "Debt vs equity report", title: r.title || "Debt vs equity report", subtitle: c.name + (c.sector ? " · " + c.sector : ""),
+      facts: [["Company", c.name], ["Engine", r.engine_version], ["Submitted", r.created_at && date(r.created_at)]],
+      stamp: approved ? "Reviewed by " + (r.reviewed_by ? userName(r.reviewed_by) : "an advisor") + " · " + date(r.reviewed_at) : "Draft · waiting for advisor review", stampBad: !approved,
+      watermark: opts.watermark, footer: (opts.watermark ? "Private offer document for " + S.user.name + ". Do not forward. " : "") + "Every number comes from the calculation engine and was checked by an Aegis Ascend advisor before sign-off. Decision-support analysis, not a guarantee of outcomes.",
+      filename: "Debt vs equity report " + c.name + (approved ? "" : " draft"),
+    }, blocks);
+    KIT.toast("Downloaded " + name);
+    return name;
+  }
+
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]"); if (!b || b.tagName === "SELECT") return;
     const act = b.dataset.act, id = b.dataset.id;
@@ -536,6 +598,8 @@
         case "ts-tab": S.tsTab = b.dataset.t; return render({ keepScroll: true });
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
+        case "pdf-tool": return await toolPdf(b);
+        case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
       }
@@ -578,7 +642,7 @@
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
