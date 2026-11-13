@@ -655,7 +655,6 @@ These are checked by the server on every action, so the screens cannot get aroun
   - the demo keeps data only in the visitor's browser;
   - uploads are limited to 1.5 MB;
   - its access locks, including the CMA tool lock, are for show only.
-- **Public text out of date:** the Services, For investors and Trust pages still say "at most 3 investors per deal". The workspace now enforces "at most 20 platform investors per company". These pages need updating.
 - **Legal confirmations still pending,** as listed on the Trust page and raised during the build:
   - how SEBI advisory rules treat the Investor Fit Score and the resale fee;
   - the wording of the success-fee and revenue-share agreements;

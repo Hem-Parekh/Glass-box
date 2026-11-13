@@ -15,7 +15,7 @@ web
 
 ## Product Purpose
 
-Aegis Ascend Financial Advisors is an independent funding advisory firm. It answers one question for growing businesses: debt, equity or a mix, and what each really costs the founder. Every number comes from tested calculation code, is explained in plain words, and is signed off by an advisor before anyone else sees it. It then delivers the deal: curated investor introductions (at most 3 investors per deal, early exit after 6 months) and debt arranging, monitoring and transfer.
+Aegis Ascend Financial Advisors is an independent funding advisory firm. It answers one question for growing businesses: debt, equity or a mix, and what each really costs the founder. Every number comes from tested calculation code, is explained in plain words, and is signed off by an advisor before anyone else sees it. It then delivers the deal: curated investor introductions (at most 20 platform investors per company, early exit after 6 months) and debt arranging, monitoring and transfer.
 
 ## Positioning
 
