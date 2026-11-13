@@ -14,7 +14,7 @@ LANG = {".html": "html", ".js": "javascript", ".py": "python", ".json": "json", 
 
 PARTS = [
     ("1. Page skeleton and styles", "The HTML shell every page renders inside, with all CSS. The build puts the scripts in place of <!--SCRIPTS-->.", [
-        ("site/shell.html", "Page skeleton and all CSS: brand tokens, public pages, workspaces, glass and skyline, whiteboard motion, the assistant panel."),
+        ("site/shell.html", "Page skeleton and base CSS: tokens, public pages, workspaces, the assistant panel. site/theme.css restyles it."),
     ]),
     ("2. Shared engine and helpers", "Loaded first: calculation and formatting code shared by public pages and every workspace.", [
         ("site/calc.js", "Calculation engine: best mix, stress tests, seeded simulation, readiness, term sheets, fee calculators."),
@@ -27,6 +27,7 @@ PARTS = [
     ("3. Home page", "The landing page: a scroll-driven 3D market scene (three.js r159 and GSAP 3.12.5, vendored as site/three.min.js, site/gsap.min.js and site/ScrollTrigger.min.js), the live example, tools, method and founders.", [
         ("site/landing.js", "The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene."),
         ("site/landing.css", "The home page styles, all scoped under .lp."),
+        ("site/theme.css", "The same design carried across every other page and the workspaces."),
     ]),
     ("4. Data layer", "The front end calls window.GB_API: the browser store in the demo, the Flask API on the server.", [
         ("site/store.js", "Demo store: every action and rule of the server, kept in the browser."),

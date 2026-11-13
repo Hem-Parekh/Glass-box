@@ -527,7 +527,7 @@ def index():
     tags += "".join('<script src="/static/%s"></script>' % f for f in post)
     html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
-            "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>" + shell.replace("<!--LANDING_CSS-->", "<style>" + open(os.path.join(SITE, "landing.css"), encoding="utf-8").read() + "</style>").replace("<!--SCRIPTS-->", tags) + "</body></html>")
+            "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>" + shell.replace("<!--LANDING_CSS-->", "".join("<style>" + open(os.path.join(SITE, f), encoding="utf-8").read() + "</style>" for f in ("theme.css", "landing.css"))).replace("<!--SCRIPTS-->", tags) + "</body></html>")
     return HTMLResponse(html)
 
 

@@ -23,7 +23,7 @@ def scripts_inline():
 
 def main():
     os.makedirs(os.path.join(HERE, "dist"), exist_ok=True)
-    html = read("shell.html").replace("<!--LANDING_CSS-->", "<style>\n" + read("landing.css") + "</style>").replace("<!--SCRIPTS-->", scripts_inline())
+    html = read("shell.html").replace("<!--LANDING_CSS-->", "<style>\n" + read("theme.css") + "</style><style>\n" + read("landing.css") + "</style>").replace("<!--SCRIPTS-->", scripts_inline())
     open(os.path.join(HERE, "dist", "index.html"), "w", encoding="utf-8").write('<meta charset="utf-8">\n' + html)
     # founder portraits travel beside the page
     os.makedirs(os.path.join(HERE, "dist", "assets"), exist_ok=True)

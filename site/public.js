@@ -9,7 +9,7 @@
   const NAV = [["services", "Services"], ["investors", "For investors"], ["lenders", "For lenders"], ["pricing", "Pricing"], ["trust", "Trust & compliance"], ["about", "About"]];
   const mark = (size = 34) => '<svg class="mark" width="' + size + '" height="' + Math.round(size * 0.95) + '" aria-hidden="true"><use href="#emblem"/></svg>';
   const wordmark = (href = "#home") => '<a href="' + href + '" class="wordmark" aria-label="' + FIRM + ', home">' + mark(36) +
-    '<span class="wm-text"><b>AEGIS <span>ASCEND</span></b><small>FINANCIAL ADVISORS</small></span></a>';
+    '<span class="wm-text"><b>Aegis Ascend</b><small>Financial Advisors</small></span></a>';
 
   function header(active, user) {
     return '<header class="pub-head"><div class="container pub-head-in">' + wordmark() +
