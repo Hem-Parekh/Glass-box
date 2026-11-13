@@ -7,3 +7,7 @@ fundmix/reports/
 .impeccable/build/
 .impeccable/mocks/
 server/uploads/
+
+# backend local data
+backend/aegis.db
+backend/uploads/

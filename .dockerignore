@@ -1,0 +1,9 @@
+.git
+**/__pycache__
+**/*.db
+server/uploads
+backend/uploads
+site/dist
+optimizer
+*.docx
+*.pptx

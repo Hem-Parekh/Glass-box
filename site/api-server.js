@@ -1,4 +1,4 @@
-/* Server adapter: talks to server/app.py. Sessions use an HttpOnly cookie set by the server. */
+/* Server adapter: talks to the backend (backend/app.py; the older server/app.py has no account endpoints). Sessions use an HttpOnly cookie set by the server. */
 (function (root) {
   "use strict";
   async function call(method, path, body) {
@@ -12,7 +12,19 @@
   root.GB_API = {
     mode: "server",
     async me() { return (await call("GET", "/api/me")).user; },
-    async login(email, password) { return (await call("POST", "/api/login", { email, password })).user; },
+    // Resolves with the user, or with { mfa: true } when the account needs a two-step code next.
+    async login(email, password) { const d = await call("POST", "/api/login", { email, password }); return d.mfa_required ? { mfa: true } : d.user; },
+    async loginCode(code) { return (await call("POST", "/api/login/mfa", { code })).user; },
+    account: {
+      security: () => call("GET", "/api/account/security"),
+      setup: () => call("POST", "/api/account/two-step/setup"),
+      enable: (code) => call("POST", "/api/account/two-step/enable", { code }),
+      disable: (password, code) => call("POST", "/api/account/two-step/disable", { password, code }),
+      password: (password, new_password) => call("POST", "/api/account/password", { password, new_password }),
+      signOutOthers: () => call("POST", "/api/account/sign-out-others"),
+      forgot: (email) => call("POST", "/api/password/forgot", { email }),
+      reset: (token, password) => call("POST", "/api/password/reset", { token, password }),
+    },
     async signup(f) { return (await call("POST", "/api/signup", f)).user; },
     async logout() { await call("POST", "/api/logout"); },
     async state() { return call("GET", "/api/state"); },

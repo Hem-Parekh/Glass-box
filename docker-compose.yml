@@ -1,0 +1,29 @@
+# Local stack: PostgreSQL 16 + the app.   docker compose up --build   then open http://127.0.0.1:8000
+# Demo accounts are loaded on first start (GB_SEED_DEMO=1); remove that line for a real deployment.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis-local-only
+      POSTGRES_DB: aegis
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 3s
+      retries: 20
+  app:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      GB_DATABASE_URL: postgresql+psycopg://aegis:aegis-local-only@db:5432/aegis
+      GB_SEED_DEMO: "1"
+      GB_PUBLIC_URL: http://127.0.0.1:8000
+      # GB_SECRET_KEY: set a long random value; GB_ENV: production turns on secure cookies and HSTS
+      # ANTHROPIC_API_KEY: turns on Claude answers in the website assistant
+    ports: ["8000:8000"]
+    volumes: [uploads:/data/uploads]
+volumes:
+  pgdata:
+  uploads:

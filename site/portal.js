@@ -13,6 +13,12 @@
   // ---------- auth pages ----------
   function login(err) {
     const demo = API.mode === "demo";
+    if (S.mfa) return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Enter your code</h1>' +
+      '<p class="muted">Open your authenticator app and type the 6-digit code shown for Aegis Ascend.</p>' +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="login-code" novalidate><label class="fld"><span>6-digit code</span><span class="in"><input name="code" id="l_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required></span></label>' +
+      '<button class="btn primary lg block" type="submit">Verify and sign in</button></form>' +
+      '<p class="small muted"><a href="#login" data-act="mfa-cancel">Start again</a></p></div></div>');
     return PUB.page("login", null, '<div class="auth"><div class="auth-card">' +
       "<h1>Sign in</h1><p class=\"muted\">Founders, investors, lenders and advisors each see their own workspace.</p>" +
       (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
@@ -20,10 +26,24 @@
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="l_email" type="email" autocomplete="username" required></span></label>' +
       '<label class="fld"><span>Password</span><span class="in"><input name="password" id="l_password" type="password" autocomplete="current-password" required></span></label>' +
       '<button class="btn primary lg block" type="submit">Sign in</button></form>' +
-      '<p class="small muted">New here? <a href="#signup">Create an account</a></p>' +
+      '<p class="small muted">New here? <a href="#signup">Create an account</a>' + (API.account ? ' · <a href="#forgot">Forgot your password?</a>' : "") + "</p>" +
       (demo ? '<div class="demo-box"><b>Demo accounts</b><p class="small muted">This demo keeps accounts and data in your browser only. Pick a role to sign in instantly (password <code>' + esc(API.demoPassword) + "</code>).</p>" +
         '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Aegis Ascend"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div>" + '<p class="small muted">Something not loading? <button type="button" class="linkbtn" data-act="reset-demo">Reset demo data</button> to start again from the sample companies.</p></div>' : "") +
       "</div></div>");
+  }
+  function forgotPage(err, msg) {
+    return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Reset your password</h1>' +
+      (msg ? '<div class="notice" role="status">' + esc(msg) + "</div>" : '<p class="muted">Enter the email you sign in with. We will send a link to choose a new password.</p>') +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      (msg ? "" : '<form class="form" data-form="forgot" novalidate><label class="fld"><span>Email</span><span class="in"><input name="email" id="f_email" type="email" autocomplete="username" required></span></label><button class="btn primary lg block" type="submit">Send the link</button></form>') +
+      '<p class="small muted"><a href="#login">Back to sign in</a></p></div></div>');
+  }
+  function resetPage(err) {
+    return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Choose a new password</h1>' +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="reset-pw" novalidate><label class="fld"><span>New password (8 characters or more)</span><span class="in"><input name="password" id="r_pw" type="password" autocomplete="new-password" minlength="8" required></span></label>' +
+      '<label class="fld"><span>Type it again</span><span class="in"><input name="password2" id="r_pw2" type="password" autocomplete="new-password" required></span></label>' +
+      '<button class="btn primary lg block" type="submit">Save new password</button></form><p class="small muted">Saving signs you out on every device.</p></div></div>');
   }
   function signup(err) {
     return PUB.page("signup", null, '<div class="auth"><div class="auth-card">' +
@@ -52,7 +72,7 @@
     lender: [["app", "Loan book"], ["app-desk", "Lender desk"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
-    const u = S.user, nav = NAVS[u.role];
+    const u = S.user, nav = API.account ? NAVS[u.role].concat([["app-security", "Sign-in & security"]]) : NAVS[u.role];
     const who = u.firm ? u.firm : companyName() || "";
     const unread = S.data ? (S.data.notifications || []).filter((x) => !x.read).length : 0;
     const base = route.split("/")[0], parent = { "app-holding": "app", "app-loan": "app", "app-companyfile": "app-pipeline" }[base] || base;
@@ -395,6 +415,7 @@
     advisor: { "app-review": reviewPage, "app-termsheet": termSheetPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
     lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
+  for (const r of Object.keys(PAGES)) PAGES[r]["app-security"] = securityPage;
 
   // ---------- router ----------
   const PUBLIC = { home: PUB.home, services: PUB.services, "services-equity": PUB.services, "services-debt": PUB.services, pricing: PUB.pricing, investors: PUB.investors, lenders: PUB.lenders, trust: PUB.trust, about: PUB.about, contact: PUB.contact };
@@ -415,6 +436,8 @@
     if (PUBLIC[route]) html = PUBLIC[route](S.user, opts && opts.msg);
     else if (route === "login") html = S.user ? (location.hash = "#app", "") : login(opts && opts.err);
     else if (route === "signup") html = S.user ? (location.hash = "#app", "") : signup(opts && opts.err);
+    else if (route === "forgot" && API.account) html = forgotPage(opts && opts.err, opts && opts.msg);
+    else if (route === "reset" && API.account) html = resetPage(opts && opts.err);
     else if (route.startsWith("app")) {
       if (!S.user) { location.hash = "#login"; return; }
       if (!S.data || (opts && opts.reload)) {
@@ -511,6 +534,45 @@
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- sign-in & security (real backend only) ----------
+  function securityPage() {
+    if (!S.security) {
+      API.account.security().then((d) => { S.security = d; render({ keepScroll: true }); }, (e) => { S.security = { error: e.message }; render({ keepScroll: true }); });
+      return head("Sign-in & security", "Loading…");
+    }
+    const d = S.security, t = S.totpSetup;
+    if (d.error) return head("Sign-in & security", "") + '<div class="notice bad">' + esc(d.error) + "</div>";
+    const key = t ? t.secret.replace(/(.{4})/g, "$1 ").trim() : "";
+    return head("Sign-in & security", "Protect your account with a code from your phone, change your password, and see where you are signed in.") +
+      '<section class="panel"><h2>Two-step sign-in</h2>' + (d.two_step
+        ? '<p>' + chip("ok", "On") + " Each sign-in asks for a code from your authenticator app.</p>" +
+          '<details><summary class="small" style="cursor:pointer">Turn it off</summary><form class="form" data-form="two-step-off" novalidate style="margin-top:12px"><div class="fields f2">' +
+          '<label class="fld"><span>Password</span><span class="in"><input name="password" id="sx_pw" type="password" autocomplete="current-password" required></span></label>' +
+          '<label class="fld"><span>Current code</span><span class="in"><input name="code" id="sx_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></span></label></div>' +
+          '<button class="btn ghost" type="submit">Turn off two-step sign-in</button></form></details>'
+        : t ? '<ol class="steps"><li>Open an authenticator app (Google Authenticator, Microsoft Authenticator or similar) and add an account.</li>' +
+            '<li>Choose <b>Enter a setup key</b> and type this key, or on this phone <a href="' + esc(t.otpauth_uri) + '">open it in the app</a>:<p class="setup-key" style="font:600 18px/1.4 ui-monospace,monospace;letter-spacing:.06em;margin:8px 0">' + esc(key) + "</p></li>" +
+            '<li>Type the 6-digit code the app now shows.</li></ol>' +
+            '<form class="form" data-form="two-step-on" novalidate><label class="fld"><span>6-digit code</span><span class="in"><input name="code" id="so_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></span></label>' +
+            '<button class="btn primary" type="submit">Turn on two-step sign-in</button></form>'
+          : '<p>' + chip("warn", "Off") + " Anyone with your password can sign in. Add a code from your phone so a stolen password is not enough." + (S.user.role === "advisor" ? " <b>Advisors should always keep this on.</b>" : "") + "</p>" +
+            '<button class="btn primary" type="button" data-act="two-step-setup">Set up two-step sign-in</button>') + "</section>" +
+      '<section class="panel"><h2>Change password</h2><form class="form" data-form="pw-change" novalidate><div class="fields f3">' +
+      '<label class="fld"><span>Current password</span><span class="in"><input name="password" id="pc_old" type="password" autocomplete="current-password" required></span></label>' +
+      '<label class="fld"><span>New password</span><span class="in"><input name="new_password" id="pc_new" type="password" autocomplete="new-password" minlength="8" required></span></label>' +
+      '<label class="fld"><span>New password again</span><span class="in"><input name="new_password2" id="pc_new2" type="password" autocomplete="new-password" required></span></label></div>' +
+      '<button class="btn primary" type="submit">Change password</button><p class="small muted">Your other devices are signed out when you change it.</p></form></section>' +
+      '<section class="panel"><h2>Where you are signed in</h2><div class="tw"><table class="tbl"><thead><tr><th>Device</th><th>Signed in</th><th>Last active</th><th>IP address</th></tr></thead><tbody>' +
+      d.sessions.map((x) => "<tr><td>" + esc(device(x.device)) + (x.this_device ? ' <span class="chip ok">This device</span>' : "") + "</td><td>" + dt(x.signed_in) + "</td><td>" + dt(x.last_seen) + "</td><td>" + esc(x.ip || "") + "</td></tr>").join("") +
+      "</tbody></table></div>" + (d.sessions.length > 1 ? '<button class="btn ghost" type="button" data-act="sign-out-others">Sign out all other devices</button>' : "") + "</section>";
+  }
+  function device(ua) {
+    ua = ua || "";
+    const b = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
+    const o = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone or iPad" : /Mac OS/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "";
+    return b + (o ? " on " + o : "");
+  }
+
   // ---------- PDF downloads ----------
   const TOOLS = {
     twin: { name: "Funding Twin", form: 'form[data-form="twin"]', out: "#twin-out", sub: "Best debt and equity mix, stress tests and loan schedule", company: () => twinTarget() },
@@ -579,7 +641,7 @@
       switch (act) {
         case "toggle-menu": { const nav = $(".pub-nav"); const open = nav.classList.toggle("open"); b.setAttribute("aria-expanded", open); return; }
         case "demo-login": S.user = await API.login(b.dataset.email, API.demoPassword); S.data = null; location.hash = "#app"; return;
-        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#home"; return;
+        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; location.hash = "#home"; return;
         case "reset-demo": await API.reset(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#login"; await render(); return;
         case "twin-save": { const c = twinTarget(); const patch = Object.assign({}, c.twin, S.twinDraft[c.id] || {}); delete patch.sales_drop; delete patch.rate_shock; const res = await API.act("save_company", { company_id: c.id, patch: { twin: patch, raise: patch.raise || c.raise } }); delete S.twinDraft[c.id]; return after(res, "Assumptions saved."); }
         case "twin-reset": { const c = twinTarget(); delete S.twinDraft[c.id]; return render({ keepScroll: true }); }
@@ -599,6 +661,9 @@
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
+        case "mfa-cancel": S.mfa = false; return render();
+        case "two-step-setup": S.totpSetup = await API.account.setup(); return render({ keepScroll: true });
+        case "sign-out-others": await API.account.signOutOthers(); S.security = null; KIT.toast("Signed out of your other devices."); return render({ keepScroll: true });
         case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
@@ -613,7 +678,25 @@
     const showErr = (m) => { const box = f.querySelector(".form-err"); if (box) { box.textContent = m; box.hidden = false; } else fail({ message: m }); };
     try {
       switch (kind) {
-        case "login": S.user = await API.login(v.email, v.password); S.data = null; location.hash = "#app"; return;
+        case "login": {
+          const r = await API.login(v.email, v.password);
+          if (r && r.mfa) { S.mfa = true; return render(); }
+          S.user = r; S.data = null; location.hash = "#app"; return;
+        }
+        case "login-code": S.user = await API.loginCode(v.code); S.mfa = false; S.data = null; location.hash = "#app"; return;
+        case "forgot": { const r = await API.account.forgot(v.email); return render({ msg: r.message }); }
+        case "reset-pw": {
+          if (v.password !== v.password2) throw new Error("The two passwords are different.");
+          await API.account.reset(S.param, v.password); S.user = null; location.hash = "#login";
+          return KIT.toast("Password saved. Sign in with your new password.");
+        }
+        case "pw-change": {
+          if (v.new_password !== v.new_password2) throw new Error("The two new passwords are different.");
+          await API.account.password(v.password, v.new_password); f.reset(); KIT.toast("Password changed. Other devices are signed out.");
+          S.security = null; return render({ keepScroll: true });
+        }
+        case "two-step-on": await API.account.enable(v.code); S.security = null; S.totpSetup = null; KIT.toast("Two-step sign-in is on."); return render({ keepScroll: true });
+        case "two-step-off": await API.account.disable(v.password, v.code); S.security = null; KIT.toast("Two-step sign-in is off."); return render({ keepScroll: true });
         case "signup": S.user = await API.signup(v); S.data = null; location.hash = "#app"; return;
         case "enquiry": await API.enquiry(v); return render({ msg: "Thank you. Your enquiry has reached our advisors." });
         case "twin": return;
@@ -635,7 +718,8 @@
         case "review": { const decision = e.submitter && e.submitter.value; return after(await API.act("review_report", { report_id: f.dataset.id, decision, note: v.note })); }
       }
     } catch (err) {
-      if (kind === "login") return render({ err: err.message });
+      if (kind === "login" || kind === "login-code") { if (/timed out/i.test(err.message)) S.mfa = false; return render({ err: err.message }); }
+      if (kind === "forgot" || kind === "reset-pw") return render({ err: err.message });
       if (kind === "signup") return render({ err: err.message });
       showErr(err.message);
     }

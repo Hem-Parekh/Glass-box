@@ -10,7 +10,7 @@ import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "aegis-ascend-website-code.md")
-LANG = {".html": "html", ".js": "javascript", ".py": "python", ".json": "json", ".sh": "sh", ".txt": "text"}
+LANG = {".html": "html", ".js": "javascript", ".py": "python", ".json": "json", ".sh": "sh", ".txt": "text", ".yml": "yaml", "": "dockerfile"}
 
 PARTS = [
     ("1. Page skeleton and styles", "The HTML shell every page renders inside, with all CSS. The build puts the scripts in place of <!--SCRIPTS-->.", [
@@ -51,7 +51,7 @@ PARTS = [
         ("site/tools/skyline.py", "Draws the New York skyline (site/assets/skyline.svg) and its inline copy."),
         ("site/tools/bundle-code.py", "Writes this file."),
     ]),
-    ("8. Server (Flask)", "The real back end. It enforces every rule; the demo copies it.", [
+    ("8. Server prototype (Flask)", "The first back end, whose rules the new backend reuses. It enforces every rule; the demo copies it.", [
         ("server/app.py", "Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands."),
         ("server/actions.py", "Every workspace action with its permission and compliance checks, including automatic fee invoices."),
         ("server/domain.py", "Money, DSCR, repayment schedules, XIRR and limits."),
@@ -59,11 +59,27 @@ PARTS = [
         ("server/chat.py", "The website assistant: Claude, answering from the site's facts and site map."),
         ("server/requirements.txt", "Python dependencies."),
     ]),
-    ("9. Tests", "Run with: python -m pytest server/tests fundmix/tests  and  node site/tests/store.test.js", [
+    ("9. Production backend (FastAPI + PostgreSQL)", "Serves the same site and API on PostgreSQL, reusing the rules in server/actions.py. See backend/README.md.", [
+        ("backend/config.py", "Settings from environment variables."),
+        ("backend/db.py", "Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox."),
+        ("backend/store.py", "Loads records for the rules and writes back only what changed, with the audit diff."),
+        ("backend/auth.py", "Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens."),
+        ("backend/notify.py", "Outbox for email, SMS and WhatsApp, and the sender stand-in."),
+        ("backend/storage.py", "File storage: local folder or S3-compatible."),
+        ("backend/app.py", "FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages."),
+        ("backend/cli.py", "Admin commands: init, seed, create advisor, import from the prototype, send the outbox."),
+        ("backend/requirements.txt", "Python dependencies."),
+        ("Dockerfile", "Container image for the backend."),
+        ("docker-compose.yml", "Local stack: PostgreSQL plus the app."),
+    ]),
+    ("10. Tests", "Run with: python -m pytest server/tests fundmix/tests  and  node site/tests/store.test.js", [
         ("server/tests/test_server.py", "Server rules, permissions, flows, fees and the assistant."),
         ("server/tests/test_parity.py", "Browser and server give identical numbers."),
         ("server/tests/test_demo_store.py", "Runs the demo store tests from Python."),
         ("site/tests/store.test.js", "Demo store matches the server's behaviour."),
+        ("backend/tests/test_flask_suite_on_backend.py", "Runs the whole prototype server suite against the new backend."),
+        ("backend/tests/shim.py", "Flask-style test client over FastAPI for that suite."),
+        ("backend/tests/test_security.py", "Sessions, two-step sign-in, password change and reset, outbox, import, action lock."),
     ]),
 ]
 

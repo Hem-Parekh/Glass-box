@@ -26,14 +26,14 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/tools/build-hero3d.sh` (13 lines): Bundles the scene with three.js r160 into site/hero3d.js.
 - **4. Data layer**
   - `site/store.js` (1042 lines): Demo store: every action and rule of the server, kept in the browser.
-  - `site/api-server.js` (31 lines): Adapter that sends the same calls to the Flask API.
+  - `site/api-server.js` (43 lines): Adapter that sends the same calls to the Flask API.
 - **5. Public website, motion and the assistant**
   - `site/public.js` (354 lines): Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact.
   - `site/motion.js` (190 lines): Whiteboard motion: collaboration cursors, hand-drawn ink and sticky notes on the home page.
   - `site/chat.js` (200 lines): The "Ask Aegis" assistant panel, its quick answers and site guide.
   - `site/sitemap.json` (88 lines): The assistant's map of every page and workspace screen.
 - **6. Sign-in and role workspaces**
-  - `site/portal.js` (649 lines): Sign-in and sign-up, the role-based workspace frame, page router.
+  - `site/portal.js` (733 lines): Sign-in and sign-up, the role-based workspace frame, page router.
   - `site/ws-founder.js` (168 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
   - `site/ws-investor.js` (223 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
   - `site/ws-lender.js` (207 lines): Lender: loan book with Sell buttons, schedules, applications, monitoring, loan sales, fees.
@@ -42,21 +42,36 @@ Not included: images, the vendored jsPDF library `site/jspdf.min.js` (MIT licenc
   - `site/cma-lock.html` (38 lines): The 'Advisors only' page shown instead of the CMA tool to anyone else.
   - `site/build.py` (46 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
   - `site/tools/skyline.py` (155 lines): Draws the New York skyline (site/assets/skyline.svg) and its inline copy.
-  - `site/tools/bundle-code.py` (101 lines): Writes this file.
-- **8. Server (Flask)**
+  - `site/tools/bundle-code.py` (117 lines): Writes this file.
+- **8. Server prototype (Flask)**
   - `server/app.py` (514 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
   - `server/actions.py` (806 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
   - `server/domain.py` (180 lines): Money, DSCR, repayment schedules, XIRR and limits.
   - `server/seed.py` (263 lines): The fictional sample companies, people, loans and invoices.
   - `server/chat.py` (205 lines): The website assistant: Claude, answering from the site's facts and site map.
   - `server/requirements.txt` (2 lines): Python dependencies.
-- **9. Tests**
+- **9. Production backend (FastAPI + PostgreSQL)**
+  - `backend/config.py` (50 lines): Settings from environment variables.
+  - `backend/db.py` (147 lines): Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
+  - `backend/store.py` (109 lines): Loads records for the rules and writes back only what changed, with the audit diff.
+  - `backend/auth.py` (159 lines): Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens.
+  - `backend/notify.py` (47 lines): Outbox for email, SMS and WhatsApp, and the sender stand-in.
+  - `backend/storage.py` (56 lines): File storage: local folder or S3-compatible.
+  - `backend/app.py` (574 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+  - `backend/cli.py` (76 lines): Admin commands: init, seed, create advisor, import from the prototype, send the outbox.
+  - `backend/requirements.txt` (13 lines): Python dependencies.
+  - `Dockerfile` (16 lines): Container image for the backend.
+  - `docker-compose.yml` (29 lines): Local stack: PostgreSQL plus the app.
+- **10. Tests**
   - `server/tests/test_server.py` (499 lines): Server rules, permissions, flows, fees and the assistant.
   - `server/tests/test_parity.py` (39 lines): Browser and server give identical numbers.
   - `server/tests/test_demo_store.py` (12 lines): Runs the demo store tests from Python.
   - `site/tests/store.test.js` (348 lines): Demo store matches the server's behaviour.
+  - `backend/tests/test_flask_suite_on_backend.py` (36 lines): Runs the whole prototype server suite against the new backend.
+  - `backend/tests/shim.py` (101 lines): Flask-style test client over FastAPI for that suite.
+  - `backend/tests/test_security.py` (199 lines): Sessions, two-step sign-in, password change and reset, outbox, import, action lock.
 
-Total: 9393 lines in 34 files.
+Total: 11117 lines in 48 files.
 
 
 ---
@@ -3713,7 +3728,7 @@ Demo store: every action and rule of the server, kept in the browser.
 Adapter that sends the same calls to the Flask API.
 
 ```javascript
-/* Server adapter: talks to server/app.py. Sessions use an HttpOnly cookie set by the server. */
+/* Server adapter: talks to the backend (backend/app.py; the older server/app.py has no account endpoints). Sessions use an HttpOnly cookie set by the server. */
 (function (root) {
   "use strict";
   async function call(method, path, body) {
@@ -3727,7 +3742,19 @@ Adapter that sends the same calls to the Flask API.
   root.GB_API = {
     mode: "server",
     async me() { return (await call("GET", "/api/me")).user; },
-    async login(email, password) { return (await call("POST", "/api/login", { email, password })).user; },
+    // Resolves with the user, or with { mfa: true } when the account needs a two-step code next.
+    async login(email, password) { const d = await call("POST", "/api/login", { email, password }); return d.mfa_required ? { mfa: true } : d.user; },
+    async loginCode(code) { return (await call("POST", "/api/login/mfa", { code })).user; },
+    account: {
+      security: () => call("GET", "/api/account/security"),
+      setup: () => call("POST", "/api/account/two-step/setup"),
+      enable: (code) => call("POST", "/api/account/two-step/enable", { code }),
+      disable: (password, code) => call("POST", "/api/account/two-step/disable", { password, code }),
+      password: (password, new_password) => call("POST", "/api/account/password", { password, new_password }),
+      signOutOthers: () => call("POST", "/api/account/sign-out-others"),
+      forgot: (email) => call("POST", "/api/password/forgot", { email }),
+      reset: (token, password) => call("POST", "/api/password/reset", { token, password }),
+    },
     async signup(f) { return (await call("POST", "/api/signup", f)).user; },
     async logout() { await call("POST", "/api/logout"); },
     async state() { return call("GET", "/api/state"); },
@@ -4640,6 +4667,12 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   // ---------- auth pages ----------
   function login(err) {
     const demo = API.mode === "demo";
+    if (S.mfa) return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Enter your code</h1>' +
+      '<p class="muted">Open your authenticator app and type the 6-digit code shown for Aegis Ascend.</p>' +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="login-code" novalidate><label class="fld"><span>6-digit code</span><span class="in"><input name="code" id="l_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required></span></label>' +
+      '<button class="btn primary lg block" type="submit">Verify and sign in</button></form>' +
+      '<p class="small muted"><a href="#login" data-act="mfa-cancel">Start again</a></p></div></div>');
     return PUB.page("login", null, '<div class="auth"><div class="auth-card">' +
       "<h1>Sign in</h1><p class=\"muted\">Founders, investors, lenders and advisors each see their own workspace.</p>" +
       (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
@@ -4647,10 +4680,24 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="l_email" type="email" autocomplete="username" required></span></label>' +
       '<label class="fld"><span>Password</span><span class="in"><input name="password" id="l_password" type="password" autocomplete="current-password" required></span></label>' +
       '<button class="btn primary lg block" type="submit">Sign in</button></form>' +
-      '<p class="small muted">New here? <a href="#signup">Create an account</a></p>' +
+      '<p class="small muted">New here? <a href="#signup">Create an account</a>' + (API.account ? ' · <a href="#forgot">Forgot your password?</a>' : "") + "</p>" +
       (demo ? '<div class="demo-box"><b>Demo accounts</b><p class="small muted">This demo keeps accounts and data in your browser only. Pick a role to sign in instantly (password <code>' + esc(API.demoPassword) + "</code>).</p>" +
         '<div class="demo-roles">' + [["founder@demo.in", "Founder", "Priya Nair, Kalyan Polymers"], ["investor@demo.in", "Investor", "Meera Iyer, Konkan Growth"], ["advisor@demo.in", "Advisor", "CA Neha Joshi, Aegis Ascend"], ["lender@demo.in", "Lender", "Suresh Pillai, Harbour Bank"]].map(([e, r, w]) => '<button type="button" class="role-btn" data-act="demo-login" data-email="' + e + '"><b>' + r + "</b><span>" + w + "</span></button>").join("") + "</div>" + '<p class="small muted">Something not loading? <button type="button" class="linkbtn" data-act="reset-demo">Reset demo data</button> to start again from the sample companies.</p></div>' : "") +
       "</div></div>");
+  }
+  function forgotPage(err, msg) {
+    return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Reset your password</h1>' +
+      (msg ? '<div class="notice" role="status">' + esc(msg) + "</div>" : '<p class="muted">Enter the email you sign in with. We will send a link to choose a new password.</p>') +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      (msg ? "" : '<form class="form" data-form="forgot" novalidate><label class="fld"><span>Email</span><span class="in"><input name="email" id="f_email" type="email" autocomplete="username" required></span></label><button class="btn primary lg block" type="submit">Send the link</button></form>') +
+      '<p class="small muted"><a href="#login">Back to sign in</a></p></div></div>');
+  }
+  function resetPage(err) {
+    return PUB.page("login", null, '<div class="auth"><div class="auth-card"><h1>Choose a new password</h1>' +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="reset-pw" novalidate><label class="fld"><span>New password (8 characters or more)</span><span class="in"><input name="password" id="r_pw" type="password" autocomplete="new-password" minlength="8" required></span></label>' +
+      '<label class="fld"><span>Type it again</span><span class="in"><input name="password2" id="r_pw2" type="password" autocomplete="new-password" required></span></label>' +
+      '<button class="btn primary lg block" type="submit">Save new password</button></form><p class="small muted">Saving signs you out on every device.</p></div></div>');
   }
   function signup(err) {
     return PUB.page("signup", null, '<div class="auth"><div class="auth-card">' +
@@ -4679,7 +4726,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     lender: [["app", "Loan book"], ["app-desk", "Lender desk"], ["app-applications", "Applications"], ["app-monitor", "Monitoring"], ["app-ltransfers", "Loan transfers"], ["app-lfees", "Fees"], ["app-notifications", "Notifications"], ["app-activity", "Activity log"]],
   };
   function shell(route, body) {
-    const u = S.user, nav = NAVS[u.role];
+    const u = S.user, nav = API.account ? NAVS[u.role].concat([["app-security", "Sign-in & security"]]) : NAVS[u.role];
     const who = u.firm ? u.firm : companyName() || "";
     const unread = S.data ? (S.data.notifications || []).filter((x) => !x.read).length : 0;
     const base = route.split("/")[0], parent = { "app-holding": "app", "app-loan": "app", "app-companyfile": "app-pipeline" }[base] || base;
@@ -5022,6 +5069,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     advisor: { "app-review": reviewPage, "app-termsheet": termSheetPage, "app-optimizer": optimizerPage, "app-cma": cmaPage, "app-twin": twinPage, "app-readiness": readinessPage, "app-enquiries": enquiriesPage, "app-activity": activityPage },
     lender: { "app-lfees": lenderFeesPage, "app-activity": activityPage, "app-notifications": notificationsPage },
   };
+  for (const r of Object.keys(PAGES)) PAGES[r]["app-security"] = securityPage;
 
   // ---------- router ----------
   const PUBLIC = { home: PUB.home, services: PUB.services, "services-equity": PUB.services, "services-debt": PUB.services, pricing: PUB.pricing, investors: PUB.investors, lenders: PUB.lenders, trust: PUB.trust, about: PUB.about, contact: PUB.contact };
@@ -5042,6 +5090,8 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     if (PUBLIC[route]) html = PUBLIC[route](S.user, opts && opts.msg);
     else if (route === "login") html = S.user ? (location.hash = "#app", "") : login(opts && opts.err);
     else if (route === "signup") html = S.user ? (location.hash = "#app", "") : signup(opts && opts.err);
+    else if (route === "forgot" && API.account) html = forgotPage(opts && opts.err, opts && opts.msg);
+    else if (route === "reset" && API.account) html = resetPage(opts && opts.err);
     else if (route.startsWith("app")) {
       if (!S.user) { location.hash = "#login"; return; }
       if (!S.data || (opts && opts.reload)) {
@@ -5138,6 +5188,45 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     return Object.assign({}, GB.READINESS_DEFAULTS, v);
   }
 
+  // ---------- sign-in & security (real backend only) ----------
+  function securityPage() {
+    if (!S.security) {
+      API.account.security().then((d) => { S.security = d; render({ keepScroll: true }); }, (e) => { S.security = { error: e.message }; render({ keepScroll: true }); });
+      return head("Sign-in & security", "Loading…");
+    }
+    const d = S.security, t = S.totpSetup;
+    if (d.error) return head("Sign-in & security", "") + '<div class="notice bad">' + esc(d.error) + "</div>";
+    const key = t ? t.secret.replace(/(.{4})/g, "$1 ").trim() : "";
+    return head("Sign-in & security", "Protect your account with a code from your phone, change your password, and see where you are signed in.") +
+      '<section class="panel"><h2>Two-step sign-in</h2>' + (d.two_step
+        ? '<p>' + chip("ok", "On") + " Each sign-in asks for a code from your authenticator app.</p>" +
+          '<details><summary class="small" style="cursor:pointer">Turn it off</summary><form class="form" data-form="two-step-off" novalidate style="margin-top:12px"><div class="fields f2">' +
+          '<label class="fld"><span>Password</span><span class="in"><input name="password" id="sx_pw" type="password" autocomplete="current-password" required></span></label>' +
+          '<label class="fld"><span>Current code</span><span class="in"><input name="code" id="sx_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></span></label></div>' +
+          '<button class="btn ghost" type="submit">Turn off two-step sign-in</button></form></details>'
+        : t ? '<ol class="steps"><li>Open an authenticator app (Google Authenticator, Microsoft Authenticator or similar) and add an account.</li>' +
+            '<li>Choose <b>Enter a setup key</b> and type this key, or on this phone <a href="' + esc(t.otpauth_uri) + '">open it in the app</a>:<p class="setup-key" style="font:600 18px/1.4 ui-monospace,monospace;letter-spacing:.06em;margin:8px 0">' + esc(key) + "</p></li>" +
+            '<li>Type the 6-digit code the app now shows.</li></ol>' +
+            '<form class="form" data-form="two-step-on" novalidate><label class="fld"><span>6-digit code</span><span class="in"><input name="code" id="so_code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></span></label>' +
+            '<button class="btn primary" type="submit">Turn on two-step sign-in</button></form>'
+          : '<p>' + chip("warn", "Off") + " Anyone with your password can sign in. Add a code from your phone so a stolen password is not enough." + (S.user.role === "advisor" ? " <b>Advisors should always keep this on.</b>" : "") + "</p>" +
+            '<button class="btn primary" type="button" data-act="two-step-setup">Set up two-step sign-in</button>') + "</section>" +
+      '<section class="panel"><h2>Change password</h2><form class="form" data-form="pw-change" novalidate><div class="fields f3">' +
+      '<label class="fld"><span>Current password</span><span class="in"><input name="password" id="pc_old" type="password" autocomplete="current-password" required></span></label>' +
+      '<label class="fld"><span>New password</span><span class="in"><input name="new_password" id="pc_new" type="password" autocomplete="new-password" minlength="8" required></span></label>' +
+      '<label class="fld"><span>New password again</span><span class="in"><input name="new_password2" id="pc_new2" type="password" autocomplete="new-password" required></span></label></div>' +
+      '<button class="btn primary" type="submit">Change password</button><p class="small muted">Your other devices are signed out when you change it.</p></form></section>' +
+      '<section class="panel"><h2>Where you are signed in</h2><div class="tw"><table class="tbl"><thead><tr><th>Device</th><th>Signed in</th><th>Last active</th><th>IP address</th></tr></thead><tbody>' +
+      d.sessions.map((x) => "<tr><td>" + esc(device(x.device)) + (x.this_device ? ' <span class="chip ok">This device</span>' : "") + "</td><td>" + dt(x.signed_in) + "</td><td>" + dt(x.last_seen) + "</td><td>" + esc(x.ip || "") + "</td></tr>").join("") +
+      "</tbody></table></div>" + (d.sessions.length > 1 ? '<button class="btn ghost" type="button" data-act="sign-out-others">Sign out all other devices</button>' : "") + "</section>";
+  }
+  function device(ua) {
+    ua = ua || "";
+    const b = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
+    const o = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone or iPad" : /Mac OS/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "";
+    return b + (o ? " on " + o : "");
+  }
+
   // ---------- PDF downloads ----------
   const TOOLS = {
     twin: { name: "Funding Twin", form: 'form[data-form="twin"]', out: "#twin-out", sub: "Best debt and equity mix, stress tests and loan schedule", company: () => twinTarget() },
@@ -5206,7 +5295,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       switch (act) {
         case "toggle-menu": { const nav = $(".pub-nav"); const open = nav.classList.toggle("open"); b.setAttribute("aria-expanded", open); return; }
         case "demo-login": S.user = await API.login(b.dataset.email, API.demoPassword); S.data = null; location.hash = "#app"; return;
-        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#home"; return;
+        case "logout": await API.logout(); S.user = null; S.data = null; S.twinDraft = {}; S.security = null; S.totpSetup = null; location.hash = "#home"; return;
         case "reset-demo": await API.reset(); S.user = null; S.data = null; S.twinDraft = {}; location.hash = "#login"; await render(); return;
         case "twin-save": { const c = twinTarget(); const patch = Object.assign({}, c.twin, S.twinDraft[c.id] || {}); delete patch.sales_drop; delete patch.rate_shock; const res = await API.act("save_company", { company_id: c.id, patch: { twin: patch, raise: patch.raise || c.raise } }); delete S.twinDraft[c.id]; return after(res, "Assumptions saved."); }
         case "twin-reset": { const c = twinTarget(); delete S.twinDraft[c.id]; return render({ keepScroll: true }); }
@@ -5226,6 +5315,9 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         case "decide-intro": { const ok = b.dataset.d === "grant" || (await KIT.confirm("Decline this request?", "<p>The investor will be told.</p>", "Decline", true)); if (ok) return after(await API.act("decide_intro", { intro_id: id, decision: b.dataset.d })); return; }
         case "open-twin": S.twinCompany = id; location.hash = "#app-twin"; return;
         case "pdf-tool": return await toolPdf(b);
+        case "mfa-cancel": S.mfa = false; return render();
+        case "two-step-setup": S.totpSetup = await API.account.setup(); return render({ keepScroll: true });
+        case "sign-out-others": await API.account.signOutOthers(); S.security = null; KIT.toast("Signed out of your other devices."); return render({ keepScroll: true });
         case "pdf-report": { const r = S.data.reports.find((x) => x.id === id); if (!r) throw new Error("Report not found."); return await reportPdf(companyById(r.company_id), r); }
         case "read-all": return after(await API.act("read_notifications", {}), "All notifications marked read.");
         default: if (WS.clicks[act]) return await WS.clicks[act](b, id);
@@ -5240,7 +5332,25 @@ Sign-in and sign-up, the role-based workspace frame, page router.
     const showErr = (m) => { const box = f.querySelector(".form-err"); if (box) { box.textContent = m; box.hidden = false; } else fail({ message: m }); };
     try {
       switch (kind) {
-        case "login": S.user = await API.login(v.email, v.password); S.data = null; location.hash = "#app"; return;
+        case "login": {
+          const r = await API.login(v.email, v.password);
+          if (r && r.mfa) { S.mfa = true; return render(); }
+          S.user = r; S.data = null; location.hash = "#app"; return;
+        }
+        case "login-code": S.user = await API.loginCode(v.code); S.mfa = false; S.data = null; location.hash = "#app"; return;
+        case "forgot": { const r = await API.account.forgot(v.email); return render({ msg: r.message }); }
+        case "reset-pw": {
+          if (v.password !== v.password2) throw new Error("The two passwords are different.");
+          await API.account.reset(S.param, v.password); S.user = null; location.hash = "#login";
+          return KIT.toast("Password saved. Sign in with your new password.");
+        }
+        case "pw-change": {
+          if (v.new_password !== v.new_password2) throw new Error("The two new passwords are different.");
+          await API.account.password(v.password, v.new_password); f.reset(); KIT.toast("Password changed. Other devices are signed out.");
+          S.security = null; return render({ keepScroll: true });
+        }
+        case "two-step-on": await API.account.enable(v.code); S.security = null; S.totpSetup = null; KIT.toast("Two-step sign-in is on."); return render({ keepScroll: true });
+        case "two-step-off": await API.account.disable(v.password, v.code); S.security = null; KIT.toast("Two-step sign-in is off."); return render({ keepScroll: true });
         case "signup": S.user = await API.signup(v); S.data = null; location.hash = "#app"; return;
         case "enquiry": await API.enquiry(v); return render({ msg: "Thank you. Your enquiry has reached our advisors." });
         case "twin": return;
@@ -5262,7 +5372,8 @@ Sign-in and sign-up, the role-based workspace frame, page router.
         case "review": { const decision = e.submitter && e.submitter.value; return after(await API.act("review_report", { report_id: f.dataset.id, decision, note: v.note })); }
       }
     } catch (err) {
-      if (kind === "login") return render({ err: err.message });
+      if (kind === "login" || kind === "login-code") { if (/timed out/i.test(err.message)) S.mfa = false; return render({ err: err.message }); }
+      if (kind === "forgot" || kind === "reset-pw") return render({ err: err.message });
       if (kind === "signup") return render({ err: err.message });
       showErr(err.message);
     }
@@ -6709,7 +6820,7 @@ import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "aegis-ascend-website-code.md")
-LANG = {".html": "html", ".js": "javascript", ".py": "python", ".json": "json", ".sh": "sh", ".txt": "text"}
+LANG = {".html": "html", ".js": "javascript", ".py": "python", ".json": "json", ".sh": "sh", ".txt": "text", ".yml": "yaml", "": "dockerfile"}
 
 PARTS = [
     ("1. Page skeleton and styles", "The HTML shell every page renders inside, with all CSS. The build puts the scripts in place of <!--SCRIPTS-->.", [
@@ -6750,7 +6861,7 @@ PARTS = [
         ("site/tools/skyline.py", "Draws the New York skyline (site/assets/skyline.svg) and its inline copy."),
         ("site/tools/bundle-code.py", "Writes this file."),
     ]),
-    ("8. Server (Flask)", "The real back end. It enforces every rule; the demo copies it.", [
+    ("8. Server prototype (Flask)", "The first back end, whose rules the new backend reuses. It enforces every rule; the demo copies it.", [
         ("server/app.py", "Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands."),
         ("server/actions.py", "Every workspace action with its permission and compliance checks, including automatic fee invoices."),
         ("server/domain.py", "Money, DSCR, repayment schedules, XIRR and limits."),
@@ -6758,11 +6869,27 @@ PARTS = [
         ("server/chat.py", "The website assistant: Claude, answering from the site's facts and site map."),
         ("server/requirements.txt", "Python dependencies."),
     ]),
-    ("9. Tests", "Run with: python -m pytest server/tests fundmix/tests  and  node site/tests/store.test.js", [
+    ("9. Production backend (FastAPI + PostgreSQL)", "Serves the same site and API on PostgreSQL, reusing the rules in server/actions.py. See backend/README.md.", [
+        ("backend/config.py", "Settings from environment variables."),
+        ("backend/db.py", "Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox."),
+        ("backend/store.py", "Loads records for the rules and writes back only what changed, with the audit diff."),
+        ("backend/auth.py", "Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens."),
+        ("backend/notify.py", "Outbox for email, SMS and WhatsApp, and the sender stand-in."),
+        ("backend/storage.py", "File storage: local folder or S3-compatible."),
+        ("backend/app.py", "FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages."),
+        ("backend/cli.py", "Admin commands: init, seed, create advisor, import from the prototype, send the outbox."),
+        ("backend/requirements.txt", "Python dependencies."),
+        ("Dockerfile", "Container image for the backend."),
+        ("docker-compose.yml", "Local stack: PostgreSQL plus the app."),
+    ]),
+    ("10. Tests", "Run with: python -m pytest server/tests fundmix/tests  and  node site/tests/store.test.js", [
         ("server/tests/test_server.py", "Server rules, permissions, flows, fees and the assistant."),
         ("server/tests/test_parity.py", "Browser and server give identical numbers."),
         ("server/tests/test_demo_store.py", "Runs the demo store tests from Python."),
         ("site/tests/store.test.js", "Demo store matches the server's behaviour."),
+        ("backend/tests/test_flask_suite_on_backend.py", "Runs the whole prototype server suite against the new backend."),
+        ("backend/tests/shim.py", "Flask-style test client over FastAPI for that suite."),
+        ("backend/tests/test_security.py", "Sessions, two-step sign-in, password change and reset, outbox, import, action lock."),
     ]),
 ]
 
@@ -6803,9 +6930,9 @@ if __name__ == "__main__":
 
 ---
 
-## 8. Server (Flask)
+## 8. Server prototype (Flask)
 
-The real back end. It enforces every rule; the demo copies it.
+The first back end, whose rules the new backend reuses. It enforces every rule; the demo copies it.
 
 ### `server/app.py`
 
@@ -8822,7 +8949,1367 @@ anthropic>=2.8
 
 ---
 
-## 9. Tests
+## 9. Production backend (FastAPI + PostgreSQL)
+
+Serves the same site and API on PostgreSQL, reusing the rules in server/actions.py. See backend/README.md.
+
+### `backend/config.py`
+
+Settings from environment variables.
+
+```python
+"""Settings, all read from environment variables so the same code runs locally, in Docker and on any host.
+
+  GB_DATABASE_URL   postgresql+psycopg://user:pass@host:5432/aegis   (default: a local SQLite file, for quick trials only)
+  GB_SECRET_KEY     long random string; signs password-reset links. Required in production.
+  GB_ENV            "production" turns on secure cookies and refuses to start without GB_SECRET_KEY
+  GB_UPLOADS        folder for uploaded files when GB_STORAGE=local (default backend/uploads)
+  GB_STORAGE        "local" (default) or "s3" (any S3-compatible store; see backend/storage.py)
+  GB_PUBLIC_URL     the site's own address, used in emailed links (default http://127.0.0.1:8000)
+  GB_SEED_DEMO      "1" loads the fictional demo accounts into an empty database
+  GB_TODAY          fixes "today" (tests only)
+"""
+import os
+import secrets
+from dataclasses import dataclass, field
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@dataclass
+class Settings:
+    database_url: str = field(default_factory=lambda: os.environ.get("GB_DATABASE_URL") or "sqlite:///" + os.path.join(ROOT, "backend", "aegis.db"))
+    env: str = field(default_factory=lambda: os.environ.get("GB_ENV", "development"))
+    secret_key: str = field(default_factory=lambda: os.environ.get("GB_SECRET_KEY", ""))
+    uploads: str = field(default_factory=lambda: os.environ.get("GB_UPLOADS") or os.path.join(ROOT, "backend", "uploads"))
+    storage: str = field(default_factory=lambda: os.environ.get("GB_STORAGE", "local"))
+    public_url: str = field(default_factory=lambda: os.environ.get("GB_PUBLIC_URL", "http://127.0.0.1:8000").rstrip("/"))
+    seed_demo: bool = field(default_factory=lambda: os.environ.get("GB_SEED_DEMO", "0") == "1")
+    today: str = field(default_factory=lambda: os.environ.get("GB_TODAY", ""))
+    session_idle_hours: float = 8          # signed out after 8 hours without activity
+    session_max_hours: float = 24          # and always after 24 hours
+    mfa_window_minutes: int = 5            # time allowed between the password step and the code step
+    login_limit: int = 5                   # wrong passwords per 15 minutes before the account pauses
+    max_upload_bytes: int = 8_000_000
+
+    def __post_init__(self):
+        if self.env == "production" and len(self.secret_key) < 32:
+            raise SystemExit("GB_SECRET_KEY must be set to a random string of 32+ characters in production.")
+        if not self.secret_key:
+            self.secret_key = secrets.token_hex(32)
+
+    @property
+    def secure_cookies(self):
+        return self.env == "production"
+
+    @property
+    def is_postgres(self):
+        return self.database_url.startswith("postgresql")
+
+
+settings = Settings()
+```
+
+### `backend/db.py`
+
+Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
+
+```python
+"""Database tables. PostgreSQL in production; SQLite works for quick local trials and tests.
+
+Business data keeps one table per collection (companies, offers, holdings, loans, invoices ...). Each row has the record's
+id, the company it belongs to (indexed, so every query and future row-level security policy can filter on it) and the
+record itself as JSON (JSONB on PostgreSQL). The rules in server/actions.py work on these records unchanged.
+"""
+import json
+
+from sqlalchemy import (JSON, BigInteger, Boolean, Column, DateTime, Index, Integer, MetaData, String, Table, Text, create_engine, event,
+                        text)
+from sqlalchemy.dialects.postgresql import JSONB
+
+from backend.config import settings
+from server.actions import COLLECTIONS
+
+JSONT = JSON().with_variant(JSONB(), "postgresql")
+metadata = MetaData()
+
+users = Table(
+    "users", metadata,
+    Column("id", String(40), primary_key=True),
+    Column("email", String(254), nullable=False, unique=True),
+    Column("name", String(120), nullable=False),
+    Column("role", String(20), nullable=False),
+    Column("company_id", String(40), index=True),
+    Column("firm", String(160)), Column("title", String(120)),
+    Column("mandate", JSONT), Column("profile", JSONT),
+    Column("pw_hash", Text, nullable=False),
+    Column("totp_secret", String(64)),                 # set once two-step sign-in is switched on
+    Column("totp_enabled", Boolean, nullable=False, default=False),
+    Column("totp_last_step", BigInteger),              # stops the same code being used twice
+    Column("disabled", Boolean, nullable=False, default=False),
+    Column("created_at", String(40), nullable=False),
+)
+
+records = {c: Table(
+    c, metadata,
+    Column("id", String(60), primary_key=True),
+    Column("company_id", String(40), index=True),
+    Column("seq", Integer, nullable=False),            # keeps the original order of records
+    Column("data", JSONT, nullable=False),
+) for c in COLLECTIONS}
+
+audit = Table(
+    "audit", metadata,
+    Column("seq", Integer, primary_key=True, autoincrement=True),
+    Column("id", String(40), nullable=False),
+    Column("at", String(40), nullable=False),
+    Column("user_id", String(40), index=True), Column("user_name", String(120)),
+    Column("action", String(60), nullable=False),
+    Column("detail", Text), Column("company_id", String(40), index=True),
+    Column("changes", JSONT),
+    Column("ip", String(64)),
+)
+
+sessions = Table(
+    "sessions", metadata,
+    Column("token_hash", String(64), primary_key=True),   # only a hash of the cookie is stored
+    Column("user_id", String(40), nullable=False, index=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("last_seen", DateTime(timezone=True), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("mfa_pending", Boolean, nullable=False, default=False),  # password done, code still needed
+    Column("ip", String(64)), Column("user_agent", String(300)),
+)
+
+login_attempts = Table(
+    "login_attempts", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("key", String(320), nullable=False, index=True),
+    Column("at", DateTime(timezone=True), nullable=False),
+)
+
+password_resets = Table(
+    "password_resets", metadata,
+    Column("token_hash", String(64), primary_key=True),
+    Column("user_id", String(40), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("used_at", DateTime(timezone=True)),
+)
+
+outbox = Table(
+    "outbox", metadata,   # every email, SMS and WhatsApp message, written here first and sent by a worker
+    Column("id", String(40), primary_key=True),
+    Column("channel", String(20), nullable=False),
+    Column("to", String(254), nullable=False),
+    Column("subject", String(300)), Column("body", Text, nullable=False),
+    Column("status", String(20), nullable=False, default="queued"),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("sent_at", DateTime(timezone=True)),
+    Column("error", Text),
+)
+Index("ix_outbox_status", outbox.c.status)
+
+AUDIT_GUARD_PG = """
+CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger AS $$
+BEGIN RAISE EXCEPTION 'audit log is append-only'; END; $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS audit_no_change ON audit;
+CREATE TRIGGER audit_no_change BEFORE UPDATE OR DELETE ON audit FOR EACH ROW EXECUTE FUNCTION audit_append_only();
+"""
+AUDIT_GUARD_SQLITE = (
+    "CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END;",
+    "CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END;",
+)
+
+_engine = None
+
+
+def engine():
+    global _engine
+    if _engine is None:
+        url = settings.database_url
+        kw = dict(pool_pre_ping=True, json_serializer=lambda o: json.dumps(o, separators=(",", ":")))
+        if url.startswith("sqlite"):
+            kw["connect_args"] = {"check_same_thread": False}
+        _engine = create_engine(url, **kw)
+        if url.startswith("sqlite"):
+            @event.listens_for(_engine, "connect")
+            def _fk(dbapi, _):
+                dbapi.execute("PRAGMA foreign_keys=ON")
+    return _engine
+
+
+def reset_engine():
+    """Forget the engine (tests switch databases)."""
+    global _engine
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+
+
+def create_schema():
+    eng = engine()
+    metadata.create_all(eng)
+    with eng.begin() as conn:
+        if eng.dialect.name == "postgresql":
+            conn.exec_driver_sql(AUDIT_GUARD_PG)
+        else:
+            for s in AUDIT_GUARD_SQLITE:
+                conn.exec_driver_sql(s)
+
+
+def write_lock(conn):
+    """One business action at a time: actions check limits (200 offers, 200 members, 20 investors) across many records,
+    so two running together could each pass a check the pair breaks. Held until the transaction ends."""
+    if conn.dialect.name == "postgresql":
+        conn.execute(text("SELECT pg_advisory_xact_lock(724001)"))
+```
+
+### `backend/store.py`
+
+Loads records for the rules and writes back only what changed, with the audit diff.
+
+```python
+"""Loads the business records for one request, lets the rules (server/actions.py) work on plain dicts, then writes back
+only what changed and reports every change for the audit log. Same contract as the Flask store, on any database."""
+import json
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import delete, insert, select, update
+
+from backend import db as T
+from server.actions import COLLECTIONS
+
+USER_FIELDS = ("id", "email", "name", "role", "company_id", "firm", "title", "mandate", "profile", "pw_hash", "created_at")
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def uid(prefix):
+    return prefix + "_" + uuid.uuid4().hex[:10]
+
+
+def company_of(collection, d):
+    return d["id"] if collection == "companies" else d.get("company_id")
+
+
+def canon(d):
+    return json.dumps(d, sort_keys=True, separators=(",", ":"))
+
+
+def user_dict(row):
+    m = row._mapping
+    return {k: m[k] for k in USER_FIELDS}
+
+
+class Store:
+    def __init__(self, conn):
+        self.conn = conn
+        self.data = {}
+        self._snap, self._seq = {}, {}
+        for c in COLLECTIONS:
+            rows = conn.execute(select(T.records[c].c.data, T.records[c].c.seq).order_by(T.records[c].c.seq)).all()
+            self.data[c] = [r.data for r in rows]
+            self._snap[c] = {d["id"]: canon(d) for d in self.data[c]}
+            self._seq[c] = max([r.seq for r in rows], default=0)
+        self.users = [user_dict(r) for r in conn.execute(select(T.users))]
+        self._usnap = {u["id"]: canon(u.get("profile")) for u in self.users}
+
+    def __getattr__(self, name):
+        if name in COLLECTIONS:
+            return self.data[name]
+        raise AttributeError(name)
+
+    def __getitem__(self, name):
+        return self.data[name]
+
+    def save(self):
+        """Write changed records; return [(collection, id, before, after)]."""
+        changes = []
+        for c in COLLECTIONS:
+            t, ids = T.records[c], set()
+            for d in self.data[c]:
+                ids.add(d["id"])
+                s, old = canon(d), self._snap[c].get(d["id"])
+                if old == s:
+                    continue
+                if old is None:
+                    self._seq[c] += 1
+                    self.conn.execute(insert(t).values(id=d["id"], company_id=company_of(c, d), seq=self._seq[c], data=d))
+                else:
+                    self.conn.execute(update(t).where(t.c.id == d["id"]).values(company_id=company_of(c, d), data=d))
+                changes.append((c, d["id"], json.loads(old) if old else None, d))
+            for gone in set(self._snap[c]) - ids:
+                self.conn.execute(delete(t).where(t.c.id == gone))
+                changes.append((c, gone, json.loads(self._snap[c][gone]), None))
+        for u in self.users:
+            s = canon(u.get("profile"))
+            if self._usnap.get(u["id"]) != s:
+                self.conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(profile=u.get("profile")))
+                changes.append(("users", u["id"], {"profile": json.loads(self._usnap[u["id"]])}, {"profile": u.get("profile")}))
+        return changes
+
+
+def add_record(conn, collection, d):
+    t = T.records[collection]
+    seq = (conn.execute(select(t.c.seq).order_by(t.c.seq.desc()).limit(1)).scalar() or 0) + 1
+    conn.execute(insert(t).values(id=d["id"], company_id=company_of(collection, d), seq=seq, data=d))
+
+
+def diff(before, after):
+    """Only the fields that changed, as {field: [before, after]}."""
+    if before is None or after is None:
+        return {"created" if before is None else "deleted": True}
+    keys = set(before) | set(after)
+    return {k: [before.get(k), after.get(k)] for k in sorted(keys) if before.get(k) != after.get(k)}
+
+
+def write_audit(conn, user, action, detail, company_id=None, changes=None, ip=None):
+    conn.execute(insert(T.audit).values(id=uid("a"), at=now(), user_id=user["id"] if user else None,
+                                        user_name=user["name"] if user else "Website visitor", action=action, detail=detail,
+                                        company_id=company_id, changes=changes or None, ip=ip))
+
+
+def audit_rows(conn, filt):
+    q = select(T.audit.c.id, T.audit.c.at, T.audit.c.user_id, T.audit.c.user_name, T.audit.c.action, T.audit.c.detail,
+               T.audit.c.company_id, T.audit.c.changes)
+    if filt:
+        q = q.where((T.audit.c.company_id if filt[0] == "company_id" else T.audit.c.user_id) == filt[1])
+    return [dict(r._mapping) for r in conn.execute(q.order_by(T.audit.c.seq.desc()).limit(1000))]
+```
+
+### `backend/auth.py`
+
+Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens.
+
+```python
+"""Sign-in: password hashing, server-side sessions, throttling, two-step codes (authenticator apps) and password resets.
+
+Sessions: the browser holds a random token in an HttpOnly cookie; the database holds only its SHA-256 hash, the user, and
+when it expires. Signing out, resetting a password or switching off an account removes the rows, so access ends at once.
+"""
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
+
+import pyotp
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError
+from sqlalchemy import delete, func, insert, select, update
+
+from backend import db as T
+from backend.config import settings
+
+COOKIE = "aa_session"
+_ph = PasswordHasher()                                             # Argon2id, library defaults (64 MiB, 3 passes)
+_ph_demo = PasswordHasher(time_cost=1, memory_cost=8192, parallelism=1)  # published demo password only
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
+
+
+def aware(dt):
+    """SQLite hands back naive datetimes; treat them as UTC."""
+    return dt if dt is None or dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def sha(s):
+    return hashlib.sha256(s.encode()).hexdigest()
+
+
+# ---------- passwords ----------
+def hash_password(pw, demo=False):
+    return (_ph_demo if demo else _ph).hash(pw)
+
+
+def check_password(hash_, pw):
+    if not hash_:
+        return False
+    if hash_.startswith(("scrypt:", "pbkdf2:")):   # accounts imported from the Flask server
+        from werkzeug.security import check_password_hash
+        return check_password_hash(hash_, pw)
+    try:
+        return _ph.verify(hash_, pw)
+    except (VerificationError, InvalidHashError):
+        return False
+
+
+def needs_rehash(hash_):
+    return hash_.startswith(("scrypt:", "pbkdf2:"))
+
+
+def password_problem(pw):
+    if len(pw) < 8:
+        return "Use a password of at least 8 characters."
+    if len(pw) > 200:
+        return "Use a password of at most 200 characters."
+    return None
+
+
+# ---------- throttling ----------
+def too_many_attempts(conn, key):
+    since = utcnow() - timedelta(minutes=15)
+    n = conn.execute(select(func.count()).select_from(T.login_attempts).where(T.login_attempts.c.key == key, T.login_attempts.c.at > since)).scalar()
+    return n >= settings.login_limit
+
+
+def record_failure(conn, key):
+    conn.execute(insert(T.login_attempts).values(key=key, at=utcnow()))
+    conn.execute(delete(T.login_attempts).where(T.login_attempts.c.at < utcnow() - timedelta(days=1)))
+
+
+def clear_failures(conn, key):
+    conn.execute(delete(T.login_attempts).where(T.login_attempts.c.key == key))
+
+
+# ---------- sessions ----------
+def new_session(conn, user_id, ip=None, agent=None, mfa_pending=False):
+    token, t = secrets.token_urlsafe(32), utcnow()
+    life = timedelta(minutes=settings.mfa_window_minutes) if mfa_pending else timedelta(hours=settings.session_idle_hours)
+    conn.execute(insert(T.sessions).values(token_hash=sha(token), user_id=user_id, created_at=t, last_seen=t, expires_at=t + life,
+                                           mfa_pending=mfa_pending, ip=ip, user_agent=(agent or "")[:300]))
+    return token
+
+
+def session_row(conn, token):
+    if not token:
+        return None
+    r = conn.execute(select(T.sessions).where(T.sessions.c.token_hash == sha(token))).first()
+    if not r:
+        return None
+    t = utcnow()
+    if aware(r.expires_at) < t or aware(r.created_at) + timedelta(hours=settings.session_max_hours) < t:
+        conn.execute(delete(T.sessions).where(T.sessions.c.token_hash == r.token_hash))
+        return None
+    return r
+
+
+def touch(conn, row):
+    """Slide the idle expiry forward, at most once a minute."""
+    t = utcnow()
+    if not row.mfa_pending and t - aware(row.last_seen) > timedelta(minutes=1):
+        conn.execute(update(T.sessions).where(T.sessions.c.token_hash == row.token_hash)
+                     .values(last_seen=t, expires_at=t + timedelta(hours=settings.session_idle_hours)))
+
+
+def end_session(conn, token):
+    if token:
+        conn.execute(delete(T.sessions).where(T.sessions.c.token_hash == sha(token)))
+
+
+def end_all_sessions(conn, user_id, keep=None):
+    q = delete(T.sessions).where(T.sessions.c.user_id == user_id)
+    if keep:
+        q = q.where(T.sessions.c.token_hash != sha(keep))
+    conn.execute(q)
+
+
+# ---------- two-step sign-in (TOTP, any authenticator app) ----------
+def new_totp_secret():
+    return pyotp.random_base32()
+
+
+def totp_uri(secret, email):
+    return pyotp.TOTP(secret).provisioning_uri(name=email, issuer_name="Aegis Ascend")
+
+
+def check_totp(secret, code, last_step=None):
+    """Returns the time step the code matched (to block reuse), or None."""
+    code = "".join(ch for ch in str(code or "") if ch.isdigit())
+    if not secret or len(code) != 6:
+        return None
+    totp = pyotp.TOTP(secret)
+    step = int(utcnow().timestamp()) // 30
+    for s in (step - 1, step, step + 1):   # allow 30 seconds of clock drift either way
+        if secrets.compare_digest(totp.at(s * 30), code) and (last_step is None or s > last_step):
+            return s
+    return None
+
+
+# ---------- password reset ----------
+def new_reset_token(conn, user_id):
+    token = secrets.token_urlsafe(32)
+    conn.execute(delete(T.password_resets).where(T.password_resets.c.user_id == user_id))
+    conn.execute(insert(T.password_resets).values(token_hash=sha(token), user_id=user_id, expires_at=utcnow() + timedelta(hours=1)))
+    return token
+
+
+def use_reset_token(conn, token):
+    """Returns the user id once, if the token is valid and unused."""
+    r = conn.execute(select(T.password_resets).where(T.password_resets.c.token_hash == sha(str(token or "")))).first()
+    if not r or r.used_at or aware(r.expires_at) < utcnow():
+        return None
+    conn.execute(update(T.password_resets).where(T.password_resets.c.token_hash == r.token_hash).values(used_at=utcnow()))
+    return r.user_id
+```
+
+### `backend/notify.py`
+
+Outbox for email, SMS and WhatsApp, and the sender stand-in.
+
+```python
+"""Outgoing email, SMS and WhatsApp.
+
+Messages are written to the outbox table inside the same transaction as the change that caused them, so a message is
+never sent for a change that was rolled back, and never lost for one that was saved. A worker
+(python -m backend.cli send-outbox) hands queued messages to a sender.
+
+Senders are stand-ins until provider accounts exist: ConsoleSender prints the message. To go live, add a class with the
+same send(channel, to, subject, body) method for the chosen provider (for example SES or SendGrid for email, MSG91 or
+Gupshup for SMS and WhatsApp) and select it with GB_SENDER.
+"""
+import os
+
+from sqlalchemy import insert, select, update
+
+from backend import db as T
+from backend.auth import utcnow
+from backend.store import uid
+
+
+def queue(conn, channel, to, subject, body):
+    assert channel in ("email", "sms", "whatsapp")
+    conn.execute(insert(T.outbox).values(id=uid("msg"), channel=channel, to=to, subject=subject, body=body, status="queued", created_at=utcnow()))
+
+
+class ConsoleSender:
+    """Stand-in: prints instead of sending."""
+    def send(self, channel, to, subject, body):
+        print("[%s to %s] %s\n%s\n" % (channel, to, subject or "", body))
+
+
+SENDERS = {"console": ConsoleSender}
+
+
+def sender():
+    return SENDERS[os.environ.get("GB_SENDER", "console")]()
+
+
+def send_queued(conn, limit=100):
+    s, sent = sender(), 0
+    for m in conn.execute(select(T.outbox).where(T.outbox.c.status == "queued").order_by(T.outbox.c.created_at).limit(limit)).all():
+        try:
+            s.send(m.channel, m.to, m.subject, m.body)
+            conn.execute(update(T.outbox).where(T.outbox.c.id == m.id).values(status="sent", sent_at=utcnow(), error=None))
+            sent += 1
+        except Exception as e:  # keep going; the failed message stays visible with its error
+            conn.execute(update(T.outbox).where(T.outbox.c.id == m.id).values(status="failed", error=str(e)[:500]))
+    return sent
+```
+
+### `backend/storage.py`
+
+File storage: local folder or S3-compatible.
+
+```python
+"""Where uploaded files live. The database keeps each file's record (name, type, company, who uploaded it); the bytes go
+to a storage backend chosen with GB_STORAGE:
+
+  local  a folder on the server's disk (GB_UPLOADS). Fine for one server; back the folder up.
+  s3     any S3-compatible store in an Indian region (AWS S3 ap-south-1, or similar). Needs boto3 and
+         GB_S3_BUCKET, plus the usual AWS_* credentials or an instance role. Objects are written with server-side encryption.
+"""
+import os
+
+from backend.config import settings
+
+
+class LocalStorage:
+    def __init__(self, root):
+        self.root = root
+
+    def _path(self, key):
+        if not key or "/" in key or "\\" in key or key.startswith("."):
+            raise ValueError("bad file key")
+        return os.path.join(self.root, key)
+
+    def put(self, key, data: bytes, mime):
+        os.makedirs(self.root, exist_ok=True)
+        with open(self._path(key), "wb") as f:
+            f.write(data)
+
+    def get(self, key) -> bytes:
+        with open(self._path(key), "rb") as f:
+            return f.read()
+
+    def delete(self, key):
+        try:
+            os.remove(self._path(key))
+        except FileNotFoundError:
+            pass
+
+
+class S3Storage:
+    def __init__(self, bucket, prefix="uploads/"):
+        import boto3  # only needed when GB_STORAGE=s3
+        self.s3, self.bucket, self.prefix = boto3.client("s3"), bucket, prefix
+
+    def put(self, key, data, mime):
+        self.s3.put_object(Bucket=self.bucket, Key=self.prefix + key, Body=data, ContentType=mime, ServerSideEncryption="AES256")
+
+    def get(self, key):
+        return self.s3.get_object(Bucket=self.bucket, Key=self.prefix + key)["Body"].read()
+
+    def delete(self, key):
+        self.s3.delete_object(Bucket=self.bucket, Key=self.prefix + key)
+
+
+def storage():
+    if settings.storage == "s3":
+        return S3Storage(os.environ["GB_S3_BUCKET"])
+    return LocalStorage(settings.uploads)
+```
+
+### `backend/app.py`
+
+FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+
+```python
+"""Aegis Ascend backend (FastAPI). Serves the same website and the same /api the browser already uses, on PostgreSQL.
+
+What it adds over the Flask prototype (server/app.py):
+- PostgreSQL, one table per collection, every business action in one transaction behind a lock
+- server-side sessions (revocable), Argon2 password hashing, wrong-password limits kept in the database
+- two-step sign-in with any authenticator app, password change, password reset by email, "sign out other devices"
+- an outbox for email/SMS/WhatsApp and a storage layer for files (local disk or S3-compatible)
+
+Run:  pip install -r backend/requirements.txt
+      GB_DATABASE_URL=postgresql+psycopg://... GB_SEED_DEMO=1 uvicorn backend.app:app --port 8000
+API docs: /api/docs
+"""
+import json
+import os
+import re
+import time
+from contextlib import asynccontextmanager
+from datetime import date
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from sqlalchemy import insert, select, update
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from backend import auth as A
+from backend import db as T
+from backend import notify
+from backend.config import ROOT, settings
+from backend.storage import storage
+from backend.store import Store, add_record, audit_rows, diff, now, uid, write_audit
+from server import chat as CHAT
+from server import seed as SEED
+from server.actions import ACTIONS, Denied, can_see_file, pub, visible_state
+
+SITE = os.path.join(ROOT, "site")
+# page scripts in load order (site/build.py inlines the same list for the demo)
+SCRIPTS = ("calc.js", "optimizer.js", "ui.js", "domain.js", "kit.js", "jspdf.min.js", "pdf.js", "hero3d.js", "api-server.js", "public.js", "motion.js",
+           "chat.js", "portal.js", "ws-investor.js", "ws-lender.js", "ws-advisor.js", "ws-founder.js")
+ASSET_FILES = {"founder-hem.jpg": "image/jpeg", "founder-yash.jpg": "image/jpeg", "founder-vivan.jpg": "image/jpeg", "skyline.svg": "image/svg+xml"}
+UPLOAD_TYPES = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+UPLOAD_PURPOSES = ("valuation_report", "dataroom", "monitoring", "loan_doc")
+DEMO_PASSWORD = "demo1234"
+EMAIL_RE = r"[^@\s]+@[^@\s]+\.[^@\s]+"
+
+@asynccontextmanager
+async def lifespan(_app):
+    init_db(seed_demo=settings.seed_demo)
+    yield
+
+
+app = FastAPI(title="Aegis Ascend API", version="1.0", docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json", lifespan=lifespan)
+_CHATS = {}  # visitor -> recent assistant questions (per process; caps spend on the model)
+
+
+def today():
+    return settings.today or date.today().isoformat()
+
+
+def err(msg, status, **extra):
+    return JSONResponse(dict(error=msg, **extra), status_code=status)
+
+
+def ip_of(request):
+    return request.client.host if request.client else None
+
+
+# ---------- request plumbing ----------
+@app.middleware("http")
+async def guard(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/") and request.method not in ("GET", "HEAD", "OPTIONS") and request.headers.get("x-requested-with") != "glassbox":
+        resp = err("Missing request header.", 400)   # blocks cross-site form posts (CSRF)
+    elif path.startswith("/api/") and int(request.headers.get("content-length") or 0) > settings.max_upload_bytes:
+        resp = err("That file is too large (8 MB at most).", 413)
+    else:
+        resp = await call_next(request)
+    h = resp.headers
+    h["X-Content-Type-Options"] = "nosniff"
+    h["X-Frame-Options"] = "DENY"
+    h["Referrer-Policy"] = "same-origin"
+    if not path.startswith("/api/docs"):
+        h["Content-Security-Policy"] = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+                                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; "
+                                        "connect-src 'self'; frame-ancestors 'none'")
+    if settings.secure_cookies:
+        h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if path.startswith("/api/"):
+        h["Cache-Control"] = "no-store"
+        h["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
+
+
+@app.exception_handler(Denied)
+async def _denied(request, e):
+    return err(str(e), 403)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http(request, e):
+    return err(e.detail if isinstance(e.detail, str) else "Request failed.", e.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def _invalid(request, e):
+    return err("The request was not understood.", 400)
+
+
+async def body(request):
+    try:
+        data = await request.json()
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def set_cookie(resp, token, max_hours):
+    resp.set_cookie(A.COOKIE, token, max_age=int(max_hours * 3600), httponly=True, samesite="lax", secure=settings.secure_cookies, path="/")
+
+
+def current(conn, request):
+    """(user, session row) for a fully signed-in session, else (None, None)."""
+    row = A.session_row(conn, request.cookies.get(A.COOKIE))
+    if not row or row.mfa_pending:
+        return None, None
+    r = conn.execute(select(T.users).where(T.users.c.id == row.user_id)).first()
+    if not r or r.disabled:
+        return None, None
+    A.touch(conn, row)
+    return dict(r._mapping), row
+
+
+def signed_in(resp_user, token):
+    resp = JSONResponse(dict(user=pub(resp_user, True)))
+    set_cookie(resp, token, settings.session_max_hours)
+    return resp
+
+
+# ---------- account ----------
+@app.get("/api/me")
+def me(request: Request):
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        return dict(user=pub(u, True))
+
+
+def _finish_login(conn, r, request):
+    u = dict(r._mapping)
+    if u["role"] == "investor":
+        prof = dict(u.get("profile") or {}, last_active=now())
+        conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(profile=prof))
+        u["profile"] = prof
+    write_audit(conn, u, "login", "Signed in" + (" with a two-step code" if u.get("totp_enabled") else ""), ip=ip_of(request))
+    return u
+
+
+@app.post("/api/login")
+async def login(request: Request):
+    p = await body(request)
+    email, pw = str(p.get("email") or "").strip().lower(), str(p.get("password") or "")
+    key = "%s|%s" % (ip_of(request), email)
+    with T.engine().begin() as conn:
+        if A.too_many_attempts(conn, key):
+            return err("Too many attempts. Try again in 15 minutes.", 429)
+        r = conn.execute(select(T.users).where(T.users.c.email == email)).first()
+        if not r or r.disabled or not A.check_password(r.pw_hash, pw):
+            A.record_failure(conn, key)
+            return err("Email or password is wrong.", 401)
+        A.clear_failures(conn, key)
+        if A.needs_rehash(r.pw_hash):
+            conn.execute(update(T.users).where(T.users.c.id == r.id).values(pw_hash=A.hash_password(pw)))
+        A.end_session(conn, request.cookies.get(A.COOKIE))
+        if r.totp_enabled:
+            token = A.new_session(conn, r.id, ip_of(request), request.headers.get("user-agent"), mfa_pending=True)
+            resp = JSONResponse(dict(mfa_required=True))
+            set_cookie(resp, token, settings.mfa_window_minutes / 60)
+            return resp
+        u = _finish_login(conn, r, request)
+        return signed_in(u, A.new_session(conn, r.id, ip_of(request), request.headers.get("user-agent")))
+
+
+@app.post("/api/login/mfa")
+async def login_mfa(request: Request):
+    """Second step: the 6-digit code from the authenticator app."""
+    p = await body(request)
+    with T.engine().begin() as conn:
+        row = A.session_row(conn, request.cookies.get(A.COOKIE))
+        if not row or not row.mfa_pending:
+            return err("Your sign-in timed out. Enter your email and password again.", 401)
+        key = "mfa|%s" % row.user_id
+        if A.too_many_attempts(conn, key):
+            return err("Too many attempts. Try again in 15 minutes.", 429)
+        r = conn.execute(select(T.users).where(T.users.c.id == row.user_id)).first()
+        step = A.check_totp(r.totp_secret, p.get("code"), r.totp_last_step)
+        if step is None:
+            A.record_failure(conn, key)
+            return err("That code is not right. Use the current code from your authenticator app.", 401)
+        A.clear_failures(conn, key)
+        conn.execute(update(T.users).where(T.users.c.id == r.id).values(totp_last_step=step))
+        A.end_session(conn, request.cookies.get(A.COOKIE))
+        u = _finish_login(conn, r, request)
+        return signed_in(u, A.new_session(conn, r.id, ip_of(request), request.headers.get("user-agent")))
+
+
+@app.post("/api/logout")
+def logout(request: Request):
+    with T.engine().begin() as conn:
+        A.end_session(conn, request.cookies.get(A.COOKIE))
+    resp = JSONResponse(dict(ok=True))
+    resp.delete_cookie(A.COOKIE, path="/")
+    return resp
+
+
+@app.post("/api/signup")
+async def signup(request: Request):
+    p = await body(request)
+    email = str(p.get("email") or "").strip().lower()
+    name = str(p.get("name") or "").strip()[:80]
+    role, pw = p.get("role"), str(p.get("password") or "")
+    if not re.fullmatch(EMAIL_RE, email):
+        return err("Enter a valid email address.", 400)
+    if A.password_problem(pw):
+        return err(A.password_problem(pw), 400)
+    if role not in ("founder", "investor", "lender"):
+        return err("Choose founder, investor or lender.", 400)
+    if not name:
+        return err("Enter your name.", 400)
+    with T.engine().begin() as conn:
+        T.write_lock(conn)
+        if conn.execute(select(T.users.c.id).where(T.users.c.email == email)).first():
+            return err("An account with this email already exists. Sign in instead.", 409)
+        org = str(p.get("org") or "").strip()[:120]
+        sector = str(p.get("sector") or "Plastics & packaging")[:60]
+        extra = {}
+        if role == "founder":
+            c = dict(id=uid("c"), name=org or "My company", sector=sector, stage="Growth", city="Mumbai", revenue=50, **{"raise": 10}, instrument="equity",
+                     raise_paise=10 * 10_000_000 * 100, pipeline_stage="applied", stage_since=today(), security_type="equity", offer_price_paise=0,
+                     fd_extra_shares=0, external_offers={}, checklist={}, updates=[],
+                     twin={}, readiness={}, quarters=[], covenants=dict(dscr_min=1.25, debt_ebitda_max=3.5), docs=[])
+            add_record(conn, "companies", c)
+            extra["company_id"] = c["id"]
+        else:
+            extra["firm"] = org or name
+            if role == "investor":
+                extra["mandate"] = dict(sectors=[sector], past_sectors=[], stages=["Growth"], ticket_min=2, ticket_max=20, instruments=["equity"])
+                extra["profile"] = dict(kyc="not_started", accredited=False, nda_signed_at=None, last_active=now())
+            else:
+                # a self-registered lender is unverified until Aegis Ascend confirms its RBI registration
+                extra["profile"] = dict(regulated=False, lender_type=None, reg_no=None)
+        u = add_user(conn, email, name, role, pw, **extra)
+        write_audit(conn, u, "signup", "Created a %s account" % role, extra.get("company_id"), ip=ip_of(request))
+        return signed_in(u, A.new_session(conn, u["id"], ip_of(request), request.headers.get("user-agent")))
+
+
+def add_user(conn, email, name, role, password, demo=False, **extra):
+    u = dict(id=extra.pop("id", None) or uid("u"), email=email.lower(), name=name, role=role, company_id=extra.get("company_id"),
+             firm=extra.get("firm"), title=extra.get("title"), mandate=extra.get("mandate"), profile=extra.get("profile"),
+             pw_hash=A.hash_password(password, demo=demo), created_at=now())
+    conn.execute(insert(T.users).values(totp_enabled=False, disabled=False, **u))
+    return u
+
+
+@app.get("/api/account/security")
+def security(request: Request):
+    """Two-step status and the devices signed in to this account."""
+    with T.engine().begin() as conn:
+        u, row = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        rows = conn.execute(select(T.sessions).where(T.sessions.c.user_id == u["id"], T.sessions.c.mfa_pending.is_(False))
+                            .order_by(T.sessions.c.last_seen.desc())).all()
+        return dict(two_step=bool(u["totp_enabled"]), sessions=[dict(this_device=s.token_hash == row.token_hash, signed_in=A.aware(s.created_at).isoformat(),
+                    last_seen=A.aware(s.last_seen).isoformat(), ip=s.ip, device=s.user_agent) for s in rows])
+
+
+@app.post("/api/account/two-step/setup")
+def two_step_setup(request: Request):
+    """Step 1: a new secret for the authenticator app (shown as a QR code or typed in). Not active until confirmed."""
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        if u["totp_enabled"]:
+            return err("Two-step sign-in is already on.", 409)
+        secret = A.new_totp_secret()
+        conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(totp_secret=secret))
+        return dict(secret=secret, otpauth_uri=A.totp_uri(secret, u["email"]))
+
+
+@app.post("/api/account/two-step/enable")
+async def two_step_enable(request: Request):
+    """Step 2: confirm with a code from the app; from now on sign-in asks for a code."""
+    p = await body(request)
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        step = A.check_totp(u["totp_secret"], p.get("code"))
+        if u["totp_enabled"] or step is None:
+            return err("That code is not right. Check the app shows Aegis Ascend and try the current code.", 400)
+        conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(totp_enabled=True, totp_last_step=step))
+        write_audit(conn, u, "two_step_on", "Turned on two-step sign-in", ip=ip_of(request))
+        return dict(two_step=True)
+
+
+@app.post("/api/account/two-step/disable")
+async def two_step_disable(request: Request):
+    p = await body(request)
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        if not A.check_password(u["pw_hash"], str(p.get("password") or "")) or A.check_totp(u["totp_secret"], p.get("code"), u["totp_last_step"]) is None:
+            return err("Enter your password and a current code to turn two-step sign-in off.", 400)
+        conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(totp_enabled=False, totp_secret=None, totp_last_step=None))
+        write_audit(conn, u, "two_step_off", "Turned off two-step sign-in", ip=ip_of(request))
+        return dict(two_step=False)
+
+
+@app.post("/api/account/password")
+async def change_password(request: Request):
+    p = await body(request)
+    new = str(p.get("new_password") or "")
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        if not A.check_password(u["pw_hash"], str(p.get("password") or "")):
+            return err("Your current password is wrong.", 400)
+        if A.password_problem(new):
+            return err(A.password_problem(new), 400)
+        conn.execute(update(T.users).where(T.users.c.id == u["id"]).values(pw_hash=A.hash_password(new)))
+        A.end_all_sessions(conn, u["id"], keep=request.cookies.get(A.COOKIE))
+        write_audit(conn, u, "password_changed", "Changed password and signed out other devices", ip=ip_of(request))
+        return dict(ok=True)
+
+
+@app.post("/api/account/sign-out-others")
+def sign_out_others(request: Request):
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        A.end_all_sessions(conn, u["id"], keep=request.cookies.get(A.COOKIE))
+        write_audit(conn, u, "sessions_revoked", "Signed out all other devices", ip=ip_of(request))
+        return dict(ok=True)
+
+
+@app.post("/api/password/forgot")
+async def forgot(request: Request):
+    """Always answers the same way, so the form can't be used to find out who has an account."""
+    p = await body(request)
+    email = str(p.get("email") or "").strip().lower()
+    with T.engine().begin() as conn:
+        key = "reset|%s" % ip_of(request)
+        if A.too_many_attempts(conn, key):
+            return err("Too many requests. Try again in 15 minutes.", 429)
+        A.record_failure(conn, key)   # counts requests, not failures
+        r = conn.execute(select(T.users).where(T.users.c.email == email)).first() if re.fullmatch(EMAIL_RE, email) else None
+        if r and not r.disabled:
+            token = A.new_reset_token(conn, r.id)
+            notify.queue(conn, "email", r.email, "Reset your Aegis Ascend password",
+                         "Hello %s,\n\nUse this link within one hour to choose a new password:\n%s/#reset/%s\n\n"
+                         "If you did not ask for this, ignore this email; your password stays the same.\n\nAegis Ascend Financial Advisors"
+                         % (r.name, settings.public_url, token))
+    return dict(ok=True, message="If that email has an account, we have sent a link to reset the password.")
+
+
+@app.post("/api/password/reset")
+async def reset(request: Request):
+    p = await body(request)
+    pw = str(p.get("password") or "")
+    if A.password_problem(pw):
+        return err(A.password_problem(pw), 400)
+    with T.engine().begin() as conn:
+        user_id = A.use_reset_token(conn, p.get("token"))
+        if not user_id:
+            return err("This reset link has expired or was already used. Ask for a new one.", 400)
+        conn.execute(update(T.users).where(T.users.c.id == user_id).values(pw_hash=A.hash_password(pw)))
+        A.end_all_sessions(conn, user_id)
+        u = dict(conn.execute(select(T.users).where(T.users.c.id == user_id)).first()._mapping)
+        write_audit(conn, u, "password_reset", "Reset password by email link", ip=ip_of(request))
+    return dict(ok=True)
+
+
+# ---------- the workspace ----------
+@app.get("/api/state")
+def state(request: Request):
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        return visible_state(Store(conn), u, lambda filt: audit_rows(conn, filt), today())
+
+
+@app.post("/api/act/{name}")
+async def act(name: str, request: Request):
+    p = await body(request)
+    fn = ACTIONS.get(name)
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        if not fn:
+            return err("Unknown action", 404)
+        T.write_lock(conn)
+        st = Store(conn)
+        me_ = next(x for x in st.users if x["id"] == u["id"])
+        detail, company_id = fn(st, me_, p, today())   # raises Denied -> 403, and the transaction rolls back
+        changes = st.save()
+        write_audit(conn, u, name, detail, company_id, [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in changes], ip=ip_of(request))
+        return dict(detail=detail, company_id=company_id)
+
+
+@app.post("/api/upload")
+async def upload(request: Request):
+    form = await request.form()
+    f, cid, purpose = form.get("file"), form.get("company_id"), form.get("purpose")
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        if not f or not getattr(f, "filename", None):
+            return err("Choose a file.", 400)
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in UPLOAD_TYPES:
+            return err("Upload a PDF, Excel, CSV, Word or image file.", 400)
+        if purpose not in UPLOAD_PURPOSES:
+            return err("Unknown upload type.", 400)
+        T.write_lock(conn)
+        st = Store(conn)
+        if not any(c["id"] == cid for c in st.companies):
+            return err("Company not found.", 404)
+        allowed = u["role"] == "advisor" or (u["role"] == "founder" and u["company_id"] == cid and purpose in ("dataroom", "monitoring"))
+        if not allowed:
+            return err("You cannot upload files for this company.", 403)
+        data = await f.read()
+        if len(data) > settings.max_upload_bytes:
+            return err("That file is too large (8 MB at most).", 413)
+        rec = dict(id=uid("file"), name=re.sub(r"[^\w.\- ()]", "_", f.filename)[:120], mime=UPLOAD_TYPES[ext], company_id=cid, purpose=purpose,
+                   item=str(form.get("item") or "")[:60] or None, uploaded_by=u["id"], at=now(), size=len(data))
+        storage().put(rec["id"], data, rec["mime"])
+        st.files.append(rec)
+        changes = st.save()
+        write_audit(conn, u, "upload", "Uploaded %s (%s)" % (rec["name"], purpose.replace("_", " ")), cid,
+                    [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in changes], ip=ip_of(request))
+        return dict(file=rec)
+
+
+@app.get("/api/file/{fid}")
+def get_file(fid: str, request: Request):
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+        if not u:
+            return err("Please sign in.", 401)
+        st = Store(conn)
+        f = next((x for x in st.files if x["id"] == fid), None)
+        if not f or not can_see_file(st, u, f):
+            return err("File not found.", 404)
+        try:
+            data = storage().get(f["id"])
+        except (FileNotFoundError, ValueError):
+            return err("File not found.", 404)
+        write_audit(conn, u, "download", "Downloaded " + f["name"], f["company_id"], ip=ip_of(request))
+    safe = re.sub(r'[^\w.\- ()]', "_", f["name"])
+    return Response(data, media_type=f["mime"], headers={"Content-Disposition": 'attachment; filename="%s"' % safe})
+
+
+@app.post("/api/enquiry")
+async def enquiry(request: Request):
+    p = await body(request)
+    name, email, msg = str(p.get("name") or "").strip()[:80], str(p.get("email") or "").strip()[:120], str(p.get("message") or "").strip()[:2000]
+    if not name or not re.fullmatch(EMAIL_RE, email) or not msg:
+        return err("Enter your name, a valid email and a message.", 400)
+    with T.engine().begin() as conn:
+        e = dict(id=uid("e"), at=now(), name=name, email=email, company=str(p.get("company") or "")[:120], message=msg)
+        add_record(conn, "enquiries", e)
+        write_audit(conn, None, "enquiry", "Enquiry from " + name, ip=ip_of(request))
+    return dict(ok=True)
+
+
+@app.post("/api/chat")
+async def chat_reply(request: Request):
+    """The website assistant. Reports offline:true when Claude isn't configured, so the page uses its quick answers."""
+    p = await body(request)
+    msgs = CHAT.clean_history(p.get("messages"))
+    if msgs is None:
+        return err("Ask a question of up to %d characters." % CHAT.MAX_CHARS, 400)
+    with T.engine().begin() as conn:
+        user, _ = current(conn, request)
+    key = (user and user["id"]) or ip_of(request) or "anon"
+    recent = [t for t in _CHATS.get(key, []) if time.time() - t < 600]
+    if len(recent) >= 20:
+        return err("That's a lot of questions in a short time. Please wait a few minutes, or use the Contact page.", 429)
+    if len(_CHATS) > 5000:
+        _CHATS.clear()
+    _CHATS[key] = recent + [time.time()]
+    try:
+        page = str(p.get("page") or "")[:60]
+        return dict(reply=CHAT.answer(msgs, page=page if re.fullmatch(r"[a-z0-9/_-]*", page) else "", role=user and user["role"]))
+    except CHAT.Offline:
+        return err("The assistant is offline.", 503, offline=True)
+
+
+# ---------- pages ----------
+@app.get("/", response_class=HTMLResponse)
+def index():
+    shell = open(os.path.join(SITE, "shell.html"), encoding="utf-8").read()
+    pre, post = SCRIPTS[:SCRIPTS.index("api-server.js") + 1], SCRIPTS[SCRIPTS.index("api-server.js") + 1:]
+    tags = "".join('<script src="/static/%s"></script>' % f for f in pre)
+    tags += ('<script>window.GB_CMA_URL = "/fundmix.html"; window.GB_ASSETS = "/assets/"; window.GB_CHAT_URL = "/api/chat"; window.GB_SITEMAP = '
+             + json.dumps(CHAT.SITEMAP, separators=(",", ":")).replace("</", "<\\/") + ';</script>')
+    tags += "".join('<script src="/static/%s"></script>' % f for f in post)
+    html = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+            "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230D0E10'/%3E%3Cpath d='M16 5l6 6-6 6-6-6z' fill='%23C9A04F'/%3E%3Cpath d='M6 28l8-12v12M26 28l-8-12v12' stroke='%23C9A04F' stroke-width='2' fill='none'/%3E%3C/svg%3E\">"
+            "<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>" + shell.replace("<!--SCRIPTS-->", tags) + "</body></html>")
+    return HTMLResponse(html)
+
+
+def _file(path, mime, max_age):
+    with open(path, "rb") as f:
+        return Response(f.read(), media_type=mime, headers={"Cache-Control": "public, max-age=%d" % max_age})
+
+
+@app.get("/static/{name}")
+def static_file(name: str):
+    if name not in SCRIPTS:
+        return err("Not found", 404)
+    return _file(os.path.join(SITE, name), "text/javascript", 300)
+
+
+@app.get("/assets/{name}")
+def asset_file(name: str):
+    if name not in ASSET_FILES:
+        return err("Not found", 404)
+    return _file(os.path.join(SITE, "assets", name), ASSET_FILES[name], 86400)
+
+
+@app.get("/fundmix.html", response_class=HTMLResponse)
+def fundmix(request: Request):
+    """The CMA funding report tool is for advisors only; everyone else gets the advisors-only page."""
+    with T.engine().begin() as conn:
+        u, _ = current(conn, request)
+    if not u or u["role"] != "advisor":
+        return HTMLResponse(open(os.path.join(SITE, "cma-lock.html"), encoding="utf-8").read(), status_code=403 if u else 401)
+    cma = open(os.path.join(ROOT, "fundmix", "web", "index.html"), encoding="utf-8").read()
+    return HTMLResponse('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                        '<meta name="robots" content="noindex"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>' + cma + "</body></html>")
+
+
+@app.get("/healthz")
+def health():
+    with T.engine().connect() as conn:
+        conn.exec_driver_sql("SELECT 1")
+    return dict(ok=True)
+
+
+# ---------- setup ----------
+def init_db(seed_demo=False):
+    T.create_schema()
+    with T.engine().begin() as conn:
+        if not conn.execute(select(T.records["settings"].c.id)).first():
+            add_record(conn, "settings", dict(SEED.SETTINGS_DEFAULT))
+        if seed_demo and not conn.execute(select(T.users.c.id)).first():
+            data = SEED.resolved(today())
+            for u in data.pop("users"):
+                # demo accounts share a published password, so a lighter hash is enough; real accounts use full Argon2id
+                add_user(conn, u.pop("email"), u.pop("name"), u.pop("role"), DEMO_PASSWORD, demo=True, **u)
+            conn.execute(T.records["settings"].delete())
+            for c, docs in data.items():
+                for i, d in enumerate(docs, 1):
+                    conn.execute(insert(T.records[c]).values(id=d["id"], company_id=d["id"] if c == "companies" else d.get("company_id"), seq=i, data=d))
+
+```
+
+### `backend/cli.py`
+
+Admin commands: init, seed, create advisor, import from the prototype, send the outbox.
+
+```python
+"""Admin commands.
+
+  python -m backend.cli init-db           create the tables
+  python -m backend.cli seed-demo         create the tables and load the fictional demo accounts (password demo1234)
+  python -m backend.cli create-advisor    add an advisor account (advisors cannot sign themselves up)
+  python -m backend.cli import-sqlite PATH  copy accounts, records and the audit log from the Flask prototype's database
+  python -m backend.cli send-outbox       send queued emails/SMS/WhatsApp messages (run every minute from a scheduler)
+"""
+import getpass
+import json
+import sqlite3
+import sys
+
+from sqlalchemy import insert, select
+
+from backend import db as T
+from backend import notify
+from backend.app import add_user, init_db
+from server.actions import COLLECTIONS
+
+
+def import_sqlite(path):
+    init_db()
+    src = sqlite3.connect(path)
+    src.row_factory = sqlite3.Row
+    with T.engine().begin() as conn:
+        if conn.execute(select(T.users.c.id)).first():
+            raise SystemExit("The target database already has accounts. Import into an empty database.")
+        for r in src.execute("SELECT * FROM users"):
+            d = dict(r)
+            conn.execute(insert(T.users).values(
+                id=d["id"], email=d["email"], name=d["name"], role=d["role"], company_id=d["company_id"], firm=d["firm"], title=d["title"],
+                mandate=json.loads(d["mandate"]) if d.get("mandate") else None, profile=json.loads(d["profile"]) if d.get("profile") else None,
+                pw_hash=d["pw_hash"], created_at=d["created_at"], totp_enabled=False, disabled=False))   # old hashes are upgraded at next sign-in
+        conn.execute(T.records["settings"].delete())
+        for c in COLLECTIONS:
+            for i, r in enumerate(src.execute("SELECT data FROM docs WHERE collection=? ORDER BY rowid", (c,)), 1):
+                d = json.loads(r[0])
+                conn.execute(insert(T.records[c]).values(id=d["id"], company_id=d["id"] if c == "companies" else d.get("company_id"), seq=i, data=d))
+        for r in src.execute("SELECT * FROM audit ORDER BY seq"):
+            d = dict(r)
+            conn.execute(insert(T.audit).values(id=d["id"], at=d["at"], user_id=d["user_id"], user_name=d["user_name"], action=d["action"],
+                                                detail=d["detail"], company_id=d["company_id"], changes=json.loads(d["changes"]) if d.get("changes") else None))
+    print("Imported", path)
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else ""
+    if cmd == "init-db":
+        init_db()
+        print("Tables ready.")
+    elif cmd == "seed-demo":
+        init_db(seed_demo=True)
+        print("Demo data loaded. Sign in as founder@demo.in, investor@demo.in, advisor@demo.in or lender@demo.in with password demo1234")
+    elif cmd == "create-advisor":
+        init_db()
+        email, name = input("Advisor email: ").strip().lower(), input("Full name: ").strip()
+        pw = getpass.getpass("Password (8+ characters): ")
+        if len(pw) < 8:
+            raise SystemExit("Password too short")
+        with T.engine().begin() as conn:
+            add_user(conn, email, name, "advisor", pw, firm="Aegis Ascend Financial Advisors", title="Advisor")
+        print("Advisor created:", email, "- ask them to turn on two-step sign-in after their first sign-in.")
+    elif cmd == "import-sqlite" and len(argv) > 2:
+        import_sqlite(argv[2])
+    elif cmd == "send-outbox":
+        with T.engine().begin() as conn:
+            print("Sent", notify.send_queued(conn), "messages")
+    else:
+        print(__doc__)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+```
+
+### `backend/requirements.txt`
+
+Python dependencies.
+
+```text
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.3
+argon2-cffi==23.1.0
+pyotp==2.9.0
+python-multipart==0.0.19
+anthropic>=2.8
+werkzeug>=3.0      # only to check passwords of accounts imported from the Flask prototype
+# boto3            # uncomment when GB_STORAGE=s3
+# tests
+pytest==8.3.4
+httpx==0.28.1
+```
+
+### `Dockerfile`
+
+Container image for the backend.
+
+```dockerfile
+# Aegis Ascend backend: the website and API, served by uvicorn.
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+COPY backend backend
+COPY server server
+COPY site site
+COPY fundmix/web fundmix/web
+RUN useradd --create-home app && mkdir -p /data/uploads && chown app /data/uploads
+USER app
+ENV GB_UPLOADS=/data/uploads
+EXPOSE 8000
+HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+```
+
+### `docker-compose.yml`
+
+Local stack: PostgreSQL plus the app.
+
+```yaml
+# Local stack: PostgreSQL 16 + the app.   docker compose up --build   then open http://127.0.0.1:8000
+# Demo accounts are loaded on first start (GB_SEED_DEMO=1); remove that line for a real deployment.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis-local-only
+      POSTGRES_DB: aegis
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 3s
+      retries: 20
+  app:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      GB_DATABASE_URL: postgresql+psycopg://aegis:aegis-local-only@db:5432/aegis
+      GB_SEED_DEMO: "1"
+      GB_PUBLIC_URL: http://127.0.0.1:8000
+      # GB_SECRET_KEY: set a long random value; GB_ENV: production turns on secure cookies and HSTS
+      # ANTHROPIC_API_KEY: turns on Claude answers in the website assistant
+    ports: ["8000:8000"]
+    volumes: [uploads:/data/uploads]
+volumes:
+  pgdata:
+  uploads:
+```
+
+
+---
+
+## 10. Tests
 
 Run with: python -m pytest server/tests fundmix/tests  and  node site/tests/store.test.js
 
@@ -9750,4 +11237,361 @@ test("sign-in, sign-up and session match the server", async () => {
   console.log((tests.length - failed) + " passed, " + failed + " failed");
   process.exit(failed ? 1 : 0);
 })();
+```
+
+### `backend/tests/test_flask_suite_on_backend.py`
+
+Runs the whole prototype server suite against the new backend.
+
+```python
+"""Runs every test of the Flask prototype's suite (server/tests/test_server.py) against the FastAPI backend.
+The rules, numbers, permissions and API responses must match exactly; only storage details differ:
+Argon2 instead of scrypt hashes, and PostgreSQL/SQLAlchemy instead of sqlite3 for the append-only audit check.
+
+  GB_TEST_DATABASE_URL=postgresql+psycopg://user@host/aegis_test pytest backend/tests   (PostgreSQL; else SQLite)
+"""
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = open(os.path.join(HERE, "..", "..", "server", "tests", "test_server.py"), encoding="utf-8").read()
+
+SWAPS = [
+    ("from server import app as srv  # noqa: E402", "from backend.tests import shim as srv  # noqa: E402"),
+    ('''    srv.app.config.update(DATABASE=str(tmp_path / "t.db"), UPLOADS=str(tmp_path / "up"), TESTING=True, TODAY=TODAY)
+    srv._FAILS.clear()
+    srv.init_db(seed_demo=True)
+    return srv.app.test_client()''', '''    srv.fresh(tmp_path, TODAY)
+    return srv.app.test_client()'''),
+    ('''    conn = sqlite3.connect(srv.app.config["DATABASE"])
+    conn.row_factory = sqlite3.Row
+    return srv.Store(conn)''', '''    return srv.store()'''),
+    ('''    conn = sqlite3.connect(srv.app.config["DATABASE"])
+    h = conn.execute("SELECT pw_hash FROM users WHERE email='founder@demo.in'").fetchone()[0]
+    assert "demo1234" not in h and h.startswith(("scrypt:", "pbkdf2:"))''', '''    h = srv.pw_hash("founder@demo.in")
+    assert "demo1234" not in h and h.startswith("$argon2id$")'''),
+    ('''    conn = sqlite3.connect(srv.app.config["DATABASE"])
+    with pytest.raises(sqlite3.DatabaseError):
+        conn.execute("UPDATE audit SET detail='x'")
+    with pytest.raises(sqlite3.DatabaseError):
+        conn.execute("DELETE FROM audit")''', '''    srv.assert_audit_append_only()'''),
+]
+for old, new in SWAPS:
+    assert SRC.count(old) == 1, "test_server.py changed; update the swap for: " + old[:60]
+    SRC = SRC.replace(old, new)
+assert "sqlite3.connect" not in SRC, "a test still opens SQLite directly"
+exec(compile(SRC, "server/tests/test_server.py (on backend)", "exec"), globals())
+```
+
+### `backend/tests/shim.py`
+
+Flask-style test client over FastAPI for that suite.
+
+```python
+"""Lets the Flask prototype's test suite (server/tests/test_server.py) run unchanged against the FastAPI backend:
+a Flask-style test client over FastAPI's TestClient, plus the few internals the suite reaches for."""
+import os
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import select, text
+
+from backend import app as B
+from backend import db as T
+from backend.config import settings
+from backend.store import Store as _Store
+
+SCRIPTS = B.SCRIPTS
+_CHATS = B._CHATS
+
+
+class _Fails(dict):
+    """The Flask app kept wrong-password counts in memory; here they live in the database and are reset per test."""
+    def clear(self):
+        with T.engine().begin() as conn:
+            conn.execute(T.login_attempts.delete())
+
+
+_FAILS = _Fails()
+
+
+class Resp:
+    def __init__(self, r):
+        self._r, self.status_code, self.headers, self.data = r, r.status_code, r.headers, r.content
+
+    def get_json(self):
+        try:
+            return self._r.json()
+        except ValueError:
+            return None
+
+
+class Client:
+    def __init__(self):
+        self.c = TestClient(B.app, base_url="http://127.0.0.1")
+
+    def get(self, url, headers=None):
+        return Resp(self.c.get(url, headers=headers))
+
+    def post(self, url, json=None, headers=None, data=None, content_type=None):
+        if data is not None:
+            files = {k: (v[1], v[0].read()) for k, v in data.items() if isinstance(v, tuple)}
+            form = {k: v for k, v in data.items() if not isinstance(v, tuple)}
+            return Resp(self.c.post(url, data=form, files=files, headers=headers))
+        return Resp(self.c.post(url, json=json, headers=headers))
+
+
+class _App:
+    config = {}
+
+    def test_client(self):
+        return Client()
+
+
+app = _App()
+
+
+def test_database_url(tmp_path):
+    return os.environ.get("GB_TEST_DATABASE_URL") or "sqlite:///" + str(tmp_path / "t.db")
+
+
+def fresh(tmp_path, today):
+    settings.database_url = test_database_url(tmp_path)
+    settings.uploads = str(tmp_path / "up")
+    settings.today = today
+    T.reset_engine()
+    eng = T.engine()
+    with eng.begin() as conn:
+        if eng.dialect.name == "postgresql":
+            conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public"))
+    if eng.dialect.name != "postgresql":
+        T.metadata.drop_all(eng)
+    B.init_db(seed_demo=True)
+    _CHATS.clear()
+
+
+def init_db(seed_demo=False):
+    B.init_db(seed_demo=seed_demo)
+
+
+def store():
+    with T.engine().connect() as conn:
+        return _Store(conn)
+
+
+def pw_hash(email):
+    with T.engine().connect() as conn:
+        return conn.execute(select(T.users.c.pw_hash).where(T.users.c.email == email)).scalar()
+
+
+def assert_audit_append_only():
+    for sql in ("UPDATE audit SET detail='x'", "DELETE FROM audit"):
+        with pytest.raises(Exception):
+            with T.engine().begin() as conn:
+                conn.execute(text(sql))
+```
+
+### `backend/tests/test_security.py`
+
+Sessions, two-step sign-in, password change and reset, outbox, import, action lock.
+
+```python
+"""The backend's own features: sessions, two-step sign-in, password change and reset, the outbox, importing the prototype."""
+import os
+import re
+import sys
+from datetime import timedelta
+
+import pyotp
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import select, update
+
+from backend import app as B
+from backend import auth as A
+from backend import db as T
+from backend.tests import shim
+
+H = {"X-Requested-With": "glassbox"}
+
+
+@pytest.fixture()
+def fresh(tmp_path):
+    shim.fresh(tmp_path, "2026-10-19")
+    return tmp_path
+
+
+def client():
+    return TestClient(B.app, base_url="http://127.0.0.1")
+
+
+def login(c, email="founder@demo.in", pw="demo1234"):
+    return c.post("/api/login", json={"email": email, "password": pw}, headers=H)
+
+
+def outbox():
+    with T.engine().connect() as conn:
+        return [dict(r._mapping) for r in conn.execute(select(T.outbox).order_by(T.outbox.c.created_at))]
+
+
+def test_session_cookie_is_httponly_and_only_hashed_in_db(fresh):
+    c = client()
+    r = login(c)
+    assert r.status_code == 200
+    cookie = r.headers["set-cookie"]
+    assert "HttpOnly" in cookie and "samesite=lax" in cookie.lower()
+    token = c.cookies.get(A.COOKIE)
+    with T.engine().connect() as conn:
+        stored = [x.token_hash for x in conn.execute(select(T.sessions))]
+    assert token not in stored and A.sha(token) in stored
+
+
+def test_logout_revokes_the_session_server_side(fresh):
+    c = client()
+    login(c)
+    token = c.cookies.get(A.COOKIE)
+    c.post("/api/logout", headers=H)
+    thief = client()
+    thief.cookies.set(A.COOKIE, token)
+    assert thief.get("/api/state").status_code == 401
+
+
+def test_expired_session_is_rejected(fresh):
+    c = client()
+    login(c)
+    with T.engine().begin() as conn:
+        conn.execute(update(T.sessions).values(expires_at=A.utcnow() - timedelta(minutes=1)))
+    assert c.get("/api/state").status_code == 401
+
+
+def test_two_step_sign_in(fresh):
+    c = client()
+    login(c)
+    setup = c.post("/api/account/two-step/setup", headers=H).json()
+    assert setup["otpauth_uri"].startswith("otpauth://totp/Aegis%20Ascend:founder%40demo.in")
+    totp = pyotp.TOTP(setup["secret"])
+    assert c.post("/api/account/two-step/enable", json={"code": "000000"}, headers=H).status_code == 400
+    assert c.post("/api/account/two-step/enable", json={"code": totp.now()}, headers=H).json() == {"two_step": True}
+
+    c2 = client()
+    r = login(c2)
+    assert r.json() == {"mfa_required": True}
+    assert c2.get("/api/state").status_code == 401            # password alone is not enough
+    assert c2.post("/api/login/mfa", json={"code": "123456"}, headers=H).status_code == 401
+    # the code already used to switch it on cannot be replayed
+    assert c2.post("/api/login/mfa", json={"code": totp.now()}, headers=H).status_code == 401
+    with T.engine().begin() as conn:                          # next 30-second window
+        conn.execute(update(T.users).where(T.users.c.email == "founder@demo.in").values(totp_last_step=T.users.c.totp_last_step - 1))
+    r = c2.post("/api/login/mfa", json={"code": totp.now()}, headers=H)
+    assert r.status_code == 200 and r.json()["user"]["email"] == "founder@demo.in"
+    assert c2.get("/api/state").status_code == 200
+    assert c2.get("/api/account/security").json()["two_step"] is True
+
+
+def test_two_step_code_attempts_are_limited(fresh):
+    c = client()
+    login(c)
+    secret = c.post("/api/account/two-step/setup", headers=H).json()["secret"]
+    c.post("/api/account/two-step/enable", json={"code": pyotp.TOTP(secret).now()}, headers=H)
+    c2 = client()
+    login(c2)
+    codes = [c2.post("/api/login/mfa", json={"code": "000000"}, headers=H).status_code for _ in range(6)]
+    assert codes[:5] == [401] * 5 and codes[5] == 429
+
+
+def test_change_password_signs_out_other_devices(fresh):
+    a, b = client(), client()
+    login(a)
+    login(b)
+    assert a.post("/api/account/password", json={"password": "wrong", "new_password": "new-secret-1"}, headers=H).status_code == 400
+    assert a.post("/api/account/password", json={"password": "demo1234", "new_password": "short"}, headers=H).status_code == 400
+    assert a.post("/api/account/password", json={"password": "demo1234", "new_password": "new-secret-1"}, headers=H).status_code == 200
+    assert a.get("/api/state").status_code == 200 and b.get("/api/state").status_code == 401
+    assert login(client()).status_code == 401
+    assert login(client(), pw="new-secret-1").status_code == 200
+
+
+def test_password_reset_by_email(fresh):
+    c = client()
+    r = c.post("/api/password/forgot", json={"email": "nobody@nowhere.in"}, headers=H)
+    same = c.post("/api/password/forgot", json={"email": "investor@demo.in"}, headers=H)
+    assert r.json() == same.json()                            # no hint about which emails have accounts
+    msgs = outbox()
+    assert len(msgs) == 1 and msgs[0]["to"] == "investor@demo.in" and msgs[0]["status"] == "queued"
+    token = re.search(r"#reset/([\w-]+)", msgs[0]["body"]).group(1)
+    signed_in = client()
+    login(signed_in, "investor@demo.in")
+    assert c.post("/api/password/reset", json={"token": token, "password": "brand-new-pw"}, headers=H).status_code == 200
+    assert c.post("/api/password/reset", json={"token": token, "password": "another-pw-1"}, headers=H).status_code == 400  # single use
+    assert signed_in.get("/api/state").status_code == 401     # every device signed out
+    assert login(client(), "investor@demo.in", "brand-new-pw").status_code == 200
+
+
+def test_outbox_worker_sends_queued_messages(fresh, capsys):
+    client().post("/api/password/forgot", json={"email": "lender@demo.in"}, headers=H)
+    from backend import notify
+    with T.engine().begin() as conn:
+        assert notify.send_queued(conn) == 1
+    assert outbox()[0]["status"] == "sent"
+    assert "Reset your Aegis Ascend password" in capsys.readouterr().out
+
+
+def test_sign_out_other_devices(fresh):
+    a, b = client(), client()
+    login(a)
+    login(b)
+    assert len(a.get("/api/account/security").json()["sessions"]) == 2
+    a.post("/api/account/sign-out-others", headers=H)
+    assert a.get("/api/state").status_code == 200 and b.get("/api/state").status_code == 401
+
+
+def test_import_from_flask_prototype(tmp_path):
+    """Accounts, records and the audit log move across; old scrypt passwords still work and are upgraded to Argon2."""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from server import app as srv
+    old = str(tmp_path / "old.db")
+    srv.app.config.update(DATABASE=old, TODAY="2026-10-19")
+    srv.init_db(seed_demo=True)
+    with srv.app.app_context():
+        conn = srv.sqlite3.connect(old)
+        srv.add_user(conn, "real@client.in", "Real Client", "investor", "a-real-password")
+        conn.commit()
+    shim.settings.database_url = shim.test_database_url(tmp_path / "new")
+    os.makedirs(tmp_path / "new", exist_ok=True)
+    T.reset_engine()
+    eng = T.engine()
+    if eng.dialect.name == "postgresql":
+        with eng.begin() as conn:
+            conn.exec_driver_sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+    from backend.cli import import_sqlite
+    import_sqlite(old)
+    c = client()
+    assert login(c, "real@client.in", "a-real-password").status_code == 200
+    assert shim.pw_hash("real@client.in").startswith("$argon2id$")
+    with T.engine().connect() as conn:
+        assert conn.execute(select(T.records["companies"].c.id)).all()
+        assert conn.execute(select(T.audit.c.id)).first() is not None
+    assert login(client(), "advisor@demo.in").status_code == 200
+
+
+def test_actions_run_one_at_a_time_on_postgres(fresh):
+    """Limit checks (200 offers, 200 members, 20 investors) read many records; the write lock stops two actions racing."""
+    import threading
+    import time
+    eng = T.engine()
+    if eng.dialect.name != "postgresql":
+        pytest.skip("the lock is a PostgreSQL advisory lock")
+    order = []
+    with eng.begin() as first:
+        T.write_lock(first)
+
+        def second():
+            with eng.begin() as conn:
+                T.write_lock(conn)
+                order.append("second")
+        t = threading.Thread(target=second)
+        t.start()
+        time.sleep(0.5)
+        order.append("first done")
+    t.join(5)
+    assert order == ["first done", "second"]
 ```
