@@ -103,14 +103,20 @@
     const named = new Map(D().offers.filter((o) => o.investor_id).map((o) => [o.investor_id, o.response]));
     const panel = (D().directory || []).filter((u) => u.role === "investor").map((u) => Object.assign({ fit: root.GB.fitScore(c, u) }, u)).sort((a, b) => b.fit.score - a.fit.score);
     const asks = I.filter((i) => i.status === "requested");
-    return WS.head("Investors", "Ranked by Investor Fit Score. Your advisor decides who receives the offer; you decide who enters your deal room.") +
+    const SG = (D().suggestions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+    const open = new Set(SG.filter((x) => ["suggested", "invited", "waiting_kyc"].includes(x.status) && x.investor_id).map((x) => x.investor_id));
+    return WS.head("Investors", "Suggest the investors you would like to pitch: from the panel below, or someone new by email. Your advisor confirms each one, then the offer is sent. You decide who enters your deal room.",
+      '<button class="btn primary" type="button" data-act="f-suggest-new">Suggest a new investor</button>') +
+      (SG.length ? '<section class="panel"><h2>Your suggestions</h2><ul class="docs">' + SG.map((x) => "<li><span><b>" + esc(x.name) + "</b>" + (x.firm ? " · " + esc(x.firm) : "") +
+        '<span class="muted small block">' + (x.status === "declined" || x.status === "blocked" ? esc(x.reason || "") : x.status === "invited" ? "Invitation sent to " + esc(x.email || "") : x.status === "waiting_kyc" ? "The offer goes out once their identity check is done" : x.status === "offered" ? "Your advisor sent the offer" : "Suggested " + UI.date(x.at) + (x.note ? " · " + esc(x.note) : "")) +
+        "</span></span>" + WS.sgChip(x) + "</li>").join("") + "</ul></section>" : "") +
       (asks.length ? '<section class="panel"><h2>Deal-room requests</h2>' + asks.map((i) => '<div class="item"><div><b>' + esc(i.investor_name) + '</b><span class="muted small">asked ' + UI.date(i.created_at) + '</span></div><div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div></div>').join("") + "</section>" : "") +
       '<div class="cards" data-stagger>' + panel.map((u) => { const i = I.find((x) => x.investor_id === u.id), resp = named.get(u.id);
         return '<article class="card"><div class="card-top"><div><b>' + esc(u.firm || u.name) + '</b><span class="muted small">' + esc(u.name) + '</span></div><div class="score" title="Investor Fit Score">' + u.fit.score + "<small>/100</small></div></div>" +
           '<ul class="reasons">' + u.fit.reasons.map((r) => "<li>" + esc(r) + "</li>").join("") + "</ul>" +
           (i ? "<p>" + WS.statusChip(i.status) + (i.nda_signed_at ? " " + chip("ok", "NDA signed") : "") + "</p>" : resp ? "<p>" + chip(resp === "invested" || resp === "interested" ? "ok" : "warn", resp === "invested" ? "Invested" : resp === "interested" ? "Interested" : "Offer " + resp) + "</p>" : "") +
           (i && i.status === "requested" ? '<div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div>'
-            : !i && !resp ? '<button class="btn ghost sm" data-act="f-suggest" data-id="' + u.id + '">Suggest to my advisor</button>' : "") + "</article>"; }).join("") + "</div>";
+            : !i && !resp && open.has(u.id) ? '<p>' + chip("warn", "Suggested") + "</p>" : !i && !resp ? '<button class="btn ghost sm" data-act="f-suggest" data-id="' + u.id + '">Suggest to my advisor</button>' : "") + "</article>"; }).join("") + "</div>";
   }
   function dealroom() {
     const c = WS.myCompany(), I = D().intros || [];
@@ -124,7 +130,13 @@
   }
 
   Object.assign(WS.clicks, {
-    "f-suggest": async (b, id) => { if (await KIT.confirm("Suggest this investor to your advisor?", "<p>Your advisor checks the investor's KYC and the offer limits, and decides whether to share the offer.</p>", "Suggest")) return WS.after(await API.act("suggest_investor", { investor_id: id })); },
+    "f-suggest": async (b, id) => { if (await KIT.confirm("Suggest this investor to your advisor?", "<p>Your advisor confirms the investor, then the offer is sent once their identity check (KYC) is done and the offer limits allow it.</p>", "Suggest")) return WS.after(await API.act("suggest_investor", { investor_id: id })); },
+    "f-suggest-new": async () => {
+      const v = await KIT.dialog({ title: "Suggest a new investor", text: "<p>Someone you would like to pitch who is not on the platform yet. Your advisor checks them; if confirmed, they receive a private invitation to join, and the offer follows their identity check.</p>",
+        confirm: "Send to my advisor", fields: [{ name: "name", label: "Investor's name", type: "text" }, { name: "email", label: "Email", type: "email" }, { name: "firm", label: "Firm or family office (optional)", type: "text" }, { name: "note", label: "Why this investor (optional)", type: "textarea" }],
+        validate: (x) => (!String(x.name || "").trim() ? "Enter the investor's name" : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(x.email || "").trim()) ? "Enter a valid email" : null) });
+      if (v) return WS.after(await API.act("suggest_investor", { name: v.name, email: v.email, firm: v.firm, note: v.note }));
+    },
     "f-upload": async (b, item) => {
       const l = (DATAROOM.find((x) => x[0] === item) || [item, item])[1];
       const v = await KIT.dialog({ title: "Upload: " + l, confirm: "Upload", fields: [{ name: "file", label: "File (PDF, Excel, Word, CSV or image)", type: "file", accept: ".pdf,.xlsx,.xls,.csv,.docx,.png,.jpg,.jpeg" }], validate: (x) => (x.file ? null : "Choose a file") });

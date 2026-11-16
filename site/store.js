@@ -12,7 +12,7 @@
   const MAX_UPLOAD = 1.5 * 1024 * 1024; // the file is kept in localStorage as a data URL
 
   const COLLECTIONS = ["companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
-    "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings"];
+    "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings", "suggestions", "invites"];
   const COMPANY_FIELDS = ["name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs"];
   const ADVISOR_COMPANY_FIELDS = ["offer_price_paise", "fd_extra_shares", "security_type", "raise_paise"];
   const SELL_OPEN = ["submitted", "under_review", "rofr", "buyer_introduced", "spa_signed"];
@@ -193,6 +193,53 @@
   function notifyAdvisors(st, kind, text, link) { for (const u of st.users) if (u.role === "advisor") notify(st, u.id, kind, text, link); }
   const owns = (u, cid) => u.role === "advisor" || (u.role === "founder" && u.company_id === cid);
   const approved = (st, cid) => st.reports.some((r) => r.company_id === cid && r.status === "approved");
+
+  // ---------- investor suggestions (mirrors server/actions.py): the founder suggests, the advisor confirms, then the offer goes out ----------
+  const SUGGESTION_OPEN = ["suggested", "invited", "waiting_kyc"];
+  const offerable = (c, st) => ["approved", "offering"].includes(get(c, "pipeline_stage")) && approved(st, c.id);
+  function sendOffer(st, c, inv, byId, day) {
+    need(offerable(c, st), "Only a company in Approved or Offering status with a signed-off report can be offered");
+    need(get(isObj(inv.profile) ? inv.profile : {}, "kyc") === "verified", label(inv) + " has not completed KYC");
+    const sec = or(get(c, "security_type"), "equity"), year = DOM.fy(day);
+    const old = st.offers.find((o) => o.company_id === c.id && o.investor_id === inv.id && o.fy === year && o.security_type === sec);
+    if (old) return old;
+    const s = settings(st), used = DOM.offersUsed(st, c.id, year, sec);
+    need(used + 1 <= s.offer_limit, "Blocked: " + c.name + " has used all " + s.offer_limit + " " + sec + " offers for FY " + year + " (Section 42).");
+    const o = { id: uid("o"), company_id: c.id, investor_id: inv.id, fy: year, security_type: sec, sent_at: now(), sent_by: byId,
+      response: "pending", responded_at: null, share_identity: false, views: [] };
+    st.offers.push(o);
+    notify(st, inv.id, "offer", "New private offer: " + c.name, "app-opportunities");
+    if (c.pipeline_stage === "approved") Object.assign(c, { pipeline_stage: "offering", stage_since: day });
+    return o;
+  }
+  function releaseSuggestion(st, sg, byId, day) {
+    const inv = userOf(st, sg.investor_id, "investor"), c = companyOf(st, sg.company_id);
+    if (get(isObj(inv.profile) ? inv.profile : {}, "kyc") !== "verified") { sg.status = "waiting_kyc"; return; }
+    try {
+      const o = sendOffer(st, c, inv, byId, day);
+      Object.assign(sg, { status: "offered", offer_id: o.id, reason: null });
+      notify(st, sg.by, "suggest", "Your advisor sent the offer to " + label(inv), "app-fundraise");
+    } catch (e) {
+      if (!(e instanceof Denied)) throw e;
+      Object.assign(sg, { status: "blocked", reason: e.message });
+      notifyAdvisors(st, "suggest", "Could not send " + c.name + "'s offer to " + label(inv) + ": " + e.message, "app-directory");
+    }
+  }
+  function releaseWaiting(st, investorId, byId, day) {
+    for (const sg of st.suggestions) if (sg.investor_id === investorId && sg.status === "waiting_kyc") releaseSuggestion(st, sg, byId, day);
+  }
+  function acceptInvite(st, inviteId, user) {
+    const inv = find(st.invites, inviteId);
+    need(inv && inv.status === "pending", "This invitation has already been used or withdrawn");
+    Object.assign(inv, { status: "accepted", accepted_at: now(), user_id: user.id });
+    const sg = find(st.suggestions, inv.suggestion_id);
+    if (sg && sg.status === "invited") {
+      Object.assign(sg, { investor_id: user.id, status: "waiting_kyc" });
+      notify(st, sg.by, "suggest", inv.name + " accepted the invitation", "app-investors");
+    }
+    notifyAdvisors(st, "suggest", inv.name + " joined by invitation; verify their KYC to send the offer", "app-directory");
+    return inv;
+  }
   const holderIds = (st, cid) => new Set(DOM.platformInvestors(st, cid));
 
   // ---------- visibility ----------
@@ -258,7 +305,7 @@
         holdings: only(st.holdings).map((h) => Object.assign({}, h, { investor_name: label(userOf(st, h.investor_id)) })),
         offers: only(st.offers).map(offerView), valuations: only(st.valuations), sell_requests: only(st.sell_requests).map(sellView),
         loans: only(st.loans), invoices: st.invoices.filter((i) => i.company_id === cid && i.payer === "company"),
-        files: only(st.files), audit: auditRows(["company_id", cid]) });
+        files: only(st.files), suggestions: only(st.suggestions), audit: auditRows(["company_id", cid]) });
     } else if (role === "investor") {
       const mine = st.offers.filter((o) => o.investor_id === user.id);
       const hold = st.holdings.filter((h) => h.investor_id === user.id);
@@ -438,7 +485,7 @@
       return ["Posted an update for " + c.name, c.id];
     },
 
-    set_investor_profile(st, u, p) {
+    set_investor_profile(st, u, p, day) {
       need(u.role === "advisor", "Only an advisor records KYC");
       const inv = userOf(st, get(p, "investor_id"), "investor");
       const prof = inv.profile = isObj(inv.profile) ? inv.profile : {};
@@ -447,6 +494,7 @@
         prof.kyc = p.kyc;
       }
       if (get(p, "accredited") !== null) prof.accredited = truthy(p.accredited);
+      if (get(prof, "kyc") === "verified") releaseWaiting(st, inv.id, u.id, day);
       return ["Updated " + label(inv) + ": KYC " + pystr(get(prof, "kyc")) + ", accredited " + (truthy(get(prof, "accredited")) ? "yes" : "no"), null];
     },
 
@@ -585,11 +633,63 @@
     },
     suggest_investor(st, u, p) {
       need(u.role === "founder", "Only founders suggest investors");
-      const inv = userOf(st, get(p, "investor_id"), "investor"), c = companyOf(st, u.company_id);
-      const note = u.name + " suggests offering to " + label(inv);
-      st.notes.push({ id: uid("n"), subject_type: "company", subject_id: c.id, text: note + ".", due: null, done: false, by: u.id, at: now() });
-      notifyAdvisors(st, "suggest", note + " (" + c.name + ")", "app-directory");
-      return ["Suggested " + label(inv) + " to your advisor. Your advisor decides who receives the offer.", c.id];
+      const c = companyOf(st, u.company_id);
+      const note = cut(pystr(or(get(p, "note"), "")).trim(), 300);
+      let inv = null, email = "", name = "";
+      if (truthy(get(p, "investor_id"))) inv = userOf(st, get(p, "investor_id"), "investor");
+      else {
+        email = cut(pystr(or(get(p, "email"), "")).trim().toLowerCase(), 254);
+        name = cut(pystr(or(get(p, "name"), "")).trim(), 80);
+        need(name && EMAIL.test(email), "Enter the investor's name and a valid email");
+        const existing = st.users.find((x) => (x.email || "").toLowerCase() === email);
+        if (existing) { need(existing.role === "investor", "That email belongs to an account that is not an investor"); inv = existing; }
+      }
+      let who;
+      if (inv) {
+        need(!st.offers.some((o) => o.investor_id === inv.id && o.company_id === c.id), label(inv) + " already has your offer");
+        need(!st.suggestions.some((x) => x.investor_id === inv.id && x.company_id === c.id && SUGGESTION_OPEN.includes(x.status)), "You have already suggested " + label(inv));
+        who = { investor_id: inv.id, name: inv.name, email: null, firm: get(inv, "firm") };
+      } else {
+        need(!st.suggestions.some((x) => (x.email || "") === email && x.company_id === c.id && SUGGESTION_OPEN.includes(x.status)), "You have already suggested " + email);
+        who = { investor_id: null, name, email, firm: cut(pystr(or(get(p, "firm"), "")).trim(), 120) || null };
+      }
+      const sg = Object.assign({ id: uid("sg"), company_id: c.id, by: u.id, at: now(), note: note || null, status: "suggested",
+        decided_by: null, decided_at: null, reason: null, offer_id: null, invite_id: null }, who);
+      st.suggestions.push(sg);
+      const shown = inv ? label(inv) : who.name + (who.firm ? " (" + who.firm + ")" : "");
+      const text = u.name + " suggests offering to " + shown;
+      st.notes.push({ id: uid("n"), subject_type: "company", subject_id: c.id, text: text + ".", due: null, done: false, by: u.id, at: now() });
+      notifyAdvisors(st, "suggest", text + " (" + c.name + ")", "app-directory");
+      return ["Suggested " + shown + " to your advisor. Your advisor decides who receives the offer.", c.id];
+    },
+    decide_suggestion(st, u, p, day) {
+      need(u.role === "advisor", "Only an advisor confirms suggested investors");
+      const sg = find(st.suggestions, get(p, "suggestion_id"));
+      need(sg, "Suggestion not found");
+      need(sg.status === "suggested", "This suggestion was already decided");
+      const c = companyOf(st, sg.company_id);
+      const shown = sg.name + (sg.firm ? " (" + sg.firm + ")" : "");
+      if (get(p, "decision") === "decline") {
+        const reason = cut(pystr(or(get(p, "reason"), "")).trim(), 300);
+        need(reason, "Give the founder a reason");
+        Object.assign(sg, { status: "declined", reason, decided_by: u.id, decided_at: now() });
+        notify(st, sg.by, "suggest", "Your advisor declined " + shown + ": " + reason, "app-investors");
+        return ["Declined " + shown + " for " + c.name, c.id];
+      }
+      need(get(p, "decision") === "approve", "Choose approve or decline");
+      need(offerable(c, st), "Approve " + c.name + "'s report and move it to Approved before confirming investors");
+      Object.assign(sg, { decided_by: u.id, decided_at: now() });
+      if (sg.investor_id) {
+        releaseSuggestion(st, sg, u.id, day);
+        const what = { offered: "offer sent", waiting_kyc: "the offer goes out once their KYC is verified" }[sg.status] || sg.reason || sg.status;
+        return ["Confirmed " + shown + " for " + c.name + ": " + what, c.id];
+      }
+      const inv = { id: uid("iv"), company_id: c.id, suggestion_id: sg.id, name: sg.name, email: sg.email, firm: sg.firm || null,
+        status: "pending", created_at: now(), created_by: u.id, sent_at: null, accepted_at: null, user_id: null };
+      st.invites.push(inv);
+      Object.assign(sg, { status: "invited", invite_id: inv.id });
+      notify(st, sg.by, "suggest", "Your advisor confirmed " + shown + "; an invitation is on its way", "app-investors");
+      return ["Confirmed " + shown + " for " + c.name + " and invited " + sg.email + " to join", c.id];
     },
     request_sell(st, u, p, day) {
       const h = find(st.holdings, get(p, "holding_id"));
@@ -958,6 +1058,14 @@
       if (Array.from(pw).length < 8) throw fail("Use a password of at least 8 characters.", 400);
       if (!["founder", "investor", "lender"].includes(role)) throw fail("Choose founder, investor or lender.", 400);
       if (!name) throw fail("Enter your name.", 400);
+      let invite = null;
+      if (role === "investor") {
+        // investors join only through an invitation (a founder suggests them, the advisor confirms)
+        const id = isObj(DB.invite_tokens) ? DB.invite_tokens[pystr(or(get(f, "invite"), ""))] : null;
+        invite = id ? find(DB.invites, id) : null;
+        if (!invite || invite.status !== "pending") throw fail("Investors join by invitation. Ask the founder or your Aegis Ascend advisor for an invitation link.", 403);
+        if (email !== invite.email) throw fail("Use the email address the invitation was sent to: " + invite.email, 400);
+      }
       if (DB.users.some((x) => x.email === email)) throw fail("An account with this email already exists. Sign in instead.", 409);
       const org = cut(pystr(or(get(f, "org"), "")).trim(), 120), sector = cut(pystr(or(get(f, "sector"), "Plastics & packaging")), 60);
       const u = { id: uid("u"), email, name, role, company_id: null, firm: null, title: null, mandate: null, profile: null, pw_hash: await hash(pw), created_at: now() };
@@ -979,7 +1087,8 @@
         }
       }
       DB.users.push(u);
-      writeAudit(u, "signup", "Created a " + role + " account", u.company_id);
+      if (invite) { if (invite.firm) u.firm = invite.firm; acceptInvite(DB, invite.id, u); }
+      writeAudit(u, "signup", "Created a " + role + " account" + (invite ? " by invitation" : ""), u.company_id);
       save();
       setSession(u.id);
       return clone(pub(u, true));
@@ -993,7 +1102,28 @@
       const u = signedIn();
       if (!has(ACTIONS, name)) throw fail("Unknown action", 404);
       const p = plainPayload(payload), day = today();
-      return clone(transact(u, name, (st, me) => { const [detail, cid] = ACTIONS[name](st, me, p, day); return { detail, company_id: cid }; }));
+      const res = transact(u, name, (st, me) => { const [detail, cid] = ACTIONS[name](st, me, p, day); return { detail, company_id: cid }; });
+      // The server emails each new invitation's private link; the demo has no email, so it hands the link to the advisor.
+      const fresh = DB.invites.filter((iv) => iv.status === "pending" && !iv.sent_at);
+      if (fresh.length) {
+        DB.invite_tokens = isObj(DB.invite_tokens) ? DB.invite_tokens : {};
+        for (const iv of fresh) {
+          const token = Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => b.toString(16).padStart(2, "0")).join("");
+          DB.invite_tokens[token] = iv.id;
+          iv.sent_at = now();
+          res.invite_link = "#signup/invite/" + token;
+          res.invite_email = iv.email;
+        }
+        save();
+      }
+      return clone(res);
+    },
+    /** What an invitation link is for, so the sign-up page can show it. */
+    async inviteInfo(token) {
+      const id = isObj(DB.invite_tokens) ? DB.invite_tokens[pystr(token)] : null, iv = id ? find(DB.invites, id) : null;
+      if (!iv || iv.status !== "pending") throw fail("This invitation link has expired or was already used. Ask your advisor for a new one.", 404);
+      const c = find(DB.companies, iv.company_id);
+      return { name: iv.name, email: iv.email, firm: iv.firm, company: c ? c.name : null };
     },
     /** Same checks as POST /api/upload; the file is kept in the browser as a data URL. Returns the file record. */
     async upload(file, fields) {

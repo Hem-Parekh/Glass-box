@@ -69,6 +69,7 @@ def fresh(tmp_path, today):
     settings.database_url = test_database_url(tmp_path)
     settings.uploads = str(tmp_path / "up")
     settings.today = today
+    settings.investor_signup = "open"   # the prototype suite signs investors up directly; invite-only is tested in test_invitations.py
     T.reset_engine()
     eng = T.engine()
     with eng.begin() as conn:

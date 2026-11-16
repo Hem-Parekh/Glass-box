@@ -497,3 +497,46 @@ def test_lender_sells_a_loan_through_the_advisor(client):
     st = state(client)
     assert any(t["loan_id"] == "l_1" and t["status"] == "submitted" for t in st["loan_transfers"])
     assert any("Loan sale request" in n["text"] and n["link"] == "app-loantransfers" for n in st["notifications"])
+
+
+# ---------------- investor suggestions: the founder suggests, the advisor confirms, then the offer goes out ----------------
+def test_suggested_platform_investor_gets_the_offer_after_kyc(client):
+    login(client, "founder@demo.in")
+    assert "Suggested" in act(client, "suggest_investor", {"investor_id": "u_investor23", "note": "Met at a plastics expo"})["detail"]
+    act(client, "suggest_investor", {"investor_id": "u_investor23"}, 403)  # no duplicates
+    assert len(state(client)["suggestions"]) == 1
+    sid = store().suggestions[0]["id"]
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"}, 403)  # founders don't decide
+    login(client, "advisor@demo.in")
+    act(client, "suggest_investor", {"investor_id": "u_investor25"}, 403)  # advisors don't suggest
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"})
+    assert store().suggestions[0]["status"] == "waiting_kyc"
+    assert not any(o["investor_id"] == "u_investor23" and o["company_id"] == "c_kalyan" for o in store().offers)
+    act(client, "set_investor_profile", {"investor_id": "u_investor23", "kyc": "verified"})
+    sg = store().suggestions[0]
+    assert sg["status"] == "offered" and any(o["id"] == sg["offer_id"] for o in store().offers)
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"}, 403)  # already decided
+
+
+def test_declined_suggestion_carries_a_reason(client):
+    login(client, "founder@demo.in")
+    act(client, "suggest_investor", {"name": "Asha Rao", "email": "asha@fund.in", "firm": "Rao Ventures"})
+    login(client, "advisor@demo.in")
+    sid = store().suggestions[0]["id"]
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "decline"}, 403)
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "decline", "reason": "Not an eligible investor for a private placement"})
+    login(client, "founder@demo.in")
+    mine = state(client)["suggestions"][0]
+    assert mine["status"] == "declined" and "eligible" in mine["reason"]
+    assert store().invites == []
+
+
+def test_confirming_a_new_investor_creates_an_invitation(client):
+    login(client, "founder@demo.in")
+    act(client, "suggest_investor", {"name": "Nina Shah", "email": "nina@fund.in"})
+    act(client, "suggest_investor", {"name": "Nina", "email": "nina@fund.in"}, 403)
+    login(client, "advisor@demo.in")
+    act(client, "decide_suggestion", {"suggestion_id": store().suggestions[0]["id"], "decision": "approve"})
+    sg, inv = store().suggestions[0], store().invites[0]
+    assert sg["status"] == "invited" and inv["email"] == "nina@fund.in" and inv["status"] == "pending"
+    assert "invites" not in state(client) or all("token" not in i for i in state(client)["invites"])

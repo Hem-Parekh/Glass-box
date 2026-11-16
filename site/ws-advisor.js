@@ -70,6 +70,7 @@
       '<div class="today">' + groups.map((g) => { const L = A.filter((a) => a.kind === g).sort((a, b) => a.sort - b.sort); if (!L.length) return ""; const title = { Revaluation: "Revaluations", Request: "Requests waiting more than 5 days", "PAS-3": "PAS-3 filing deadlines", "Lock-in": "Lock-ins ending this week", Limit: "Companies near a limit", DSCR: "Repayment alerts" }[g];
         return '<section class="panel"><h2>' + title + '</h2><ul class="alerts" data-stagger>' + L.map((a) => '<li class="' + a.sev + '"><a href="#' + a.link + '">' + esc(a.text) + "</a></li>").join("") + "</ul></section>"; }).join("") +
       '<section class="panel"><h2>Tasks due</h2>' + (tasks.length ? '<ul class="alerts">' + tasks.map((n) => '<li class="' + (n.due < today() ? "bad" : "warn") + '"><label class="chk"><input type="checkbox" data-act="a-note-toggle" data-id="' + n.id + '"> ' + esc(n.text) + '</label><span class="muted small">' + subjectName(n) + " · due " + dmy(n.due) + "</span></li>").join("") + "</ul>" : '<p class="muted">Nothing due.</p>') + "</section>" +
+      suggestionsPanel(true) +
       (inReview.length ? '<section class="panel"><h2>Reports to review</h2><ul class="alerts">' + inReview.map((r) => '<li><a href="#app-review">' + esc(co(r.company_id).name + ": " + r.title) + "</a></li>").join("") + "</ul></section>" : "") +
       (A.length ? "" : '<section class="panel">' + KIT.empty("All clear", "No overdue revaluations, waiting requests or limit warnings.") + "</section>") + "</div>";
   }
@@ -148,6 +149,18 @@
   // ---------- investor directory and offer sharing ----------
   const investors = () => (D().directory || []).filter((u) => u.role === "investor");
   function invStats(u) { const H = D().holdings.filter((h) => h.investor_id === u.id && h.shares > 0); return { invested: H.reduce((a, h) => a + h.cost_paise, 0), held: new Set(H.map((h) => h.company_id)).size }; }
+  // founders' suggested investors: the advisor confirms (the offer goes out, or an invitation for someone new) or declines
+  function suggestionsPanel(compact) {
+    const all = (D().suggestions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1)), pend = all.filter((x) => x.status === "suggested");
+    if (!all.length) return "";
+    const by = (id) => ((D().founders || []).find((u) => u.id === id) || {}).name || "The founder";
+    const row = (x) => '<li><span><b>' + esc(x.name) + "</b>" + (x.firm ? " · " + esc(x.firm) : "") + (x.investor_id ? "" : ' <span class="chip">New</span>') +
+      '<span class="muted small block">' + esc(by(x.by)) + " for " + esc(co(x.company_id).name) + " · " + UI.date(x.at) + (x.email ? " · " + esc(x.email) : "") + (x.note ? " · \u201c" + esc(x.note) + "\u201d" : "") + (x.reason ? " · " + esc(x.reason) : "") + "</span></span>" +
+      (x.status === "suggested" ? '<span class="row gap-s"><button class="btn primary sm" data-act="a-sg-ok" data-id="' + x.id + '">Confirm</button><button class="btn ghost sm" data-act="a-sg-no" data-id="' + x.id + '">Decline</button></span>' : WS.sgChip(x)) + "</li>";
+    if (compact && !pend.length) return "";
+    return '<section class="panel"><h2>Suggestions from founders' + (pend.length ? " (" + pend.length + " to decide)" : "") + '</h2><p class="small muted">Confirming sends the offer (once the investor\u2019s KYC is verified). For someone new, it sends a private invitation to join.</p><ul class="docs">' +
+      (compact ? pend : all.slice(0, 12)).map(row).join("") + "</ul></section>";
+  }
   function directory() {
     const offerable = D().companies.filter((c) => ["approved", "offering"].includes(c.pipeline_stage) && report(c.id));
     if (!S.offerCo || !offerable.some((c) => c.id === S.offerCo)) S.offerCo = offerable[0] && offerable[0].id;
@@ -162,7 +175,7 @@
       '<button class="btn ghost sm" data-act="a-shortlist">Suggest a shortlist</button><button class="btn primary" data-act="a-share"' + (sel.length ? "" : " disabled") + ">Share offer with " + sel.length + " selected</button></div>"
       : '<div class="notice">No company is approved for offering yet. Approve a report in the review queue first.</div>';
     return WS.head("Investor directory", "Onboarded investors. Select investors, then share an approved company with them. Each investor offered counts towards the company's 200 offers this financial year.") +
-      '<section class="panel">' + bar +
+      suggestionsPanel(false) + '<section class="panel">' + bar +
       KIT.table("a-dir", { name: "investor-directory", rows, select: true, pageSize: 30,
         search: (u) => [u.name, u.firm, ((u.mandate || {}).sectors || []).join(" ")].join(" "),
         filters: [{ k: "sector", label: "Sector", options: sectors.map((s) => [s, s]), match: (u, v) => ((u.mandate || {}).sectors || []).includes(v) },
@@ -379,6 +392,25 @@
 
   // ---------- actions ----------
   const act = (name, p, msg) => API.act(name, p).then((r) => WS.after(r, msg));
+  Object.assign(WS.clicks, {
+    "a-sg-ok": async (b, id) => {
+      const x = D().suggestions.find((s) => s.id === id);
+      const ok = await KIT.confirm("Confirm " + x.name + " for " + co(x.company_id).name + "?", x.investor_id
+        ? "<p>The offer is sent now if their KYC is verified, otherwise as soon as it is. It counts towards the company's offers this financial year.</p>"
+        : "<p>" + esc(x.name) + " (" + esc(x.email) + ") receives a private invitation to join. The offer follows their identity check.</p>", "Confirm");
+      if (!ok) return;
+      const r = await API.act("decide_suggestion", { suggestion_id: id, decision: "approve" });
+      if (r.invite_link) {   // the demo has no email, so it shows the link to pass on
+        await KIT.dialog({ title: "Invitation ready", confirm: "Done", cancel: "Close", text: "<p>The server emails this private link to " + esc(r.invite_email) + ". This demo cannot send email, so copy it and open it in another browser to try joining as the investor:</p><p><code>" + esc(location.href.split("#")[0] + r.invite_link) + "</code></p>" });
+      }
+      return WS.after(r);
+    },
+    "a-sg-no": async (b, id) => {
+      const x = D().suggestions.find((s) => s.id === id);
+      const v = await KIT.dialog({ title: "Decline " + x.name + "?", text: "<p>The founder sees your reason.</p>", confirm: "Decline", fields: [{ name: "reason", label: "Reason", type: "textarea" }], validate: (y) => (String(y.reason || "").trim() ? null : "Give the founder a reason") });
+      if (v) return act("decide_suggestion", { suggestion_id: id, decision: "decline", reason: v.reason });
+    },
+  });
   Object.assign(WS.clicks, {
     "a-pipeview": (b, id) => { S.pipeView = id; return WS.render({ keepScroll: true }); },
     "a-pick-co": (b, id) => { S.offerCo = id; },

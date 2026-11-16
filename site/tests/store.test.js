@@ -39,6 +39,16 @@ const fy = DOM.fy(TODAY);
 const CHECKS = { validation: true, founder_confirmed: true, verifier: true };
 const sumBy = (xs, f) => xs.reduce((a, x) => a + f(x), 0);
 
+async function invitedInvestor(name, email) {
+  await login("founder@demo.in");
+  await act("suggest_investor", { name, email, firm: name + " Capital" });
+  await login("advisor@demo.in");
+  const sg = db().suggestions.find((x) => x.email === email);
+  const r = await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" });
+  await api.logout();
+  return api.signup({ name, email, password: "secret123", role: "investor", invite: r.invite_link.split("/").pop() });
+}
+
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
@@ -95,18 +105,18 @@ test("test_offer_over_200_in_a_financial_year_is_blocked", async () => {
   await login("advisor@demo.in");
   for (const sfx of ["23", "25"]) await act("set_investor_profile", { investor_id: "u_investor" + sfx, kyc: "verified" });
   const five = ["21", "22", "23", "24", "25"].map((s) => "u_investor" + s);
-  await api.logout();
-  const fresh = await api.signup({ name: "Six", email: "six@x.in", password: "secret123", role: "investor" });
+  // investors join by invitation: the founder suggests, the advisor confirms; the offer goes out once KYC is verified
+  const fresh = await invitedInvestor("Six", "six@x.in");
   await login("advisor@demo.in");
   await act("set_investor_profile", { investor_id: fresh.id, kyc: "verified" });
-  const r = await act("share_offer", { company_id: "c_kalyan", investor_ids: five.concat([fresh.id]) }, 403);
+  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 196);
+  const r = await act("share_offer", { company_id: "c_kalyan", investor_ids: five }, 403);
   assert.ok(r.error.includes("Section 42"), r.error);
-  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 195);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: five });
+  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 196);
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: five.slice(0, 4) });
   assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 200);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: [fresh.id] }, 403);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor21"] }, 403);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: [fresh.id], security_type: "debentures" });
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor25"] }, 403);
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor25"], security_type: "debentures" });
 });
 
 test("test_twenty_first_platform_investor_is_blocked", async () => {
@@ -334,6 +344,61 @@ test("sign-in, sign-up and session match the server", async () => {
   // with the wrong password above, this makes five failures
   for (let i = 0; i < 4; i++) await assert.rejects(api.login("founder@demo.in", "nope"), /wrong/);
   await assert.rejects(api.login("founder@demo.in", "demo1234"), /Too many attempts/);
+});
+
+// ---------- investor suggestions and invitations ----------
+test("founder suggests a platform investor; advisor confirms; the offer follows KYC", async () => {
+  await login("founder@demo.in");
+  const r = await act("suggest_investor", { investor_id: "u_investor23", note: "Met at a plastics expo" });
+  assert.ok(r.detail.includes("Suggested"), r.detail);
+  await act("suggest_investor", { investor_id: "u_investor23" }, 403);   // no duplicates
+  assert.strictEqual((await state()).suggestions.length, 1);
+  await act("decide_suggestion", { suggestion_id: db().suggestions[0].id, decision: "approve" }, 403);   // founders don't decide
+  await login("advisor@demo.in");
+  await act("suggest_investor", { investor_id: "u_investor25" }, 403);   // advisors don't suggest
+  const sg = db().suggestions[0];
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" });
+  assert.strictEqual(db().suggestions[0].status, "waiting_kyc");
+  assert.ok(!db().offers.some((o) => o.investor_id === "u_investor23" && o.company_id === "c_kalyan"));
+  await act("set_investor_profile", { investor_id: "u_investor23", kyc: "verified" });
+  const done = db().suggestions[0];
+  assert.strictEqual(done.status, "offered");
+  assert.ok(db().offers.some((o) => o.id === done.offer_id && o.investor_id === "u_investor23"));
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" }, 403);   // already decided
+});
+
+test("advisor declines a suggestion with a reason the founder sees", async () => {
+  await login("founder@demo.in");
+  await act("suggest_investor", { name: "Asha Rao", email: "asha@fund.in", firm: "Rao Ventures" });
+  await login("advisor@demo.in");
+  const sg = db().suggestions[0];
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "decline" }, 403);
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "decline", reason: "Not an eligible investor for a private placement" });
+  await login("founder@demo.in");
+  const mine = (await state()).suggestions[0];
+  assert.strictEqual(mine.status, "declined");
+  assert.ok(mine.reason.includes("eligible"));
+  assert.strictEqual(db().invites.length, 0);
+});
+
+test("investors join only by invitation", async () => {
+  await api.logout();
+  await assert.rejects(api.signup({ name: "Walk In", email: "walkin@x.in", password: "secret123", role: "investor" }), /invitation/);
+  await login("founder@demo.in");
+  await act("suggest_investor", { name: "Nina Shah", email: "nina@fund.in" });
+  await login("advisor@demo.in");
+  const r = await act("decide_suggestion", { suggestion_id: db().suggestions[0].id, decision: "approve" });
+  assert.ok(r.invite_link.startsWith("#signup/invite/"));
+  assert.strictEqual(db().suggestions[0].status, "invited");
+  const token = r.invite_link.split("/").pop();
+  await api.logout();
+  assert.strictEqual((await api.inviteInfo(token)).email, "nina@fund.in");
+  await assert.rejects(api.signup({ name: "Nina", email: "other@fund.in", password: "secret123", role: "investor", invite: token }), /invitation was sent to/);
+  const nina = await api.signup({ name: "Nina Shah", email: "nina@fund.in", password: "secret123", role: "investor", invite: token });
+  assert.strictEqual(db().suggestions[0].investor_id, nina.id);
+  assert.strictEqual(db().suggestions[0].status, "waiting_kyc");
+  await api.logout();
+  await assert.rejects(api.signup({ name: "Again", email: "nina2@fund.in", password: "secret123", role: "investor", invite: token }), /invitation/);
 });
 
 // ---------- runner ----------

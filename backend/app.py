@@ -31,7 +31,7 @@ from backend.storage import storage
 from backend.store import Store, add_record, audit_rows, diff, now, uid, write_audit
 from server import chat as CHAT
 from server import seed as SEED
-from server.actions import ACTIONS, Denied, can_see_file, pub, visible_state
+from server.actions import ACTIONS, Denied, accept_invite, can_see_file, find, pub, visible_state
 
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
@@ -233,6 +233,14 @@ async def signup(request: Request):
         return err("Enter your name.", 400)
     with T.engine().begin() as conn:
         T.write_lock(conn)
+        tok, invite = None, None
+        if role == "investor" and settings.investor_signup != "open":
+            # investors join only through an invitation: a founder suggests them and an advisor confirms
+            tok, invite = invite_for(conn, p.get("invite"))
+            if not invite:
+                return err("Investors join by invitation. Ask the founder or your Aegis Ascend advisor for an invitation link.", 403)
+            if email != invite["email"]:
+                return err("Use the email address the invitation was sent to: " + invite["email"], 400)
         if conn.execute(select(T.users.c.id).where(T.users.c.email == email)).first():
             return err("An account with this email already exists. Sign in instead.", 409)
         org = str(p.get("org") or "").strip()[:120]
@@ -253,8 +261,16 @@ async def signup(request: Request):
             else:
                 # a self-registered lender is unverified until Aegis Ascend confirms its RBI registration
                 extra["profile"] = dict(regulated=False, lender_type=None, reg_no=None)
+        if invite and invite.get("firm"):
+            extra["firm"] = invite["firm"]
         u = add_user(conn, email, name, role, pw, **extra)
-        write_audit(conn, u, "signup", "Created a %s account" % role, extra.get("company_id"), ip=ip_of(request))
+        changes = None
+        if invite:
+            st = Store(conn)
+            accept_invite(st, invite["id"], next(x for x in st.users if x["id"] == u["id"]), today())
+            changes = [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in st.save()]
+            conn.execute(update(T.invite_tokens).where(T.invite_tokens.c.token_hash == tok.token_hash).values(used_at=A.utcnow()))
+        write_audit(conn, u, "signup", "Created a %s account%s" % (role, " by invitation" if invite else ""), extra.get("company_id"), changes, ip=ip_of(request))
         return signed_in(u, A.new_session(conn, u["id"], ip_of(request), request.headers.get("user-agent")))
 
 
@@ -389,6 +405,49 @@ async def reset(request: Request):
     return dict(ok=True)
 
 
+# ---------- invitations ----------
+INVITE_DAYS = 30
+
+
+def send_invitations(conn, st):
+    """Each invitation an action just created gets a private link, emailed through the outbox. Only the link's hash is kept."""
+    import secrets
+    from datetime import timedelta
+    for iv in st.invites:
+        if iv["status"] != "pending" or iv.get("sent_at"):
+            continue
+        token = secrets.token_urlsafe(24)
+        conn.execute(insert(T.invite_tokens).values(token_hash=A.sha(token), invite_id=iv["id"], created_at=A.utcnow(),
+                                                    expires_at=A.utcnow() + timedelta(days=INVITE_DAYS)))
+        c = find(st.companies, iv["company_id"]) or {}
+        notify.queue(conn, "email", iv["email"], "A private invitation from Aegis Ascend",
+                     "Hello %s,\n\n%s has asked Aegis Ascend Financial Advisors to share a private investment opportunity with you. "
+                     "This invitation is personal to you; please do not forward it.\n\nCreate your investor account here (the link works for %d days):\n%s/#signup/invite/%s\n\n"
+                     "After you join we will verify your identity (KYC) and then send you the offer.\n\nAegis Ascend Financial Advisors"
+                     % (iv["name"], c.get("name", "A company we advise"), INVITE_DAYS, settings.public_url, token))
+        iv["sent_at"] = now()
+
+
+def invite_for(conn, token):
+    """(token row, invitation record) for a live invitation link, else (None, None)."""
+    r = conn.execute(select(T.invite_tokens).where(T.invite_tokens.c.token_hash == A.sha(str(token or "")))).first()
+    if not r or r.used_at or A.aware(r.expires_at) < A.utcnow():
+        return None, None
+    row = conn.execute(select(T.records["invites"].c.data).where(T.records["invites"].c.id == r.invite_id)).first()
+    iv = row.data if row else None
+    return (r, iv) if iv and iv.get("status") == "pending" else (None, None)
+
+
+@app.get("/api/invite/{token}")
+def invite_info(token: str):
+    with T.engine().begin() as conn:
+        _, iv = invite_for(conn, token)
+        if not iv:
+            return err("This invitation link has expired or was already used. Ask your advisor for a new one.", 404)
+        row = conn.execute(select(T.records["companies"].c.data).where(T.records["companies"].c.id == iv["company_id"])).first()
+        return dict(name=iv["name"], email=iv["email"], firm=iv.get("firm"), company=row.data.get("name") if row else None)
+
+
 # ---------- the workspace ----------
 @app.get("/api/state")
 def state(request: Request):
@@ -415,6 +474,7 @@ async def act(name: str, request: Request):
         st = Store(conn)
         me_ = next(x for x in st.users if x["id"] == u["id"])
         detail, company_id = fn(st, me_, p, today())   # raises Denied -> 403, and the transaction rolls back
+        send_invitations(conn, st)
         changes = st.save()
         write_audit(conn, u, name, detail, company_id, [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in changes], ip=ip_of(request))
         return dict(detail=detail, company_id=company_id)

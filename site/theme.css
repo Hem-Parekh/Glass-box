@@ -323,3 +323,5 @@ dialog.modal::backdrop { background: rgba(2, 6, 15, .55); }
 .kpi b { font-size: clamp(1.02rem, 1.3vw, 1.32rem); overflow-wrap: normal; line-height: 1.25; }
 .pub .kpi b { font-size: clamp(1.05rem, 1.5vw, 1.4rem); }
 .ws-rail .wm-text small { letter-spacing: 0; }
+/* long links and code inside dialogs wrap, in readable ink */
+.modal-text code, dialog.modal code { display: block; word-break: break-all; color: var(--gold-ink); background: var(--panel-2); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }

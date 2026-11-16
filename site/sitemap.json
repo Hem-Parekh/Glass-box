@@ -12,7 +12,7 @@
     {"route": "about", "label": "About", "what": "The founders, who we serve first, how we compare, and the roadmap.", "keywords": ["about", "founders", "team", "who are you", "roadmap", "company"]},
     {"route": "contact", "label": "Contact", "what": "The enquiry form: an advisor replies to the email you give.", "keywords": ["contact", "talk", "enquiry", "book", "engagement", "email", "call", "reach", "get in touch", "advisor"]},
     {"route": "login", "label": "Sign in", "what": "Sign in to your workspace; the demo has one-click sign-ins for each role.", "keywords": ["sign in", "login", "log in", "signin", "demo", "workspace", "dashboard"]},
-    {"route": "signup", "label": "Create an account", "what": "Sign up as a founder, investor or lender. Advisor accounts are created by the firm.", "keywords": ["sign up", "signup", "register", "create an account", "new account", "join"]}
+    {"route": "signup", "label": "Create an account", "what": "Sign up as a founder or lender. Investors join through a private invitation link once an advisor confirms them; advisor accounts are created by the firm.", "keywords": ["sign up", "signup", "register", "create an account", "new account", "join"]}
   ],
   "roles": {
     "founder": {

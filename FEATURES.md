@@ -567,6 +567,14 @@ Menu groups: Today; **Deals** (Company pipeline, Companies, Investor directory, 
   - **Loan sanction letter:** the true all-in yearly cost, the instalment, the total paid, and flags for risky clauses (floating rate, personal guarantee, cross-default, prepayment penalty and similar).
   - **Equity term sheet:** the founder's stake after the round, the effective pre-money valuation, a "who gets what at exit" table, and flags for risky clauses (full-ratchet anti-dilution, participating preference, a large option pool and similar).
 
+### Suggesting investors (invite-only investors)
+- **Investors join only by invitation.** The public sign-up offers founder and lender; investors use a private link.
+- **The founder suggests** investors they would like to pitch, on the Investors page: from the ranked panel ("Suggest to my advisor"), or someone new by name, email and firm ("Suggest a new investor"), with an optional note. "Your suggestions" shows each one's status: waiting for your advisor, invited to join, waiting for KYC, offer sent, declined (with the advisor's reason) or could not send.
+- **The advisor confirms or declines** under "Suggestions from founders" (on Today and the Investor directory). A decline needs a reason the founder sees.
+  - Confirming a platform investor sends the offer at once if their KYC is verified, otherwise as soon as it is, inside the Section 42 offer limit.
+  - Confirming someone new creates an invitation: the server emails a private link (valid 30 days, single use, only its hash stored; the demo shows the link to the advisor instead). The invitee signs up with the invited email; their offer goes out automatically once their KYC is verified.
+- The company must have a signed-off report and be Approved or Offering before an advisor can confirm investors.
+
 ### Downloading reports as PDF
 - **Every tool has a "Download PDF" button** at the top of its page: the Funding Twin, the Equity vs Debt Optimizer, the Readiness Score and the Term Sheet Analyser. The CMA funding report keeps its own one-page PDF.
   - The PDF is branded and A4. It holds the tool's results as shown on screen (headline figures, tables, charts and written summary), followed by a table of every input used.

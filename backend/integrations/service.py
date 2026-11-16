@@ -17,7 +17,7 @@ from backend.integrations import documents as DOCS
 from backend.integrations.providers import Event, provider
 from backend.storage import storage
 from backend.store import Store, diff, now, uid, write_audit
-from server.actions import Denied, find, label, notify, notify_advisors
+from server.actions import Denied, find, label, notify, notify_advisors, release_waiting
 
 PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 
@@ -92,6 +92,7 @@ def _apply_kyc(conn, st, ev, provider_name):
         prof.update(kyc="verified", kyc_verified_at=now(), kyc_ref=r.id, pan_last4=r.pan_last4, kyc_note=None)
         notify(st, inv["id"], "kyc", "Your identity is verified. You can now receive private offers.", "app-kyc")
         notify_advisors(st, "kyc", "KYC verified: " + label(inv), "app-directory")
+        release_waiting(st, inv["id"], None, today())   # confirmed suggestions waiting for this KYC get their offers
         _save(conn, st, inv, "kyc_verified", "Identity verified by %s (PAN ending %s)" % (provider_name, r.pan_last4))
     else:
         reason = str(ev.data.get("reason") or "The details could not be verified")[:300]

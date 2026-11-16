@@ -35,7 +35,7 @@
     [["contact", "talk", "call", "meet", "book", "engagement", "email", "reach"],
       "The quickest way is the enquiry form on [Contact](#contact). Tell us about the company and what you're raising, and an advisor will reply to the email you give."],
     [["sign in", "login", "log in", "account", "sign up", "register", "demo", "workspace"],
-      "Founders, investors and lenders can create an account from [Sign in](#login). The demo has one-click sign-ins for each role (password demo1234), and all its companies and people are fictional."],
+      "Founders and lenders can create an account from [Sign in](#login). Investors join by invitation: a founder suggests them, an advisor confirms, and they receive a private link. The demo has one-click sign-ins for each role (password demo1234), and all its companies and people are fictional."],
     [["tool", "tools", "funding twin", "optimizer", "cma", "readiness", "term sheet"],
       "Our advisors use the Funding Twin, the Equity vs Debt Optimizer, the CMA funding report, the Readiness Score and the Term Sheet Analyser, and founders receive the finished, reviewed report. See \"Tools behind the advice\" on the [home page](#home)."],
   ];

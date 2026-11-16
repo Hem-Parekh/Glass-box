@@ -13,6 +13,7 @@
   GB_WEBHOOK_SECRET signs provider callbacks for the stand-ins (defaults to GB_SECRET_KEY)
   GB_REQUIRE_ESIGN  "1" makes NDAs go through e-signing only (on by default in production)
   GB_ALLOW_STANDINS "1" allows stand-in providers in production (for a staging site only)
+  GB_INVESTOR_SIGNUP "invite" (default): investors join only through an invitation link; "open" for tests
 """
 import os
 import secrets
@@ -34,6 +35,7 @@ class Settings:
     payments_provider: str = field(default_factory=lambda: os.environ.get("GB_PAYMENTS_PROVIDER", "standin"))
     webhook_secret: str = field(default_factory=lambda: os.environ.get("GB_WEBHOOK_SECRET", ""))   # signs stand-in callbacks
     allow_standins: bool = field(default_factory=lambda: os.environ.get("GB_ALLOW_STANDINS", "") == "1")
+    investor_signup: str = field(default_factory=lambda: os.environ.get("GB_INVESTOR_SIGNUP", "invite"))   # invite | open
     require_esign: bool = field(default_factory=lambda: os.environ.get("GB_REQUIRE_ESIGN", "") == "1")
     seed_demo: bool = field(default_factory=lambda: os.environ.get("GB_SEED_DEMO", "0") == "1")
     today: str = field(default_factory=lambda: os.environ.get("GB_TODAY", ""))

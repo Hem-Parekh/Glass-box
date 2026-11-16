@@ -1,6 +1,6 @@
 # Aegis Ascend website: complete source code
 
-Generated 2026-11-13. Every file below is reproduced in full, in the order the page loads it.
+Generated 2026-11-16. Every file below is reproduced in full, in the order the page loads it.
 
 Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.min.js`, `site/gsap.min.js`, `site/ScrollTrigger.min.js`), the home page media in `site/assets/media/`, the unused older home scene (`site/src/hero3d.js`, `site/motion.js`), the generated `site/assets/skyline.svg` and `site/hero3d.js` (rebuilt by `site/tools/skyline.py` and `site/tools/build-hero3d.sh`), the built `site/dist/` folder, and the standalone tools in `optimizer/` and `fundmix/`.
 
@@ -24,20 +24,20 @@ Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.m
 - **3. Home page**
   - `site/landing.js` (642 lines): The home page: markup with the firm's content, the live example from the engine, the scroll timeline and the 3D scene.
   - `site/landing.css` (361 lines): The home page styles, all scoped under .lp.
-  - `site/theme.css` (325 lines): The same design carried across every other page and the workspaces.
+  - `site/theme.css` (327 lines): The same design carried across every other page and the workspaces.
 - **4. Data layer**
-  - `site/store.js` (1042 lines): Demo store: every action and rule of the server, kept in the browser.
-  - `site/api-server.js` (57 lines): Adapter that sends the same calls to the Flask API.
+  - `site/store.js` (1172 lines): Demo store: every action and rule of the server, kept in the browser.
+  - `site/api-server.js` (58 lines): Adapter that sends the same calls to the Flask API.
 - **5. Public website and the assistant**
   - `site/public.js` (356 lines): Home (scroll intro, live example), Services, Investors, Lenders, Pricing, Trust, About, Contact.
   - `site/chat.js` (200 lines): The "Ask Aegis" assistant panel, its quick answers and site guide.
   - `site/sitemap.json` (88 lines): The assistant's map of every page and workspace screen.
 - **6. Sign-in and role workspaces**
-  - `site/portal.js` (770 lines): Sign-in and sign-up, the role-based workspace frame, page router.
-  - `site/ws-founder.js` (168 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
+  - `site/portal.js` (793 lines): Sign-in and sign-up, the role-based workspace frame, page router.
+  - `site/ws-founder.js` (180 lines): Founder: fundraise, investors, deal room, cap table, data room, revenue share, loans, fees and invoices.
   - `site/ws-investor.js` (225 lines): Investor: portfolio, holdings, sell requests and resale fees, opportunities, deal rooms.
   - `site/ws-lender.js` (207 lines): Lender: loan book with Sell buttons, schedules, applications, monitoring, loan sales, fees.
-  - `site/ws-advisor.js` (539 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
+  - `site/ws-advisor.js` (571 lines): Advisor: today, pipeline, company file, directory, resales, revaluations, revenue, tools, admin.
 - **7. Standalone pages and build tools**
   - `site/cma-lock.html` (38 lines): The 'Advisors only' page shown instead of the CMA tool to anyone else.
   - `site/build.py` (45 lines): Inlines everything into site/dist/index.html and writes the CMA pages.
@@ -45,21 +45,21 @@ Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.m
   - `site/tools/bundle-code.py` (122 lines): Writes this file.
 - **8. Server prototype (Flask)**
   - `server/app.py` (525 lines): Flask app: sign-in, sessions, API routes, uploads, the chat endpoint, page serving, admin commands.
-  - `server/actions.py` (806 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
+  - `server/actions.py` (927 lines): Every workspace action with its permission and compliance checks, including automatic fee invoices.
   - `server/domain.py` (180 lines): Money, DSCR, repayment schedules, XIRR and limits.
   - `server/seed.py` (263 lines): The fictional sample companies, people, loans and invoices.
   - `server/chat.py` (205 lines): The website assistant: Claude, answering from the site's facts and site map.
   - `server/requirements.txt` (2 lines): Python dependencies.
 - **9. Production backend (FastAPI + PostgreSQL)**
-  - `backend/config.py` (70 lines): Settings from environment variables.
-  - `backend/db.py` (208 lines): Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
+  - `backend/config.py` (72 lines): Settings from environment variables.
+  - `backend/db.py` (217 lines): Tables: users, one table per collection, the append-only audit log, sessions, login attempts, password resets, outbox.
   - `backend/store.py` (109 lines): Loads records for the rules and writes back only what changed, with the audit diff.
   - `backend/auth.py` (159 lines): Argon2 passwords, server-side sessions, throttling, two-step codes, password reset tokens.
   - `backend/notify.py` (47 lines): Outbox for email, SMS and WhatsApp, and the sender stand-in.
   - `backend/storage.py` (56 lines): File storage: local folder or S3-compatible.
-  - `backend/app.py` (594 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
+  - `backend/app.py` (654 lines): FastAPI app: sign-in, two-step, account security, workspace API, uploads, pages.
   - `backend/integrations/providers.py` (91 lines): Provider adapters for KYC, e-signing and payments, and the stand-in provider.
-  - `backend/integrations/service.py` (270 lines): Starting checks, signings and payments; applying the providers' signed results once.
+  - `backend/integrations/service.py` (271 lines): Starting checks, signings and payments; applying the providers' signed results once.
   - `backend/integrations/documents.py` (107 lines): The NDA and engagement letter text, and the signed copy with its certificate.
   - `backend/integrations/routes.py` (190 lines): API routes, the provider webhook and the stand-in provider pages.
   - `backend/cli.py` (76 lines): Admin commands: init, seed, create advisor, import from the prototype, send the outbox.
@@ -67,16 +67,16 @@ Not included: images, the vendored libraries (`site/jspdf.min.js`, `site/three.m
   - `Dockerfile` (16 lines): Container image for the backend.
   - `docker-compose.yml` (29 lines): Local stack: PostgreSQL plus the app.
 - **10. Tests**
-  - `server/tests/test_server.py` (499 lines): Server rules, permissions, flows, fees and the assistant.
+  - `server/tests/test_server.py` (542 lines): Server rules, permissions, flows, fees and the assistant.
   - `server/tests/test_parity.py` (39 lines): Browser and server give identical numbers.
   - `server/tests/test_demo_store.py` (12 lines): Runs the demo store tests from Python.
-  - `site/tests/store.test.js` (348 lines): Demo store matches the server's behaviour.
+  - `site/tests/store.test.js` (413 lines): Demo store matches the server's behaviour.
   - `backend/tests/test_flask_suite_on_backend.py` (36 lines): Runs the whole prototype server suite against the new backend.
-  - `backend/tests/shim.py` (101 lines): Flask-style test client over FastAPI for that suite.
+  - `backend/tests/shim.py` (102 lines): Flask-style test client over FastAPI for that suite.
   - `backend/tests/test_integrations.py` (195 lines): KYC, e-signing and payments end to end, webhook signatures, repeats and wrong amounts.
   - `backend/tests/test_security.py` (199 lines): Sessions, two-step sign-in, password change and reset, outbox, import, action lock.
 
-Total: 13018 lines in 53 files.
+Total: 13520 lines in 53 files.
 
 
 ---
@@ -3727,6 +3727,8 @@ dialog.modal::backdrop { background: rgba(2, 6, 15, .55); }
 .kpi b { font-size: clamp(1.02rem, 1.3vw, 1.32rem); overflow-wrap: normal; line-height: 1.25; }
 .pub .kpi b { font-size: clamp(1.05rem, 1.5vw, 1.4rem); }
 .ws-rail .wm-text small { letter-spacing: 0; }
+/* long links and code inside dialogs wrap, in readable ink */
+.modal-text code, dialog.modal code { display: block; word-break: break-all; color: var(--gold-ink); background: var(--panel-2); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
 ```
 
 
@@ -3755,7 +3757,7 @@ Demo store: every action and rule of the server, kept in the browser.
   const MAX_UPLOAD = 1.5 * 1024 * 1024; // the file is kept in localStorage as a data URL
 
   const COLLECTIONS = ["companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
-    "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings"];
+    "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings", "suggestions", "invites"];
   const COMPANY_FIELDS = ["name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs"];
   const ADVISOR_COMPANY_FIELDS = ["offer_price_paise", "fd_extra_shares", "security_type", "raise_paise"];
   const SELL_OPEN = ["submitted", "under_review", "rofr", "buyer_introduced", "spa_signed"];
@@ -3936,6 +3938,53 @@ Demo store: every action and rule of the server, kept in the browser.
   function notifyAdvisors(st, kind, text, link) { for (const u of st.users) if (u.role === "advisor") notify(st, u.id, kind, text, link); }
   const owns = (u, cid) => u.role === "advisor" || (u.role === "founder" && u.company_id === cid);
   const approved = (st, cid) => st.reports.some((r) => r.company_id === cid && r.status === "approved");
+
+  // ---------- investor suggestions (mirrors server/actions.py): the founder suggests, the advisor confirms, then the offer goes out ----------
+  const SUGGESTION_OPEN = ["suggested", "invited", "waiting_kyc"];
+  const offerable = (c, st) => ["approved", "offering"].includes(get(c, "pipeline_stage")) && approved(st, c.id);
+  function sendOffer(st, c, inv, byId, day) {
+    need(offerable(c, st), "Only a company in Approved or Offering status with a signed-off report can be offered");
+    need(get(isObj(inv.profile) ? inv.profile : {}, "kyc") === "verified", label(inv) + " has not completed KYC");
+    const sec = or(get(c, "security_type"), "equity"), year = DOM.fy(day);
+    const old = st.offers.find((o) => o.company_id === c.id && o.investor_id === inv.id && o.fy === year && o.security_type === sec);
+    if (old) return old;
+    const s = settings(st), used = DOM.offersUsed(st, c.id, year, sec);
+    need(used + 1 <= s.offer_limit, "Blocked: " + c.name + " has used all " + s.offer_limit + " " + sec + " offers for FY " + year + " (Section 42).");
+    const o = { id: uid("o"), company_id: c.id, investor_id: inv.id, fy: year, security_type: sec, sent_at: now(), sent_by: byId,
+      response: "pending", responded_at: null, share_identity: false, views: [] };
+    st.offers.push(o);
+    notify(st, inv.id, "offer", "New private offer: " + c.name, "app-opportunities");
+    if (c.pipeline_stage === "approved") Object.assign(c, { pipeline_stage: "offering", stage_since: day });
+    return o;
+  }
+  function releaseSuggestion(st, sg, byId, day) {
+    const inv = userOf(st, sg.investor_id, "investor"), c = companyOf(st, sg.company_id);
+    if (get(isObj(inv.profile) ? inv.profile : {}, "kyc") !== "verified") { sg.status = "waiting_kyc"; return; }
+    try {
+      const o = sendOffer(st, c, inv, byId, day);
+      Object.assign(sg, { status: "offered", offer_id: o.id, reason: null });
+      notify(st, sg.by, "suggest", "Your advisor sent the offer to " + label(inv), "app-fundraise");
+    } catch (e) {
+      if (!(e instanceof Denied)) throw e;
+      Object.assign(sg, { status: "blocked", reason: e.message });
+      notifyAdvisors(st, "suggest", "Could not send " + c.name + "'s offer to " + label(inv) + ": " + e.message, "app-directory");
+    }
+  }
+  function releaseWaiting(st, investorId, byId, day) {
+    for (const sg of st.suggestions) if (sg.investor_id === investorId && sg.status === "waiting_kyc") releaseSuggestion(st, sg, byId, day);
+  }
+  function acceptInvite(st, inviteId, user) {
+    const inv = find(st.invites, inviteId);
+    need(inv && inv.status === "pending", "This invitation has already been used or withdrawn");
+    Object.assign(inv, { status: "accepted", accepted_at: now(), user_id: user.id });
+    const sg = find(st.suggestions, inv.suggestion_id);
+    if (sg && sg.status === "invited") {
+      Object.assign(sg, { investor_id: user.id, status: "waiting_kyc" });
+      notify(st, sg.by, "suggest", inv.name + " accepted the invitation", "app-investors");
+    }
+    notifyAdvisors(st, "suggest", inv.name + " joined by invitation; verify their KYC to send the offer", "app-directory");
+    return inv;
+  }
   const holderIds = (st, cid) => new Set(DOM.platformInvestors(st, cid));
 
   // ---------- visibility ----------
@@ -4001,7 +4050,7 @@ Demo store: every action and rule of the server, kept in the browser.
         holdings: only(st.holdings).map((h) => Object.assign({}, h, { investor_name: label(userOf(st, h.investor_id)) })),
         offers: only(st.offers).map(offerView), valuations: only(st.valuations), sell_requests: only(st.sell_requests).map(sellView),
         loans: only(st.loans), invoices: st.invoices.filter((i) => i.company_id === cid && i.payer === "company"),
-        files: only(st.files), audit: auditRows(["company_id", cid]) });
+        files: only(st.files), suggestions: only(st.suggestions), audit: auditRows(["company_id", cid]) });
     } else if (role === "investor") {
       const mine = st.offers.filter((o) => o.investor_id === user.id);
       const hold = st.holdings.filter((h) => h.investor_id === user.id);
@@ -4181,7 +4230,7 @@ Demo store: every action and rule of the server, kept in the browser.
       return ["Posted an update for " + c.name, c.id];
     },
 
-    set_investor_profile(st, u, p) {
+    set_investor_profile(st, u, p, day) {
       need(u.role === "advisor", "Only an advisor records KYC");
       const inv = userOf(st, get(p, "investor_id"), "investor");
       const prof = inv.profile = isObj(inv.profile) ? inv.profile : {};
@@ -4190,6 +4239,7 @@ Demo store: every action and rule of the server, kept in the browser.
         prof.kyc = p.kyc;
       }
       if (get(p, "accredited") !== null) prof.accredited = truthy(p.accredited);
+      if (get(prof, "kyc") === "verified") releaseWaiting(st, inv.id, u.id, day);
       return ["Updated " + label(inv) + ": KYC " + pystr(get(prof, "kyc")) + ", accredited " + (truthy(get(prof, "accredited")) ? "yes" : "no"), null];
     },
 
@@ -4328,11 +4378,63 @@ Demo store: every action and rule of the server, kept in the browser.
     },
     suggest_investor(st, u, p) {
       need(u.role === "founder", "Only founders suggest investors");
-      const inv = userOf(st, get(p, "investor_id"), "investor"), c = companyOf(st, u.company_id);
-      const note = u.name + " suggests offering to " + label(inv);
-      st.notes.push({ id: uid("n"), subject_type: "company", subject_id: c.id, text: note + ".", due: null, done: false, by: u.id, at: now() });
-      notifyAdvisors(st, "suggest", note + " (" + c.name + ")", "app-directory");
-      return ["Suggested " + label(inv) + " to your advisor. Your advisor decides who receives the offer.", c.id];
+      const c = companyOf(st, u.company_id);
+      const note = cut(pystr(or(get(p, "note"), "")).trim(), 300);
+      let inv = null, email = "", name = "";
+      if (truthy(get(p, "investor_id"))) inv = userOf(st, get(p, "investor_id"), "investor");
+      else {
+        email = cut(pystr(or(get(p, "email"), "")).trim().toLowerCase(), 254);
+        name = cut(pystr(or(get(p, "name"), "")).trim(), 80);
+        need(name && EMAIL.test(email), "Enter the investor's name and a valid email");
+        const existing = st.users.find((x) => (x.email || "").toLowerCase() === email);
+        if (existing) { need(existing.role === "investor", "That email belongs to an account that is not an investor"); inv = existing; }
+      }
+      let who;
+      if (inv) {
+        need(!st.offers.some((o) => o.investor_id === inv.id && o.company_id === c.id), label(inv) + " already has your offer");
+        need(!st.suggestions.some((x) => x.investor_id === inv.id && x.company_id === c.id && SUGGESTION_OPEN.includes(x.status)), "You have already suggested " + label(inv));
+        who = { investor_id: inv.id, name: inv.name, email: null, firm: get(inv, "firm") };
+      } else {
+        need(!st.suggestions.some((x) => (x.email || "") === email && x.company_id === c.id && SUGGESTION_OPEN.includes(x.status)), "You have already suggested " + email);
+        who = { investor_id: null, name, email, firm: cut(pystr(or(get(p, "firm"), "")).trim(), 120) || null };
+      }
+      const sg = Object.assign({ id: uid("sg"), company_id: c.id, by: u.id, at: now(), note: note || null, status: "suggested",
+        decided_by: null, decided_at: null, reason: null, offer_id: null, invite_id: null }, who);
+      st.suggestions.push(sg);
+      const shown = inv ? label(inv) : who.name + (who.firm ? " (" + who.firm + ")" : "");
+      const text = u.name + " suggests offering to " + shown;
+      st.notes.push({ id: uid("n"), subject_type: "company", subject_id: c.id, text: text + ".", due: null, done: false, by: u.id, at: now() });
+      notifyAdvisors(st, "suggest", text + " (" + c.name + ")", "app-directory");
+      return ["Suggested " + shown + " to your advisor. Your advisor decides who receives the offer.", c.id];
+    },
+    decide_suggestion(st, u, p, day) {
+      need(u.role === "advisor", "Only an advisor confirms suggested investors");
+      const sg = find(st.suggestions, get(p, "suggestion_id"));
+      need(sg, "Suggestion not found");
+      need(sg.status === "suggested", "This suggestion was already decided");
+      const c = companyOf(st, sg.company_id);
+      const shown = sg.name + (sg.firm ? " (" + sg.firm + ")" : "");
+      if (get(p, "decision") === "decline") {
+        const reason = cut(pystr(or(get(p, "reason"), "")).trim(), 300);
+        need(reason, "Give the founder a reason");
+        Object.assign(sg, { status: "declined", reason, decided_by: u.id, decided_at: now() });
+        notify(st, sg.by, "suggest", "Your advisor declined " + shown + ": " + reason, "app-investors");
+        return ["Declined " + shown + " for " + c.name, c.id];
+      }
+      need(get(p, "decision") === "approve", "Choose approve or decline");
+      need(offerable(c, st), "Approve " + c.name + "'s report and move it to Approved before confirming investors");
+      Object.assign(sg, { decided_by: u.id, decided_at: now() });
+      if (sg.investor_id) {
+        releaseSuggestion(st, sg, u.id, day);
+        const what = { offered: "offer sent", waiting_kyc: "the offer goes out once their KYC is verified" }[sg.status] || sg.reason || sg.status;
+        return ["Confirmed " + shown + " for " + c.name + ": " + what, c.id];
+      }
+      const inv = { id: uid("iv"), company_id: c.id, suggestion_id: sg.id, name: sg.name, email: sg.email, firm: sg.firm || null,
+        status: "pending", created_at: now(), created_by: u.id, sent_at: null, accepted_at: null, user_id: null };
+      st.invites.push(inv);
+      Object.assign(sg, { status: "invited", invite_id: inv.id });
+      notify(st, sg.by, "suggest", "Your advisor confirmed " + shown + "; an invitation is on its way", "app-investors");
+      return ["Confirmed " + shown + " for " + c.name + " and invited " + sg.email + " to join", c.id];
     },
     request_sell(st, u, p, day) {
       const h = find(st.holdings, get(p, "holding_id"));
@@ -4701,6 +4803,14 @@ Demo store: every action and rule of the server, kept in the browser.
       if (Array.from(pw).length < 8) throw fail("Use a password of at least 8 characters.", 400);
       if (!["founder", "investor", "lender"].includes(role)) throw fail("Choose founder, investor or lender.", 400);
       if (!name) throw fail("Enter your name.", 400);
+      let invite = null;
+      if (role === "investor") {
+        // investors join only through an invitation (a founder suggests them, the advisor confirms)
+        const id = isObj(DB.invite_tokens) ? DB.invite_tokens[pystr(or(get(f, "invite"), ""))] : null;
+        invite = id ? find(DB.invites, id) : null;
+        if (!invite || invite.status !== "pending") throw fail("Investors join by invitation. Ask the founder or your Aegis Ascend advisor for an invitation link.", 403);
+        if (email !== invite.email) throw fail("Use the email address the invitation was sent to: " + invite.email, 400);
+      }
       if (DB.users.some((x) => x.email === email)) throw fail("An account with this email already exists. Sign in instead.", 409);
       const org = cut(pystr(or(get(f, "org"), "")).trim(), 120), sector = cut(pystr(or(get(f, "sector"), "Plastics & packaging")), 60);
       const u = { id: uid("u"), email, name, role, company_id: null, firm: null, title: null, mandate: null, profile: null, pw_hash: await hash(pw), created_at: now() };
@@ -4722,7 +4832,8 @@ Demo store: every action and rule of the server, kept in the browser.
         }
       }
       DB.users.push(u);
-      writeAudit(u, "signup", "Created a " + role + " account", u.company_id);
+      if (invite) { if (invite.firm) u.firm = invite.firm; acceptInvite(DB, invite.id, u); }
+      writeAudit(u, "signup", "Created a " + role + " account" + (invite ? " by invitation" : ""), u.company_id);
       save();
       setSession(u.id);
       return clone(pub(u, true));
@@ -4736,7 +4847,28 @@ Demo store: every action and rule of the server, kept in the browser.
       const u = signedIn();
       if (!has(ACTIONS, name)) throw fail("Unknown action", 404);
       const p = plainPayload(payload), day = today();
-      return clone(transact(u, name, (st, me) => { const [detail, cid] = ACTIONS[name](st, me, p, day); return { detail, company_id: cid }; }));
+      const res = transact(u, name, (st, me) => { const [detail, cid] = ACTIONS[name](st, me, p, day); return { detail, company_id: cid }; });
+      // The server emails each new invitation's private link; the demo has no email, so it hands the link to the advisor.
+      const fresh = DB.invites.filter((iv) => iv.status === "pending" && !iv.sent_at);
+      if (fresh.length) {
+        DB.invite_tokens = isObj(DB.invite_tokens) ? DB.invite_tokens : {};
+        for (const iv of fresh) {
+          const token = Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => b.toString(16).padStart(2, "0")).join("");
+          DB.invite_tokens[token] = iv.id;
+          iv.sent_at = now();
+          res.invite_link = "#signup/invite/" + token;
+          res.invite_email = iv.email;
+        }
+        save();
+      }
+      return clone(res);
+    },
+    /** What an invitation link is for, so the sign-up page can show it. */
+    async inviteInfo(token) {
+      const id = isObj(DB.invite_tokens) ? DB.invite_tokens[pystr(token)] : null, iv = id ? find(DB.invites, id) : null;
+      if (!iv || iv.status !== "pending") throw fail("This invitation link has expired or was already used. Ask your advisor for a new one.", 404);
+      const c = find(DB.companies, iv.company_id);
+      return { name: iv.name, email: iv.email, firm: iv.firm, company: c ? c.name : null };
     },
     /** Same checks as POST /api/upload; the file is kept in the browser as a data URL. Returns the file record. */
     async upload(file, fields) {
@@ -4844,6 +4976,7 @@ Adapter that sends the same calls to the Flask API.
       },
       pay: (invoice_id) => call("POST", "/api/pay/" + encodeURIComponent(invoice_id)),
     },
+    async inviteInfo(token) { return call("GET", "/api/invite/" + encodeURIComponent(token)); },
     async reset() { throw new Error("Reset is only available in the demo."); },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -5261,7 +5394,7 @@ The "Ask Aegis" assistant panel, its quick answers and site guide.
     [["contact", "talk", "call", "meet", "book", "engagement", "email", "reach"],
       "The quickest way is the enquiry form on [Contact](#contact). Tell us about the company and what you're raising, and an advisor will reply to the email you give."],
     [["sign in", "login", "log in", "account", "sign up", "register", "demo", "workspace"],
-      "Founders, investors and lenders can create an account from [Sign in](#login). The demo has one-click sign-ins for each role (password demo1234), and all its companies and people are fictional."],
+      "Founders and lenders can create an account from [Sign in](#login). Investors join by invitation: a founder suggests them, an advisor confirms, and they receive a private link. The demo has one-click sign-ins for each role (password demo1234), and all its companies and people are fictional."],
     [["tool", "tools", "funding twin", "optimizer", "cma", "readiness", "term sheet"],
       "Our advisors use the Funding Twin, the Equity vs Debt Optimizer, the CMA funding report, the Readiness Score and the Term Sheet Analyser, and founders receive the finished, reviewed report. See \"Tools behind the advice\" on the [home page](#home)."],
   ];
@@ -5445,7 +5578,7 @@ The assistant's map of every page and workspace screen.
     {"route": "about", "label": "About", "what": "The founders, who we serve first, how we compare, and the roadmap.", "keywords": ["about", "founders", "team", "who are you", "roadmap", "company"]},
     {"route": "contact", "label": "Contact", "what": "The enquiry form: an advisor replies to the email you give.", "keywords": ["contact", "talk", "enquiry", "book", "engagement", "email", "call", "reach", "get in touch", "advisor"]},
     {"route": "login", "label": "Sign in", "what": "Sign in to your workspace; the demo has one-click sign-ins for each role.", "keywords": ["sign in", "login", "log in", "signin", "demo", "workspace", "dashboard"]},
-    {"route": "signup", "label": "Create an account", "what": "Sign up as a founder, investor or lender. Advisor accounts are created by the firm.", "keywords": ["sign up", "signup", "register", "create an account", "new account", "join"]}
+    {"route": "signup", "label": "Create an account", "what": "Sign up as a founder or lender. Investors join through a private invitation link once an advisor confirms them; advisor accounts are created by the firm.", "keywords": ["sign up", "signup", "register", "create an account", "new account", "join"]}
   ],
   "roles": {
     "founder": {
@@ -5580,18 +5713,38 @@ Sign-in and sign-up, the role-based workspace frame, page router.
       '<label class="fld"><span>Type it again</span><span class="in"><input name="password2" id="r_pw2" type="password" autocomplete="new-password" required></span></label>' +
       '<button class="btn primary lg block" type="submit">Save new password</button></form><p class="small muted">Saving signs you out on every device.</p></div></div>');
   }
+  // Investors join by invitation (#signup/invite/<token>): a founder suggests them and an advisor confirms.
+  function inviteSignup(token, err) {
+    if (!S.invite || S.invite.token !== token) {
+      S.invite = { token };
+      API.inviteInfo(token).then((d) => { S.invite.info = d; render(); }, (e) => { S.invite.error = e.message; render(); });
+      return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Your invitation</h1><p class="muted">Checking your invitation…</p></div></div>');
+    }
+    const i = S.invite.info;
+    if (S.invite.error || !i) return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Your invitation</h1><div class="notice bad" role="alert">' + esc(S.invite.error || "This invitation link is not valid.") + '</div><p class="small muted">Investors join Aegis Ascend by invitation only. Ask the founder or your advisor for a new link.</p></div></div>');
+    return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Join as an investor</h1>' +
+      '<p class="muted">' + esc(i.company || "A company we advise") + " has asked Aegis Ascend to share a private investment opportunity with you. After you join, we verify your identity (KYC) and then send the offer.</p>" +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="signup" novalidate><input type="hidden" name="role" value="investor"><input type="hidden" name="invite" value="' + esc(token) + '">' +
+      '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="s_name" autocomplete="name" value="' + esc(i.name || "") + '" required></span></label>' +
+      '<label class="fld"><span>Firm or family office</span><span class="in"><input name="org" id="s_org" autocomplete="organization" value="' + esc(i.firm || "") + '"></span></label>' +
+      '<label class="fld"><span>Email (the address your invitation was sent to)</span><span class="in"><input name="email" id="s_email" type="email" value="' + esc(i.email) + '" readonly></span></label>' +
+      '<label class="fld"><span>Password (8 characters or more)</span><span class="in"><input name="password" id="s_password" type="password" autocomplete="new-password" required minlength="8"></span></label>' +
+      '<button class="btn primary lg block" type="submit">Create my investor account</button></form><p class="small muted">This invitation is personal to you. Please do not forward it.</p></div></div>');
+  }
   function signup(err) {
+    if ((S.param || "").startsWith("invite/")) return inviteSignup(S.param.slice(7), err);
     return PUB.page("signup", null, '<div class="auth"><div class="auth-card">' +
       "<h1>Create an account</h1>" + (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
       '<form class="form" data-form="signup" novalidate>' +
-      '<fieldset class="seg"><legend>I am a</legend>' + [["founder", "Founder"], ["investor", "Investor"], ["lender", "Lender"]].map(([v, l], i) => '<label><input type="radio" name="role" value="' + v + '"' + (i ? "" : " checked") + "><span>" + l + "</span></label>").join("") + "</fieldset>" +
+      '<fieldset class="seg"><legend>I am a</legend>' + [["founder", "Founder"], ["lender", "Lender"]].map(([v, l], i) => '<label><input type="radio" name="role" value="' + v + '"' + (i ? "" : " checked") + "><span>" + l + "</span></label>").join("") + "</fieldset>" +
       '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="s_name" autocomplete="name" required></span></label>' +
       '<label class="fld"><span>Company, fund or bank</span><span class="in"><input name="org" id="s_org" autocomplete="organization"></span></label>' +
       '<label class="fld"><span>Sector</span><span class="in"><select name="sector" id="s_sector">' + SECTORS.map((s) => "<option>" + s + "</option>").join("") + "</select></span></label>" +
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="s_email" type="email" autocomplete="email" required></span></label>' +
       '<label class="fld"><span>Password (8 characters or more)</span><span class="in"><input name="password" id="s_password" type="password" autocomplete="new-password" required minlength="8"></span></label>' +
       '<button class="btn primary lg block" type="submit">Create account</button></form>' +
-      '<p class="small muted">Already registered? <a href="#login">Sign in</a>. Advisor accounts are created by Aegis Ascend.</p></div></div>');
+      '<p class="small muted">Already registered? <a href="#login">Sign in</a>. Investors join by invitation; advisor accounts are created by Aegis Ascend.</p></div></div>');
   }
   const SECTORS = ["Plastics & packaging", "Auto components", "Chemicals", "Food processing", "Textiles", "Engineering", "Pharma", "Electronics"];
 
@@ -5626,6 +5779,9 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   const userName = (id) => { const u = (S.data.directory || []).concat(S.data.founders || []).find((x) => x.id === id); return u ? (u.firm && u.role !== "advisor" ? u.firm : u.name) : id === S.user.id ? S.user.name : "Aegis Ascend user"; };
   const companyById = (id) => S.data.companies.find((c) => c.id === id);
   const statusChip = (s) => chip({ approved: "ok", in_review: "warn", changes: "bad", draft: "", requested: "warn", granted: "ok", declined: "bad", applied: "warn", sanctioned: "ok", disbursed: "ok", consent_needed: "warn", completed: "ok", open: "warn" }[s] || "", ({ in_review: "In review", changes: "Changes requested", consent_needed: "Needs founder consent", first_refusal: "First refusal", buyer_intro: "Buyer introduction", spa: "SPA", open: "In progress" })[s] || s.charAt(0).toUpperCase() + s.slice(1));
+  // a founder's suggested investor, at each step: waiting for the advisor, invited, waiting for KYC, offer sent, declined
+  const sgChip = (sg) => chip({ suggested: "warn", invited: "warn", waiting_kyc: "warn", offered: "ok", declined: "bad", blocked: "bad" }[sg.status] || "",
+    { suggested: "Waiting for your advisor", invited: "Invited to join", waiting_kyc: "Waiting for KYC", offered: "Offer sent", declined: "Declined", blocked: "Could not send" }[sg.status] || sg.status);
   const stamp = (r) => (r && r.status === "approved" ? '<span class="stamp">Reviewed by ' + esc(userName(r.reviewed_by)) + " · " + date(r.reviewed_at) + "</span>" : "");
   const latestReport = (cid) => S.data.reports.filter((r) => r.company_id === cid).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
   const pdfBtn = (tool) => '<button class="btn ghost sm" type="button" data-act="pdf-tool" data-tool="' + tool + '">Download PDF</button>';
@@ -6298,7 +6454,7 @@ Sign-in and sign-up, the role-based workspace frame, page router.
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, sgChip, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);
@@ -6415,14 +6571,20 @@ Founder: fundraise, investors, deal room, cap table, data room, revenue share, l
     const named = new Map(D().offers.filter((o) => o.investor_id).map((o) => [o.investor_id, o.response]));
     const panel = (D().directory || []).filter((u) => u.role === "investor").map((u) => Object.assign({ fit: root.GB.fitScore(c, u) }, u)).sort((a, b) => b.fit.score - a.fit.score);
     const asks = I.filter((i) => i.status === "requested");
-    return WS.head("Investors", "Ranked by Investor Fit Score. Your advisor decides who receives the offer; you decide who enters your deal room.") +
+    const SG = (D().suggestions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+    const open = new Set(SG.filter((x) => ["suggested", "invited", "waiting_kyc"].includes(x.status) && x.investor_id).map((x) => x.investor_id));
+    return WS.head("Investors", "Suggest the investors you would like to pitch: from the panel below, or someone new by email. Your advisor confirms each one, then the offer is sent. You decide who enters your deal room.",
+      '<button class="btn primary" type="button" data-act="f-suggest-new">Suggest a new investor</button>') +
+      (SG.length ? '<section class="panel"><h2>Your suggestions</h2><ul class="docs">' + SG.map((x) => "<li><span><b>" + esc(x.name) + "</b>" + (x.firm ? " · " + esc(x.firm) : "") +
+        '<span class="muted small block">' + (x.status === "declined" || x.status === "blocked" ? esc(x.reason || "") : x.status === "invited" ? "Invitation sent to " + esc(x.email || "") : x.status === "waiting_kyc" ? "The offer goes out once their identity check is done" : x.status === "offered" ? "Your advisor sent the offer" : "Suggested " + UI.date(x.at) + (x.note ? " · " + esc(x.note) : "")) +
+        "</span></span>" + WS.sgChip(x) + "</li>").join("") + "</ul></section>" : "") +
       (asks.length ? '<section class="panel"><h2>Deal-room requests</h2>' + asks.map((i) => '<div class="item"><div><b>' + esc(i.investor_name) + '</b><span class="muted small">asked ' + UI.date(i.created_at) + '</span></div><div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div></div>').join("") + "</section>" : "") +
       '<div class="cards" data-stagger>' + panel.map((u) => { const i = I.find((x) => x.investor_id === u.id), resp = named.get(u.id);
         return '<article class="card"><div class="card-top"><div><b>' + esc(u.firm || u.name) + '</b><span class="muted small">' + esc(u.name) + '</span></div><div class="score" title="Investor Fit Score">' + u.fit.score + "<small>/100</small></div></div>" +
           '<ul class="reasons">' + u.fit.reasons.map((r) => "<li>" + esc(r) + "</li>").join("") + "</ul>" +
           (i ? "<p>" + WS.statusChip(i.status) + (i.nda_signed_at ? " " + chip("ok", "NDA signed") : "") + "</p>" : resp ? "<p>" + chip(resp === "invested" || resp === "interested" ? "ok" : "warn", resp === "invested" ? "Invested" : resp === "interested" ? "Interested" : "Offer " + resp) + "</p>" : "") +
           (i && i.status === "requested" ? '<div class="row gap-s"><button class="btn primary sm" data-act="decide-intro" data-id="' + i.id + '" data-d="grant">Grant access</button><button class="btn ghost sm" data-act="decide-intro" data-id="' + i.id + '" data-d="decline">Decline</button></div>'
-            : !i && !resp ? '<button class="btn ghost sm" data-act="f-suggest" data-id="' + u.id + '">Suggest to my advisor</button>' : "") + "</article>"; }).join("") + "</div>";
+            : !i && !resp && open.has(u.id) ? '<p>' + chip("warn", "Suggested") + "</p>" : !i && !resp ? '<button class="btn ghost sm" data-act="f-suggest" data-id="' + u.id + '">Suggest to my advisor</button>' : "") + "</article>"; }).join("") + "</div>";
   }
   function dealroom() {
     const c = WS.myCompany(), I = D().intros || [];
@@ -6436,7 +6598,13 @@ Founder: fundraise, investors, deal room, cap table, data room, revenue share, l
   }
 
   Object.assign(WS.clicks, {
-    "f-suggest": async (b, id) => { if (await KIT.confirm("Suggest this investor to your advisor?", "<p>Your advisor checks the investor's KYC and the offer limits, and decides whether to share the offer.</p>", "Suggest")) return WS.after(await API.act("suggest_investor", { investor_id: id })); },
+    "f-suggest": async (b, id) => { if (await KIT.confirm("Suggest this investor to your advisor?", "<p>Your advisor confirms the investor, then the offer is sent once their identity check (KYC) is done and the offer limits allow it.</p>", "Suggest")) return WS.after(await API.act("suggest_investor", { investor_id: id })); },
+    "f-suggest-new": async () => {
+      const v = await KIT.dialog({ title: "Suggest a new investor", text: "<p>Someone you would like to pitch who is not on the platform yet. Your advisor checks them; if confirmed, they receive a private invitation to join, and the offer follows their identity check.</p>",
+        confirm: "Send to my advisor", fields: [{ name: "name", label: "Investor's name", type: "text" }, { name: "email", label: "Email", type: "email" }, { name: "firm", label: "Firm or family office (optional)", type: "text" }, { name: "note", label: "Why this investor (optional)", type: "textarea" }],
+        validate: (x) => (!String(x.name || "").trim() ? "Enter the investor's name" : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(x.email || "").trim()) ? "Enter a valid email" : null) });
+      if (v) return WS.after(await API.act("suggest_investor", { name: v.name, email: v.email, firm: v.firm, note: v.note }));
+    },
     "f-upload": async (b, item) => {
       const l = (DATAROOM.find((x) => x[0] === item) || [item, item])[1];
       const v = await KIT.dialog({ title: "Upload: " + l, confirm: "Upload", fields: [{ name: "file", label: "File (PDF, Excel, Word, CSV or image)", type: "file", accept: ".pdf,.xlsx,.xls,.csv,.docx,.png,.jpg,.jpeg" }], validate: (x) => (x.file ? null : "Choose a file") });
@@ -7003,6 +7171,7 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
       '<div class="today">' + groups.map((g) => { const L = A.filter((a) => a.kind === g).sort((a, b) => a.sort - b.sort); if (!L.length) return ""; const title = { Revaluation: "Revaluations", Request: "Requests waiting more than 5 days", "PAS-3": "PAS-3 filing deadlines", "Lock-in": "Lock-ins ending this week", Limit: "Companies near a limit", DSCR: "Repayment alerts" }[g];
         return '<section class="panel"><h2>' + title + '</h2><ul class="alerts" data-stagger>' + L.map((a) => '<li class="' + a.sev + '"><a href="#' + a.link + '">' + esc(a.text) + "</a></li>").join("") + "</ul></section>"; }).join("") +
       '<section class="panel"><h2>Tasks due</h2>' + (tasks.length ? '<ul class="alerts">' + tasks.map((n) => '<li class="' + (n.due < today() ? "bad" : "warn") + '"><label class="chk"><input type="checkbox" data-act="a-note-toggle" data-id="' + n.id + '"> ' + esc(n.text) + '</label><span class="muted small">' + subjectName(n) + " · due " + dmy(n.due) + "</span></li>").join("") + "</ul>" : '<p class="muted">Nothing due.</p>') + "</section>" +
+      suggestionsPanel(true) +
       (inReview.length ? '<section class="panel"><h2>Reports to review</h2><ul class="alerts">' + inReview.map((r) => '<li><a href="#app-review">' + esc(co(r.company_id).name + ": " + r.title) + "</a></li>").join("") + "</ul></section>" : "") +
       (A.length ? "" : '<section class="panel">' + KIT.empty("All clear", "No overdue revaluations, waiting requests or limit warnings.") + "</section>") + "</div>";
   }
@@ -7081,6 +7250,18 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
   // ---------- investor directory and offer sharing ----------
   const investors = () => (D().directory || []).filter((u) => u.role === "investor");
   function invStats(u) { const H = D().holdings.filter((h) => h.investor_id === u.id && h.shares > 0); return { invested: H.reduce((a, h) => a + h.cost_paise, 0), held: new Set(H.map((h) => h.company_id)).size }; }
+  // founders' suggested investors: the advisor confirms (the offer goes out, or an invitation for someone new) or declines
+  function suggestionsPanel(compact) {
+    const all = (D().suggestions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1)), pend = all.filter((x) => x.status === "suggested");
+    if (!all.length) return "";
+    const by = (id) => ((D().founders || []).find((u) => u.id === id) || {}).name || "The founder";
+    const row = (x) => '<li><span><b>' + esc(x.name) + "</b>" + (x.firm ? " · " + esc(x.firm) : "") + (x.investor_id ? "" : ' <span class="chip">New</span>') +
+      '<span class="muted small block">' + esc(by(x.by)) + " for " + esc(co(x.company_id).name) + " · " + UI.date(x.at) + (x.email ? " · " + esc(x.email) : "") + (x.note ? " · \u201c" + esc(x.note) + "\u201d" : "") + (x.reason ? " · " + esc(x.reason) : "") + "</span></span>" +
+      (x.status === "suggested" ? '<span class="row gap-s"><button class="btn primary sm" data-act="a-sg-ok" data-id="' + x.id + '">Confirm</button><button class="btn ghost sm" data-act="a-sg-no" data-id="' + x.id + '">Decline</button></span>' : WS.sgChip(x)) + "</li>";
+    if (compact && !pend.length) return "";
+    return '<section class="panel"><h2>Suggestions from founders' + (pend.length ? " (" + pend.length + " to decide)" : "") + '</h2><p class="small muted">Confirming sends the offer (once the investor\u2019s KYC is verified). For someone new, it sends a private invitation to join.</p><ul class="docs">' +
+      (compact ? pend : all.slice(0, 12)).map(row).join("") + "</ul></section>";
+  }
   function directory() {
     const offerable = D().companies.filter((c) => ["approved", "offering"].includes(c.pipeline_stage) && report(c.id));
     if (!S.offerCo || !offerable.some((c) => c.id === S.offerCo)) S.offerCo = offerable[0] && offerable[0].id;
@@ -7095,7 +7276,7 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
       '<button class="btn ghost sm" data-act="a-shortlist">Suggest a shortlist</button><button class="btn primary" data-act="a-share"' + (sel.length ? "" : " disabled") + ">Share offer with " + sel.length + " selected</button></div>"
       : '<div class="notice">No company is approved for offering yet. Approve a report in the review queue first.</div>';
     return WS.head("Investor directory", "Onboarded investors. Select investors, then share an approved company with them. Each investor offered counts towards the company's 200 offers this financial year.") +
-      '<section class="panel">' + bar +
+      suggestionsPanel(false) + '<section class="panel">' + bar +
       KIT.table("a-dir", { name: "investor-directory", rows, select: true, pageSize: 30,
         search: (u) => [u.name, u.firm, ((u.mandate || {}).sectors || []).join(" ")].join(" "),
         filters: [{ k: "sector", label: "Sector", options: sectors.map((s) => [s, s]), match: (u, v) => ((u.mandate || {}).sectors || []).includes(v) },
@@ -7312,6 +7493,25 @@ Advisor: today, pipeline, company file, directory, resales, revaluations, revenu
 
   // ---------- actions ----------
   const act = (name, p, msg) => API.act(name, p).then((r) => WS.after(r, msg));
+  Object.assign(WS.clicks, {
+    "a-sg-ok": async (b, id) => {
+      const x = D().suggestions.find((s) => s.id === id);
+      const ok = await KIT.confirm("Confirm " + x.name + " for " + co(x.company_id).name + "?", x.investor_id
+        ? "<p>The offer is sent now if their KYC is verified, otherwise as soon as it is. It counts towards the company's offers this financial year.</p>"
+        : "<p>" + esc(x.name) + " (" + esc(x.email) + ") receives a private invitation to join. The offer follows their identity check.</p>", "Confirm");
+      if (!ok) return;
+      const r = await API.act("decide_suggestion", { suggestion_id: id, decision: "approve" });
+      if (r.invite_link) {   // the demo has no email, so it shows the link to pass on
+        await KIT.dialog({ title: "Invitation ready", confirm: "Done", cancel: "Close", text: "<p>The server emails this private link to " + esc(r.invite_email) + ". This demo cannot send email, so copy it and open it in another browser to try joining as the investor:</p><p><code>" + esc(location.href.split("#")[0] + r.invite_link) + "</code></p>" });
+      }
+      return WS.after(r);
+    },
+    "a-sg-no": async (b, id) => {
+      const x = D().suggestions.find((s) => s.id === id);
+      const v = await KIT.dialog({ title: "Decline " + x.name + "?", text: "<p>The founder sees your reason.</p>", confirm: "Decline", fields: [{ name: "reason", label: "Reason", type: "textarea" }], validate: (y) => (String(y.reason || "").trim() ? null : "Give the founder a reason") });
+      if (v) return act("decide_suggestion", { suggestion_id: id, decision: "decline", reason: v.reason });
+    },
+  });
   Object.assign(WS.clicks, {
     "a-pipeview": (b, id) => { S.pipeView = id; return WS.render({ keepScroll: true }); },
     "a-pick-co": (b, id) => { S.offerCo = id; },
@@ -8417,13 +8617,14 @@ Each action takes (st, user, payload, today), checks the rules, mutates the load
 (detail, company_id). The API layer saves the changes and writes them, with before/after values, to the
 append-only audit log. site/store.js mirrors this file for the browser-only demo.
 """
+import re
 import uuid
 from datetime import datetime, timezone
 
 from server import domain as D
 
 COLLECTIONS = ("companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
-               "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings")
+               "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings", "suggestions", "invites")
 COMPANY_FIELDS = ("name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs")
 ADVISOR_COMPANY_FIELDS = ("offer_price_paise", "fd_extra_shares", "security_type", "raise_paise")
 SELL_OPEN = ("submitted", "under_review", "rofr", "buyer_introduced", "spa_signed")
@@ -8600,7 +8801,7 @@ def visible_state(st, user, audit_rows, today):
                     holdings=[dict(h, investor_name=label(user_of(st, h["investor_id"]))) for h in only(st.holdings)],
                     offers=[offer_view(o) for o in only(st.offers)], valuations=only(st.valuations), sell_requests=[sell_view(x) for x in only(st.sell_requests)],
                     loans=only(st.loans), invoices=[i for i in st.invoices if i["company_id"] == cid and i["payer"] == "company"],
-                    files=only(st.files), audit=audit_rows(("company_id", cid)))
+                    files=only(st.files), suggestions=only(st.suggestions), audit=audit_rows(("company_id", cid)))
     if role == "investor":
         mine = [o for o in st.offers if o["investor_id"] == user["id"]]
         hold = [h for h in st.holdings if h["investor_id"] == user["id"]]
@@ -8781,6 +8982,8 @@ def a_set_investor_profile(st, u, p, today):
         prof["kyc"] = p["kyc"]
     if p.get("accredited") is not None:
         prof["accredited"] = bool(p["accredited"])
+    if prof.get("kyc") == "verified":
+        release_waiting(st, inv["id"], u["id"], today)
     return "Updated %s: KYC %s, accredited %s" % (label(inv), prof.get("kyc"), "yes" if prof.get("accredited") else "no"), None
 
 
@@ -8939,14 +9142,132 @@ def a_view_room_doc(st, u, p, today):
     return "Viewed " + p["doc"] + " (watermarked: " + u["name"] + ")", c["id"]
 
 
+# ---------------- investor suggestions: the founder suggests, the advisor confirms, then the offer goes out ----------------
+# Investors join only by invitation. A founder may suggest an investor already on the platform, or a new one by name and
+# email; the advisor confirms or declines. On confirmation a platform investor receives the offer at once (or as soon as
+# their KYC is verified); a new investor gets an invitation (the server emails the private link) and receives the offer
+# once they have joined and passed KYC.
+SUGGESTION_OPEN = ("suggested", "invited", "waiting_kyc")
+
+
+def offerable(c, st):
+    return c.get("pipeline_stage") in ("approved", "offering") and approved(st, c["id"])
+
+
+def send_offer(st, c, inv, by_id, today):
+    """One offer to one KYC-verified investor, inside the Section 42 limit. Returns the offer (an existing one if already sent)."""
+    need(offerable(c, st), "Only a company in Approved or Offering status with a signed-off report can be offered")
+    need((inv.get("profile") or {}).get("kyc") == "verified", label(inv) + " has not completed KYC")
+    sec, year = c.get("security_type") or "equity", D.fy(today)
+    old = next((o for o in st.offers if o["company_id"] == c["id"] and o["investor_id"] == inv["id"] and o["fy"] == year and o["security_type"] == sec), None)
+    if old:
+        return old
+    s, used = settings(st), D.offers_used(st, c["id"], year, sec)
+    need(used + 1 <= s["offer_limit"], "Blocked: %s has used all %d %s offers for FY %s (Section 42)." % (c["name"], s["offer_limit"], sec, year))
+    o = dict(id=uid("o"), company_id=c["id"], investor_id=inv["id"], fy=year, security_type=sec, sent_at=now(), sent_by=by_id,
+             response="pending", responded_at=None, share_identity=False, views=[])
+    st.offers.append(o)
+    notify(st, inv["id"], "offer", "New private offer: " + c["name"], "app-opportunities")
+    if c["pipeline_stage"] == "approved":
+        c.update(pipeline_stage="offering", stage_since=today)
+    return o
+
+
+def release_suggestion(st, sg, by_id, today):
+    """A confirmed suggestion: send the offer if the investor can receive it now, otherwise wait for their KYC."""
+    inv, c = user_of(st, sg["investor_id"], "investor"), company_of(st, sg["company_id"])
+    if (inv.get("profile") or {}).get("kyc") != "verified":
+        sg["status"] = "waiting_kyc"
+        return
+    try:
+        o = send_offer(st, c, inv, by_id, today)
+        sg.update(status="offered", offer_id=o["id"], reason=None)
+        notify(st, sg["by"], "suggest", "Your advisor sent the offer to %s" % label(inv), "app-fundraise")
+    except Denied as e:
+        sg.update(status="blocked", reason=str(e))
+        notify_advisors(st, "suggest", "Could not send %s's offer to %s: %s" % (c["name"], label(inv), e), "app-directory")
+
+
+def release_waiting(st, investor_id, by_id, today):
+    """Called when an investor's KYC is verified: every confirmed suggestion waiting for it goes out."""
+    for sg in st.suggestions:
+        if sg.get("investor_id") == investor_id and sg["status"] == "waiting_kyc":
+            release_suggestion(st, sg, by_id, today)
+
+
 def a_suggest_investor(st, u, p, today):
     need(u["role"] == "founder", "Only founders suggest investors")
-    inv = user_of(st, p.get("investor_id"), "investor")
     c = company_of(st, u["company_id"])
-    note = "%s suggests offering to %s" % (u["name"], label(inv))
-    st.notes.append(dict(id=uid("n"), subject_type="company", subject_id=c["id"], text=note + ".", due=None, done=False, by=u["id"], at=now()))
-    notify_advisors(st, "suggest", note + " (" + c["name"] + ")", "app-directory")
-    return "Suggested %s to your advisor. Your advisor decides who receives the offer." % label(inv), c["id"]
+    note = str(p.get("note") or "").strip()[:300]
+    inv = None
+    if p.get("investor_id"):
+        inv = user_of(st, p.get("investor_id"), "investor")
+    else:
+        email = str(p.get("email") or "").strip().lower()[:254]
+        name = str(p.get("name") or "").strip()[:80]
+        need(name and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email), "Enter the investor's name and a valid email")
+        existing = next((x for x in st.users if (x.get("email") or "").lower() == email), None)
+        if existing:
+            need(existing["role"] == "investor", "That email belongs to an account that is not an investor")
+            inv = existing
+    if inv:
+        need(not any(o["investor_id"] == inv["id"] and o["company_id"] == c["id"] for o in st.offers), label(inv) + " already has your offer")
+        need(not any(x.get("investor_id") == inv["id"] and x["company_id"] == c["id"] and x["status"] in SUGGESTION_OPEN for x in st.suggestions),
+             "You have already suggested " + label(inv))
+        who = dict(investor_id=inv["id"], name=inv["name"], email=None, firm=inv.get("firm"))
+    else:
+        need(not any((x.get("email") or "") == email and x["company_id"] == c["id"] and x["status"] in SUGGESTION_OPEN for x in st.suggestions),
+             "You have already suggested " + email)
+        who = dict(investor_id=None, name=name, email=email, firm=str(p.get("firm") or "").strip()[:120] or None)
+    sg = dict(id=uid("sg"), company_id=c["id"], by=u["id"], at=now(), note=note or None, status="suggested",
+              decided_by=None, decided_at=None, reason=None, offer_id=None, invite_id=None, **who)
+    st.suggestions.append(sg)
+    shown = label(inv) if inv else (who["name"] + (" (" + who["firm"] + ")" if who["firm"] else ""))
+    text = "%s suggests offering to %s" % (u["name"], shown)
+    st.notes.append(dict(id=uid("n"), subject_type="company", subject_id=c["id"], text=text + ".", due=None, done=False, by=u["id"], at=now()))
+    notify_advisors(st, "suggest", text + " (" + c["name"] + ")", "app-directory")
+    return "Suggested %s to your advisor. Your advisor decides who receives the offer." % shown, c["id"]
+
+
+def a_decide_suggestion(st, u, p, today):
+    need(u["role"] == "advisor", "Only an advisor confirms suggested investors")
+    sg = find(st.suggestions, p.get("suggestion_id"))
+    need(sg, "Suggestion not found")
+    need(sg["status"] == "suggested", "This suggestion was already decided")
+    c = company_of(st, sg["company_id"])
+    shown = sg["name"] + (" (" + sg["firm"] + ")" if sg.get("firm") else "")
+    if p.get("decision") == "decline":
+        reason = str(p.get("reason") or "").strip()[:300]
+        need(reason, "Give the founder a reason")
+        sg.update(status="declined", reason=reason, decided_by=u["id"], decided_at=now())
+        notify(st, sg["by"], "suggest", "Your advisor declined %s: %s" % (shown, reason), "app-investors")
+        return "Declined %s for %s" % (shown, c["name"]), c["id"]
+    need(p.get("decision") == "approve", "Choose approve or decline")
+    need(offerable(c, st), "Approve %s's report and move it to Approved before confirming investors" % c["name"])
+    sg.update(decided_by=u["id"], decided_at=now())
+    if sg.get("investor_id"):
+        release_suggestion(st, sg, u["id"], today)
+        what = {"offered": "offer sent", "waiting_kyc": "the offer goes out once their KYC is verified"}.get(sg["status"], sg.get("reason") or sg["status"])
+        return "Confirmed %s for %s: %s" % (shown, c["name"], what), c["id"]
+    inv = dict(id=uid("iv"), company_id=c["id"], suggestion_id=sg["id"], name=sg["name"], email=sg["email"], firm=sg.get("firm"),
+               status="pending", created_at=now(), created_by=u["id"], sent_at=None, accepted_at=None, user_id=None)
+    st.invites.append(inv)
+    sg.update(status="invited", invite_id=inv["id"])
+    notify(st, sg["by"], "suggest", "Your advisor confirmed %s; an invitation is on its way" % shown, "app-investors")
+    return "Confirmed %s for %s and invited %s to join" % (shown, c["name"], sg["email"]), c["id"]
+
+
+def accept_invite(st, invite_id, user, today):
+    """A new investor signed up through their invitation: link them to the suggestion; the offer follows their KYC."""
+    inv = find(st.invites, invite_id)
+    need(inv and inv["status"] == "pending", "This invitation has already been used or withdrawn")
+    inv.update(status="accepted", accepted_at=now(), user_id=user["id"])
+    sg = find(st.suggestions, inv["suggestion_id"])
+    if sg and sg["status"] == "invited":
+        sg.update(investor_id=user["id"], status="waiting_kyc")
+        notify(st, sg["by"], "suggest", "%s accepted the invitation" % inv["name"], "app-investors")
+    notify_advisors(st, "suggest", "%s joined by invitation; verify their KYC to send the offer" % inv["name"], "app-directory")
+    return inv
 
 
 def a_request_sell(st, u, p, today):
@@ -9751,7 +10072,7 @@ COMPLIANCE BY DESIGN
 - Some items are planned, not built yet: multi-factor login, hosting in an Indian cloud region with encryption at rest, DPDP Act consent and deletion flows, an independent security test. Legal opinions on several structures are still being obtained (listed on the Trust & compliance page).
 
 WORKSPACE
-- Founders, investors and lenders can create an account from "Sign in" -> "Create an account". Advisor accounts are created by the firm.
+- Founders and lenders can create an account from "Sign in" -> "Create an account". Investors join only by invitation: a founder suggests them on the Investors page, an advisor confirms, and the investor receives a private link; the offer follows their KYC. Advisor accounts are created by the firm.
 - The demo has one-click sign-ins for each role (password demo1234). All demo companies and people are fictional.
 """
 
@@ -9924,6 +10245,7 @@ Settings from environment variables.
   GB_WEBHOOK_SECRET signs provider callbacks for the stand-ins (defaults to GB_SECRET_KEY)
   GB_REQUIRE_ESIGN  "1" makes NDAs go through e-signing only (on by default in production)
   GB_ALLOW_STANDINS "1" allows stand-in providers in production (for a staging site only)
+  GB_INVESTOR_SIGNUP "invite" (default): investors join only through an invitation link; "open" for tests
 """
 import os
 import secrets
@@ -9945,6 +10267,7 @@ class Settings:
     payments_provider: str = field(default_factory=lambda: os.environ.get("GB_PAYMENTS_PROVIDER", "standin"))
     webhook_secret: str = field(default_factory=lambda: os.environ.get("GB_WEBHOOK_SECRET", ""))   # signs stand-in callbacks
     allow_standins: bool = field(default_factory=lambda: os.environ.get("GB_ALLOW_STANDINS", "") == "1")
+    investor_signup: str = field(default_factory=lambda: os.environ.get("GB_INVESTOR_SIGNUP", "invite"))   # invite | open
     require_esign: bool = field(default_factory=lambda: os.environ.get("GB_REQUIRE_ESIGN", "") == "1")
     seed_demo: bool = field(default_factory=lambda: os.environ.get("GB_SEED_DEMO", "0") == "1")
     today: str = field(default_factory=lambda: os.environ.get("GB_TODAY", ""))
@@ -10130,6 +10453,15 @@ payments = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("paid_at", DateTime(timezone=True)),
     Column("error", Text),
+)
+
+invite_tokens = Table(
+    "invite_tokens", metadata,   # private invitation links: only a hash of each link's token is stored
+    Column("token_hash", String(64), primary_key=True),
+    Column("invite_id", String(60), nullable=False, index=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("used_at", DateTime(timezone=True)),
 )
 
 webhook_events = Table(
@@ -10633,7 +10965,7 @@ from backend.storage import storage
 from backend.store import Store, add_record, audit_rows, diff, now, uid, write_audit
 from server import chat as CHAT
 from server import seed as SEED
-from server.actions import ACTIONS, Denied, can_see_file, pub, visible_state
+from server.actions import ACTIONS, Denied, accept_invite, can_see_file, find, pub, visible_state
 
 SITE = os.path.join(ROOT, "site")
 # page scripts in load order (site/build.py inlines the same list for the demo)
@@ -10835,6 +11167,14 @@ async def signup(request: Request):
         return err("Enter your name.", 400)
     with T.engine().begin() as conn:
         T.write_lock(conn)
+        tok, invite = None, None
+        if role == "investor" and settings.investor_signup != "open":
+            # investors join only through an invitation: a founder suggests them and an advisor confirms
+            tok, invite = invite_for(conn, p.get("invite"))
+            if not invite:
+                return err("Investors join by invitation. Ask the founder or your Aegis Ascend advisor for an invitation link.", 403)
+            if email != invite["email"]:
+                return err("Use the email address the invitation was sent to: " + invite["email"], 400)
         if conn.execute(select(T.users.c.id).where(T.users.c.email == email)).first():
             return err("An account with this email already exists. Sign in instead.", 409)
         org = str(p.get("org") or "").strip()[:120]
@@ -10855,8 +11195,16 @@ async def signup(request: Request):
             else:
                 # a self-registered lender is unverified until Aegis Ascend confirms its RBI registration
                 extra["profile"] = dict(regulated=False, lender_type=None, reg_no=None)
+        if invite and invite.get("firm"):
+            extra["firm"] = invite["firm"]
         u = add_user(conn, email, name, role, pw, **extra)
-        write_audit(conn, u, "signup", "Created a %s account" % role, extra.get("company_id"), ip=ip_of(request))
+        changes = None
+        if invite:
+            st = Store(conn)
+            accept_invite(st, invite["id"], next(x for x in st.users if x["id"] == u["id"]), today())
+            changes = [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in st.save()]
+            conn.execute(update(T.invite_tokens).where(T.invite_tokens.c.token_hash == tok.token_hash).values(used_at=A.utcnow()))
+        write_audit(conn, u, "signup", "Created a %s account%s" % (role, " by invitation" if invite else ""), extra.get("company_id"), changes, ip=ip_of(request))
         return signed_in(u, A.new_session(conn, u["id"], ip_of(request), request.headers.get("user-agent")))
 
 
@@ -10991,6 +11339,49 @@ async def reset(request: Request):
     return dict(ok=True)
 
 
+# ---------- invitations ----------
+INVITE_DAYS = 30
+
+
+def send_invitations(conn, st):
+    """Each invitation an action just created gets a private link, emailed through the outbox. Only the link's hash is kept."""
+    import secrets
+    from datetime import timedelta
+    for iv in st.invites:
+        if iv["status"] != "pending" or iv.get("sent_at"):
+            continue
+        token = secrets.token_urlsafe(24)
+        conn.execute(insert(T.invite_tokens).values(token_hash=A.sha(token), invite_id=iv["id"], created_at=A.utcnow(),
+                                                    expires_at=A.utcnow() + timedelta(days=INVITE_DAYS)))
+        c = find(st.companies, iv["company_id"]) or {}
+        notify.queue(conn, "email", iv["email"], "A private invitation from Aegis Ascend",
+                     "Hello %s,\n\n%s has asked Aegis Ascend Financial Advisors to share a private investment opportunity with you. "
+                     "This invitation is personal to you; please do not forward it.\n\nCreate your investor account here (the link works for %d days):\n%s/#signup/invite/%s\n\n"
+                     "After you join we will verify your identity (KYC) and then send you the offer.\n\nAegis Ascend Financial Advisors"
+                     % (iv["name"], c.get("name", "A company we advise"), INVITE_DAYS, settings.public_url, token))
+        iv["sent_at"] = now()
+
+
+def invite_for(conn, token):
+    """(token row, invitation record) for a live invitation link, else (None, None)."""
+    r = conn.execute(select(T.invite_tokens).where(T.invite_tokens.c.token_hash == A.sha(str(token or "")))).first()
+    if not r or r.used_at or A.aware(r.expires_at) < A.utcnow():
+        return None, None
+    row = conn.execute(select(T.records["invites"].c.data).where(T.records["invites"].c.id == r.invite_id)).first()
+    iv = row.data if row else None
+    return (r, iv) if iv and iv.get("status") == "pending" else (None, None)
+
+
+@app.get("/api/invite/{token}")
+def invite_info(token: str):
+    with T.engine().begin() as conn:
+        _, iv = invite_for(conn, token)
+        if not iv:
+            return err("This invitation link has expired or was already used. Ask your advisor for a new one.", 404)
+        row = conn.execute(select(T.records["companies"].c.data).where(T.records["companies"].c.id == iv["company_id"])).first()
+        return dict(name=iv["name"], email=iv["email"], firm=iv.get("firm"), company=row.data.get("name") if row else None)
+
+
 # ---------- the workspace ----------
 @app.get("/api/state")
 def state(request: Request):
@@ -11017,6 +11408,7 @@ async def act(name: str, request: Request):
         st = Store(conn)
         me_ = next(x for x in st.users if x["id"] == u["id"])
         detail, company_id = fn(st, me_, p, today())   # raises Denied -> 403, and the transaction rolls back
+        send_invitations(conn, st)
         changes = st.save()
         write_audit(conn, u, name, detail, company_id, [dict(collection=c, id=i, diff=diff(b, a)) for c, i, b, a in changes], ip=ip_of(request))
         return dict(detail=detail, company_id=company_id)
@@ -11318,7 +11710,7 @@ from backend.integrations import documents as DOCS
 from backend.integrations.providers import Event, provider
 from backend.storage import storage
 from backend.store import Store, diff, now, uid, write_audit
-from server.actions import Denied, find, label, notify, notify_advisors
+from server.actions import Denied, find, label, notify, notify_advisors, release_waiting
 
 PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 
@@ -11393,6 +11785,7 @@ def _apply_kyc(conn, st, ev, provider_name):
         prof.update(kyc="verified", kyc_verified_at=now(), kyc_ref=r.id, pan_last4=r.pan_last4, kyc_note=None)
         notify(st, inv["id"], "kyc", "Your identity is verified. You can now receive private offers.", "app-kyc")
         notify_advisors(st, "kyc", "KYC verified: " + label(inv), "app-directory")
+        release_waiting(st, inv["id"], None, today())   # confirmed suggestions waiting for this KYC get their offers
         _save(conn, st, inv, "kyc_verified", "Identity verified by %s (PAN ending %s)" % (provider_name, r.pan_last4))
     else:
         reason = str(ev.data.get("reason") or "The details could not be verified")[:300]
@@ -12556,6 +12949,49 @@ def test_lender_sells_a_loan_through_the_advisor(client):
     st = state(client)
     assert any(t["loan_id"] == "l_1" and t["status"] == "submitted" for t in st["loan_transfers"])
     assert any("Loan sale request" in n["text"] and n["link"] == "app-loantransfers" for n in st["notifications"])
+
+
+# ---------------- investor suggestions: the founder suggests, the advisor confirms, then the offer goes out ----------------
+def test_suggested_platform_investor_gets_the_offer_after_kyc(client):
+    login(client, "founder@demo.in")
+    assert "Suggested" in act(client, "suggest_investor", {"investor_id": "u_investor23", "note": "Met at a plastics expo"})["detail"]
+    act(client, "suggest_investor", {"investor_id": "u_investor23"}, 403)  # no duplicates
+    assert len(state(client)["suggestions"]) == 1
+    sid = store().suggestions[0]["id"]
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"}, 403)  # founders don't decide
+    login(client, "advisor@demo.in")
+    act(client, "suggest_investor", {"investor_id": "u_investor25"}, 403)  # advisors don't suggest
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"})
+    assert store().suggestions[0]["status"] == "waiting_kyc"
+    assert not any(o["investor_id"] == "u_investor23" and o["company_id"] == "c_kalyan" for o in store().offers)
+    act(client, "set_investor_profile", {"investor_id": "u_investor23", "kyc": "verified"})
+    sg = store().suggestions[0]
+    assert sg["status"] == "offered" and any(o["id"] == sg["offer_id"] for o in store().offers)
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "approve"}, 403)  # already decided
+
+
+def test_declined_suggestion_carries_a_reason(client):
+    login(client, "founder@demo.in")
+    act(client, "suggest_investor", {"name": "Asha Rao", "email": "asha@fund.in", "firm": "Rao Ventures"})
+    login(client, "advisor@demo.in")
+    sid = store().suggestions[0]["id"]
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "decline"}, 403)
+    act(client, "decide_suggestion", {"suggestion_id": sid, "decision": "decline", "reason": "Not an eligible investor for a private placement"})
+    login(client, "founder@demo.in")
+    mine = state(client)["suggestions"][0]
+    assert mine["status"] == "declined" and "eligible" in mine["reason"]
+    assert store().invites == []
+
+
+def test_confirming_a_new_investor_creates_an_invitation(client):
+    login(client, "founder@demo.in")
+    act(client, "suggest_investor", {"name": "Nina Shah", "email": "nina@fund.in"})
+    act(client, "suggest_investor", {"name": "Nina", "email": "nina@fund.in"}, 403)
+    login(client, "advisor@demo.in")
+    act(client, "decide_suggestion", {"suggestion_id": store().suggestions[0]["id"], "decision": "approve"})
+    sg, inv = store().suggestions[0], store().invites[0]
+    assert sg["status"] == "invited" and inv["email"] == "nina@fund.in" and inv["status"] == "pending"
+    assert "invites" not in state(client) or all("token" not in i for i in state(client)["invites"])
 ```
 
 ### `server/tests/test_parity.py`
@@ -12669,6 +13105,16 @@ const fy = DOM.fy(TODAY);
 const CHECKS = { validation: true, founder_confirmed: true, verifier: true };
 const sumBy = (xs, f) => xs.reduce((a, x) => a + f(x), 0);
 
+async function invitedInvestor(name, email) {
+  await login("founder@demo.in");
+  await act("suggest_investor", { name, email, firm: name + " Capital" });
+  await login("advisor@demo.in");
+  const sg = db().suggestions.find((x) => x.email === email);
+  const r = await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" });
+  await api.logout();
+  return api.signup({ name, email, password: "secret123", role: "investor", invite: r.invite_link.split("/").pop() });
+}
+
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
@@ -12725,18 +13171,18 @@ test("test_offer_over_200_in_a_financial_year_is_blocked", async () => {
   await login("advisor@demo.in");
   for (const sfx of ["23", "25"]) await act("set_investor_profile", { investor_id: "u_investor" + sfx, kyc: "verified" });
   const five = ["21", "22", "23", "24", "25"].map((s) => "u_investor" + s);
-  await api.logout();
-  const fresh = await api.signup({ name: "Six", email: "six@x.in", password: "secret123", role: "investor" });
+  // investors join by invitation: the founder suggests, the advisor confirms; the offer goes out once KYC is verified
+  const fresh = await invitedInvestor("Six", "six@x.in");
   await login("advisor@demo.in");
   await act("set_investor_profile", { investor_id: fresh.id, kyc: "verified" });
-  const r = await act("share_offer", { company_id: "c_kalyan", investor_ids: five.concat([fresh.id]) }, 403);
+  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 196);
+  const r = await act("share_offer", { company_id: "c_kalyan", investor_ids: five }, 403);
   assert.ok(r.error.includes("Section 42"), r.error);
-  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 195);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: five });
+  assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 196);
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: five.slice(0, 4) });
   assert.strictEqual(DOM.offersUsed(db(), "c_kalyan", fy, "equity"), 200);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: [fresh.id] }, 403);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor21"] }, 403);
-  await act("share_offer", { company_id: "c_kalyan", investor_ids: [fresh.id], security_type: "debentures" });
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor25"] }, 403);
+  await act("share_offer", { company_id: "c_kalyan", investor_ids: ["u_investor25"], security_type: "debentures" });
 });
 
 test("test_twenty_first_platform_investor_is_blocked", async () => {
@@ -12966,6 +13412,61 @@ test("sign-in, sign-up and session match the server", async () => {
   await assert.rejects(api.login("founder@demo.in", "demo1234"), /Too many attempts/);
 });
 
+// ---------- investor suggestions and invitations ----------
+test("founder suggests a platform investor; advisor confirms; the offer follows KYC", async () => {
+  await login("founder@demo.in");
+  const r = await act("suggest_investor", { investor_id: "u_investor23", note: "Met at a plastics expo" });
+  assert.ok(r.detail.includes("Suggested"), r.detail);
+  await act("suggest_investor", { investor_id: "u_investor23" }, 403);   // no duplicates
+  assert.strictEqual((await state()).suggestions.length, 1);
+  await act("decide_suggestion", { suggestion_id: db().suggestions[0].id, decision: "approve" }, 403);   // founders don't decide
+  await login("advisor@demo.in");
+  await act("suggest_investor", { investor_id: "u_investor25" }, 403);   // advisors don't suggest
+  const sg = db().suggestions[0];
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" });
+  assert.strictEqual(db().suggestions[0].status, "waiting_kyc");
+  assert.ok(!db().offers.some((o) => o.investor_id === "u_investor23" && o.company_id === "c_kalyan"));
+  await act("set_investor_profile", { investor_id: "u_investor23", kyc: "verified" });
+  const done = db().suggestions[0];
+  assert.strictEqual(done.status, "offered");
+  assert.ok(db().offers.some((o) => o.id === done.offer_id && o.investor_id === "u_investor23"));
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "approve" }, 403);   // already decided
+});
+
+test("advisor declines a suggestion with a reason the founder sees", async () => {
+  await login("founder@demo.in");
+  await act("suggest_investor", { name: "Asha Rao", email: "asha@fund.in", firm: "Rao Ventures" });
+  await login("advisor@demo.in");
+  const sg = db().suggestions[0];
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "decline" }, 403);
+  await act("decide_suggestion", { suggestion_id: sg.id, decision: "decline", reason: "Not an eligible investor for a private placement" });
+  await login("founder@demo.in");
+  const mine = (await state()).suggestions[0];
+  assert.strictEqual(mine.status, "declined");
+  assert.ok(mine.reason.includes("eligible"));
+  assert.strictEqual(db().invites.length, 0);
+});
+
+test("investors join only by invitation", async () => {
+  await api.logout();
+  await assert.rejects(api.signup({ name: "Walk In", email: "walkin@x.in", password: "secret123", role: "investor" }), /invitation/);
+  await login("founder@demo.in");
+  await act("suggest_investor", { name: "Nina Shah", email: "nina@fund.in" });
+  await login("advisor@demo.in");
+  const r = await act("decide_suggestion", { suggestion_id: db().suggestions[0].id, decision: "approve" });
+  assert.ok(r.invite_link.startsWith("#signup/invite/"));
+  assert.strictEqual(db().suggestions[0].status, "invited");
+  const token = r.invite_link.split("/").pop();
+  await api.logout();
+  assert.strictEqual((await api.inviteInfo(token)).email, "nina@fund.in");
+  await assert.rejects(api.signup({ name: "Nina", email: "other@fund.in", password: "secret123", role: "investor", invite: token }), /invitation was sent to/);
+  const nina = await api.signup({ name: "Nina Shah", email: "nina@fund.in", password: "secret123", role: "investor", invite: token });
+  assert.strictEqual(db().suggestions[0].investor_id, nina.id);
+  assert.strictEqual(db().suggestions[0].status, "waiting_kyc");
+  await api.logout();
+  await assert.rejects(api.signup({ name: "Again", email: "nina2@fund.in", password: "secret123", role: "investor", invite: token }), /invitation/);
+});
+
 // ---------- runner ----------
 (async () => {
   let failed = 0;
@@ -13097,6 +13598,7 @@ def fresh(tmp_path, today):
     settings.database_url = test_database_url(tmp_path)
     settings.uploads = str(tmp_path / "up")
     settings.today = today
+    settings.investor_signup = "open"   # the prototype suite signs investors up directly; invite-only is tested in test_invitations.py
     T.reset_engine()
     eng = T.engine()
     with eng.begin() as conn:

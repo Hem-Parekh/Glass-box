@@ -4,13 +4,14 @@ Each action takes (st, user, payload, today), checks the rules, mutates the load
 (detail, company_id). The API layer saves the changes and writes them, with before/after values, to the
 append-only audit log. site/store.js mirrors this file for the browser-only demo.
 """
+import re
 import uuid
 from datetime import datetime, timezone
 
 from server import domain as D
 
 COLLECTIONS = ("companies", "reports", "intros", "cap_table", "holdings", "offers", "valuations", "sell_requests", "transfers",
-               "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings")
+               "loans", "loan_transfers", "invoices", "notes", "notifications", "files", "enquiries", "settings", "suggestions", "invites")
 COMPANY_FIELDS = ("name", "sector", "stage", "city", "revenue", "raise", "instrument", "twin", "readiness", "quarters", "covenants", "docs")
 ADVISOR_COMPANY_FIELDS = ("offer_price_paise", "fd_extra_shares", "security_type", "raise_paise")
 SELL_OPEN = ("submitted", "under_review", "rofr", "buyer_introduced", "spa_signed")
@@ -187,7 +188,7 @@ def visible_state(st, user, audit_rows, today):
                     holdings=[dict(h, investor_name=label(user_of(st, h["investor_id"]))) for h in only(st.holdings)],
                     offers=[offer_view(o) for o in only(st.offers)], valuations=only(st.valuations), sell_requests=[sell_view(x) for x in only(st.sell_requests)],
                     loans=only(st.loans), invoices=[i for i in st.invoices if i["company_id"] == cid and i["payer"] == "company"],
-                    files=only(st.files), audit=audit_rows(("company_id", cid)))
+                    files=only(st.files), suggestions=only(st.suggestions), audit=audit_rows(("company_id", cid)))
     if role == "investor":
         mine = [o for o in st.offers if o["investor_id"] == user["id"]]
         hold = [h for h in st.holdings if h["investor_id"] == user["id"]]
@@ -368,6 +369,8 @@ def a_set_investor_profile(st, u, p, today):
         prof["kyc"] = p["kyc"]
     if p.get("accredited") is not None:
         prof["accredited"] = bool(p["accredited"])
+    if prof.get("kyc") == "verified":
+        release_waiting(st, inv["id"], u["id"], today)
     return "Updated %s: KYC %s, accredited %s" % (label(inv), prof.get("kyc"), "yes" if prof.get("accredited") else "no"), None
 
 
@@ -526,14 +529,132 @@ def a_view_room_doc(st, u, p, today):
     return "Viewed " + p["doc"] + " (watermarked: " + u["name"] + ")", c["id"]
 
 
+# ---------------- investor suggestions: the founder suggests, the advisor confirms, then the offer goes out ----------------
+# Investors join only by invitation. A founder may suggest an investor already on the platform, or a new one by name and
+# email; the advisor confirms or declines. On confirmation a platform investor receives the offer at once (or as soon as
+# their KYC is verified); a new investor gets an invitation (the server emails the private link) and receives the offer
+# once they have joined and passed KYC.
+SUGGESTION_OPEN = ("suggested", "invited", "waiting_kyc")
+
+
+def offerable(c, st):
+    return c.get("pipeline_stage") in ("approved", "offering") and approved(st, c["id"])
+
+
+def send_offer(st, c, inv, by_id, today):
+    """One offer to one KYC-verified investor, inside the Section 42 limit. Returns the offer (an existing one if already sent)."""
+    need(offerable(c, st), "Only a company in Approved or Offering status with a signed-off report can be offered")
+    need((inv.get("profile") or {}).get("kyc") == "verified", label(inv) + " has not completed KYC")
+    sec, year = c.get("security_type") or "equity", D.fy(today)
+    old = next((o for o in st.offers if o["company_id"] == c["id"] and o["investor_id"] == inv["id"] and o["fy"] == year and o["security_type"] == sec), None)
+    if old:
+        return old
+    s, used = settings(st), D.offers_used(st, c["id"], year, sec)
+    need(used + 1 <= s["offer_limit"], "Blocked: %s has used all %d %s offers for FY %s (Section 42)." % (c["name"], s["offer_limit"], sec, year))
+    o = dict(id=uid("o"), company_id=c["id"], investor_id=inv["id"], fy=year, security_type=sec, sent_at=now(), sent_by=by_id,
+             response="pending", responded_at=None, share_identity=False, views=[])
+    st.offers.append(o)
+    notify(st, inv["id"], "offer", "New private offer: " + c["name"], "app-opportunities")
+    if c["pipeline_stage"] == "approved":
+        c.update(pipeline_stage="offering", stage_since=today)
+    return o
+
+
+def release_suggestion(st, sg, by_id, today):
+    """A confirmed suggestion: send the offer if the investor can receive it now, otherwise wait for their KYC."""
+    inv, c = user_of(st, sg["investor_id"], "investor"), company_of(st, sg["company_id"])
+    if (inv.get("profile") or {}).get("kyc") != "verified":
+        sg["status"] = "waiting_kyc"
+        return
+    try:
+        o = send_offer(st, c, inv, by_id, today)
+        sg.update(status="offered", offer_id=o["id"], reason=None)
+        notify(st, sg["by"], "suggest", "Your advisor sent the offer to %s" % label(inv), "app-fundraise")
+    except Denied as e:
+        sg.update(status="blocked", reason=str(e))
+        notify_advisors(st, "suggest", "Could not send %s's offer to %s: %s" % (c["name"], label(inv), e), "app-directory")
+
+
+def release_waiting(st, investor_id, by_id, today):
+    """Called when an investor's KYC is verified: every confirmed suggestion waiting for it goes out."""
+    for sg in st.suggestions:
+        if sg.get("investor_id") == investor_id and sg["status"] == "waiting_kyc":
+            release_suggestion(st, sg, by_id, today)
+
+
 def a_suggest_investor(st, u, p, today):
     need(u["role"] == "founder", "Only founders suggest investors")
-    inv = user_of(st, p.get("investor_id"), "investor")
     c = company_of(st, u["company_id"])
-    note = "%s suggests offering to %s" % (u["name"], label(inv))
-    st.notes.append(dict(id=uid("n"), subject_type="company", subject_id=c["id"], text=note + ".", due=None, done=False, by=u["id"], at=now()))
-    notify_advisors(st, "suggest", note + " (" + c["name"] + ")", "app-directory")
-    return "Suggested %s to your advisor. Your advisor decides who receives the offer." % label(inv), c["id"]
+    note = str(p.get("note") or "").strip()[:300]
+    inv = None
+    if p.get("investor_id"):
+        inv = user_of(st, p.get("investor_id"), "investor")
+    else:
+        email = str(p.get("email") or "").strip().lower()[:254]
+        name = str(p.get("name") or "").strip()[:80]
+        need(name and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email), "Enter the investor's name and a valid email")
+        existing = next((x for x in st.users if (x.get("email") or "").lower() == email), None)
+        if existing:
+            need(existing["role"] == "investor", "That email belongs to an account that is not an investor")
+            inv = existing
+    if inv:
+        need(not any(o["investor_id"] == inv["id"] and o["company_id"] == c["id"] for o in st.offers), label(inv) + " already has your offer")
+        need(not any(x.get("investor_id") == inv["id"] and x["company_id"] == c["id"] and x["status"] in SUGGESTION_OPEN for x in st.suggestions),
+             "You have already suggested " + label(inv))
+        who = dict(investor_id=inv["id"], name=inv["name"], email=None, firm=inv.get("firm"))
+    else:
+        need(not any((x.get("email") or "") == email and x["company_id"] == c["id"] and x["status"] in SUGGESTION_OPEN for x in st.suggestions),
+             "You have already suggested " + email)
+        who = dict(investor_id=None, name=name, email=email, firm=str(p.get("firm") or "").strip()[:120] or None)
+    sg = dict(id=uid("sg"), company_id=c["id"], by=u["id"], at=now(), note=note or None, status="suggested",
+              decided_by=None, decided_at=None, reason=None, offer_id=None, invite_id=None, **who)
+    st.suggestions.append(sg)
+    shown = label(inv) if inv else (who["name"] + (" (" + who["firm"] + ")" if who["firm"] else ""))
+    text = "%s suggests offering to %s" % (u["name"], shown)
+    st.notes.append(dict(id=uid("n"), subject_type="company", subject_id=c["id"], text=text + ".", due=None, done=False, by=u["id"], at=now()))
+    notify_advisors(st, "suggest", text + " (" + c["name"] + ")", "app-directory")
+    return "Suggested %s to your advisor. Your advisor decides who receives the offer." % shown, c["id"]
+
+
+def a_decide_suggestion(st, u, p, today):
+    need(u["role"] == "advisor", "Only an advisor confirms suggested investors")
+    sg = find(st.suggestions, p.get("suggestion_id"))
+    need(sg, "Suggestion not found")
+    need(sg["status"] == "suggested", "This suggestion was already decided")
+    c = company_of(st, sg["company_id"])
+    shown = sg["name"] + (" (" + sg["firm"] + ")" if sg.get("firm") else "")
+    if p.get("decision") == "decline":
+        reason = str(p.get("reason") or "").strip()[:300]
+        need(reason, "Give the founder a reason")
+        sg.update(status="declined", reason=reason, decided_by=u["id"], decided_at=now())
+        notify(st, sg["by"], "suggest", "Your advisor declined %s: %s" % (shown, reason), "app-investors")
+        return "Declined %s for %s" % (shown, c["name"]), c["id"]
+    need(p.get("decision") == "approve", "Choose approve or decline")
+    need(offerable(c, st), "Approve %s's report and move it to Approved before confirming investors" % c["name"])
+    sg.update(decided_by=u["id"], decided_at=now())
+    if sg.get("investor_id"):
+        release_suggestion(st, sg, u["id"], today)
+        what = {"offered": "offer sent", "waiting_kyc": "the offer goes out once their KYC is verified"}.get(sg["status"], sg.get("reason") or sg["status"])
+        return "Confirmed %s for %s: %s" % (shown, c["name"], what), c["id"]
+    inv = dict(id=uid("iv"), company_id=c["id"], suggestion_id=sg["id"], name=sg["name"], email=sg["email"], firm=sg.get("firm"),
+               status="pending", created_at=now(), created_by=u["id"], sent_at=None, accepted_at=None, user_id=None)
+    st.invites.append(inv)
+    sg.update(status="invited", invite_id=inv["id"])
+    notify(st, sg["by"], "suggest", "Your advisor confirmed %s; an invitation is on its way" % shown, "app-investors")
+    return "Confirmed %s for %s and invited %s to join" % (shown, c["name"], sg["email"]), c["id"]
+
+
+def accept_invite(st, invite_id, user, today):
+    """A new investor signed up through their invitation: link them to the suggestion; the offer follows their KYC."""
+    inv = find(st.invites, invite_id)
+    need(inv and inv["status"] == "pending", "This invitation has already been used or withdrawn")
+    inv.update(status="accepted", accepted_at=now(), user_id=user["id"])
+    sg = find(st.suggestions, inv["suggestion_id"])
+    if sg and sg["status"] == "invited":
+        sg.update(investor_id=user["id"], status="waiting_kyc")
+        notify(st, sg["by"], "suggest", "%s accepted the invitation" % inv["name"], "app-investors")
+    notify_advisors(st, "suggest", "%s joined by invitation; verify their KYC to send the offer" % inv["name"], "app-directory")
+    return inv
 
 
 def a_request_sell(st, u, p, today):

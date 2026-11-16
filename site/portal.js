@@ -45,18 +45,38 @@
       '<label class="fld"><span>Type it again</span><span class="in"><input name="password2" id="r_pw2" type="password" autocomplete="new-password" required></span></label>' +
       '<button class="btn primary lg block" type="submit">Save new password</button></form><p class="small muted">Saving signs you out on every device.</p></div></div>');
   }
+  // Investors join by invitation (#signup/invite/<token>): a founder suggests them and an advisor confirms.
+  function inviteSignup(token, err) {
+    if (!S.invite || S.invite.token !== token) {
+      S.invite = { token };
+      API.inviteInfo(token).then((d) => { S.invite.info = d; render(); }, (e) => { S.invite.error = e.message; render(); });
+      return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Your invitation</h1><p class="muted">Checking your invitation…</p></div></div>');
+    }
+    const i = S.invite.info;
+    if (S.invite.error || !i) return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Your invitation</h1><div class="notice bad" role="alert">' + esc(S.invite.error || "This invitation link is not valid.") + '</div><p class="small muted">Investors join Aegis Ascend by invitation only. Ask the founder or your advisor for a new link.</p></div></div>');
+    return PUB.page("signup", null, '<div class="auth"><div class="auth-card"><h1>Join as an investor</h1>' +
+      '<p class="muted">' + esc(i.company || "A company we advise") + " has asked Aegis Ascend to share a private investment opportunity with you. After you join, we verify your identity (KYC) and then send the offer.</p>" +
+      (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
+      '<form class="form" data-form="signup" novalidate><input type="hidden" name="role" value="investor"><input type="hidden" name="invite" value="' + esc(token) + '">' +
+      '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="s_name" autocomplete="name" value="' + esc(i.name || "") + '" required></span></label>' +
+      '<label class="fld"><span>Firm or family office</span><span class="in"><input name="org" id="s_org" autocomplete="organization" value="' + esc(i.firm || "") + '"></span></label>' +
+      '<label class="fld"><span>Email (the address your invitation was sent to)</span><span class="in"><input name="email" id="s_email" type="email" value="' + esc(i.email) + '" readonly></span></label>' +
+      '<label class="fld"><span>Password (8 characters or more)</span><span class="in"><input name="password" id="s_password" type="password" autocomplete="new-password" required minlength="8"></span></label>' +
+      '<button class="btn primary lg block" type="submit">Create my investor account</button></form><p class="small muted">This invitation is personal to you. Please do not forward it.</p></div></div>');
+  }
   function signup(err) {
+    if ((S.param || "").startsWith("invite/")) return inviteSignup(S.param.slice(7), err);
     return PUB.page("signup", null, '<div class="auth"><div class="auth-card">' +
       "<h1>Create an account</h1>" + (err ? '<div class="notice bad" role="alert">' + esc(err) + "</div>" : "") +
       '<form class="form" data-form="signup" novalidate>' +
-      '<fieldset class="seg"><legend>I am a</legend>' + [["founder", "Founder"], ["investor", "Investor"], ["lender", "Lender"]].map(([v, l], i) => '<label><input type="radio" name="role" value="' + v + '"' + (i ? "" : " checked") + "><span>" + l + "</span></label>").join("") + "</fieldset>" +
+      '<fieldset class="seg"><legend>I am a</legend>' + [["founder", "Founder"], ["lender", "Lender"]].map(([v, l], i) => '<label><input type="radio" name="role" value="' + v + '"' + (i ? "" : " checked") + "><span>" + l + "</span></label>").join("") + "</fieldset>" +
       '<label class="fld"><span>Your name</span><span class="in"><input name="name" id="s_name" autocomplete="name" required></span></label>' +
       '<label class="fld"><span>Company, fund or bank</span><span class="in"><input name="org" id="s_org" autocomplete="organization"></span></label>' +
       '<label class="fld"><span>Sector</span><span class="in"><select name="sector" id="s_sector">' + SECTORS.map((s) => "<option>" + s + "</option>").join("") + "</select></span></label>" +
       '<label class="fld"><span>Email</span><span class="in"><input name="email" id="s_email" type="email" autocomplete="email" required></span></label>' +
       '<label class="fld"><span>Password (8 characters or more)</span><span class="in"><input name="password" id="s_password" type="password" autocomplete="new-password" required minlength="8"></span></label>' +
       '<button class="btn primary lg block" type="submit">Create account</button></form>' +
-      '<p class="small muted">Already registered? <a href="#login">Sign in</a>. Advisor accounts are created by Aegis Ascend.</p></div></div>');
+      '<p class="small muted">Already registered? <a href="#login">Sign in</a>. Investors join by invitation; advisor accounts are created by Aegis Ascend.</p></div></div>');
   }
   const SECTORS = ["Plastics & packaging", "Auto components", "Chemicals", "Food processing", "Textiles", "Engineering", "Pharma", "Electronics"];
 
@@ -91,6 +111,9 @@
   const userName = (id) => { const u = (S.data.directory || []).concat(S.data.founders || []).find((x) => x.id === id); return u ? (u.firm && u.role !== "advisor" ? u.firm : u.name) : id === S.user.id ? S.user.name : "Aegis Ascend user"; };
   const companyById = (id) => S.data.companies.find((c) => c.id === id);
   const statusChip = (s) => chip({ approved: "ok", in_review: "warn", changes: "bad", draft: "", requested: "warn", granted: "ok", declined: "bad", applied: "warn", sanctioned: "ok", disbursed: "ok", consent_needed: "warn", completed: "ok", open: "warn" }[s] || "", ({ in_review: "In review", changes: "Changes requested", consent_needed: "Needs founder consent", first_refusal: "First refusal", buyer_intro: "Buyer introduction", spa: "SPA", open: "In progress" })[s] || s.charAt(0).toUpperCase() + s.slice(1));
+  // a founder's suggested investor, at each step: waiting for the advisor, invited, waiting for KYC, offer sent, declined
+  const sgChip = (sg) => chip({ suggested: "warn", invited: "warn", waiting_kyc: "warn", offered: "ok", declined: "bad", blocked: "bad" }[sg.status] || "",
+    { suggested: "Waiting for your advisor", invited: "Invited to join", waiting_kyc: "Waiting for KYC", offered: "Offer sent", declined: "Declined", blocked: "Could not send" }[sg.status] || sg.status);
   const stamp = (r) => (r && r.status === "approved" ? '<span class="stamp">Reviewed by ' + esc(userName(r.reviewed_by)) + " · " + date(r.reviewed_at) + "</span>" : "");
   const latestReport = (cid) => S.data.reports.filter((r) => r.company_id === cid).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
   const pdfBtn = (tool) => '<button class="btn ghost sm" type="button" data-act="pdf-tool" data-tool="' + tool + '">Download PDF</button>';
@@ -763,7 +786,7 @@
   });
 
   // Role modules (ws-*.js) load after this file and register pages, click and form handlers here.
-  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
+  const WS = root.WS = { S, API, PAGES, clicks: {}, forms: {}, reportPdf, payCol, goTo, sgChip, render, after, fail, head, shell, esc, statusChip, stamp, companyById, userName, myCompany, latestReport, monitorBlock, readForm, num, roleName, SECTORS };
   window.addEventListener("hashchange", () => render());
   const boot = async () => { try { S.user = await API.me(); } catch (e) { S.user = null; } render(); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else setTimeout(boot, 0);

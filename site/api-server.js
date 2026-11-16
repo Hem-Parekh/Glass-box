@@ -52,6 +52,7 @@
       },
       pay: (invoice_id) => call("POST", "/api/pay/" + encodeURIComponent(invoice_id)),
     },
+    async inviteInfo(token) { return call("GET", "/api/invite/" + encodeURIComponent(token)); },
     async reset() { throw new Error("Reset is only available in the demo."); },
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

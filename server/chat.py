@@ -68,7 +68,7 @@ COMPLIANCE BY DESIGN
 - Some items are planned, not built yet: multi-factor login, hosting in an Indian cloud region with encryption at rest, DPDP Act consent and deletion flows, an independent security test. Legal opinions on several structures are still being obtained (listed on the Trust & compliance page).
 
 WORKSPACE
-- Founders, investors and lenders can create an account from "Sign in" -> "Create an account". Advisor accounts are created by the firm.
+- Founders and lenders can create an account from "Sign in" -> "Create an account". Investors join only by invitation: a founder suggests them on the Investors page, an advisor confirms, and the investor receives a private link; the offer follows their KYC. Advisor accounts are created by the firm.
 - The demo has one-click sign-ins for each role (password demo1234). All demo companies and people are fictional.
 """
 

@@ -144,6 +144,15 @@ payments = Table(
     Column("error", Text),
 )
 
+invite_tokens = Table(
+    "invite_tokens", metadata,   # private invitation links: only a hash of each link's token is stored
+    Column("token_hash", String(64), primary_key=True),
+    Column("invite_id", String(60), nullable=False, index=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("used_at", DateTime(timezone=True)),
+)
+
 webhook_events = Table(
     "webhook_events", metadata,   # every provider callback, so a repeated one is recognised and ignored
     Column("provider", String(30), primary_key=True),

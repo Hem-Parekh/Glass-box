@@ -36,6 +36,7 @@ Leave `GB_DATABASE_URL` unset to use a local SQLite file for a quick trial.
 | `GB_KYC_PROVIDER`, `GB_ESIGN_PROVIDER`, `GB_PAYMENTS_PROVIDER` | `standin` until real accounts exist (see `backend/integrations/README.md`) |
 | `GB_WEBHOOK_SECRET` | Signs the stand-in providers' callbacks (defaults to the secret key) |
 | `GB_REQUIRE_ESIGN` | `1` (the default in production) means NDAs can only be signed through e-signing |
+| `GB_INVESTOR_SIGNUP` | `invite` (default): investors join only through an emailed invitation link; `open` is for tests |
 | `GB_SEED_DEMO` | `1` loads the fictional demo data into an empty database |
 | `ANTHROPIC_API_KEY` | Turns on Claude answers in the website assistant |
 
